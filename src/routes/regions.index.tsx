@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,21 +27,33 @@ export const Route = createFileRoute("/regions/")({
 
 function Regions() {
   const { region: selected } = Route.useSearch();
+  const location = useLocation();
   const [regions, setRegions] = useState<any[]>([]);
   const refs = useRef<Record<string, HTMLAnchorElement | null>>({});
+  const mapRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     supabase.from("regions").select("*").order("name").then(({ data }) => setRegions(data ?? []));
   }, []);
 
+  // Re-run on every history entry (incl. back/forward) so highlight + scroll
+  // stay in sync with the URL even when navigating to a previously visited state.
   useEffect(() => {
-    if (!selected) return;
-    const el = refs.current[selected];
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.focus({ preventScroll: true });
-    }
-  }, [selected, regions]);
+    if (regions.length === 0) return;
+    // Defer past the browser's own scroll restoration on popstate.
+    const id = window.setTimeout(() => {
+      if (selected) {
+        const el = refs.current[selected];
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.focus({ preventScroll: true });
+        }
+      } else {
+        mapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 60);
+    return () => window.clearTimeout(id);
+  }, [selected, regions, location.href]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -56,7 +68,7 @@ function Regions() {
         </Breadcrumb>
         <h1 className="mt-6 font-display text-4xl font-bold md:text-5xl">All regions</h1>
         <p className="mt-2 text-muted-foreground">17 regions · 86 provinces · 1,647 cities & municipalities · 42,042 barangays</p>
-        <div className="mt-10">
+        <div className="mt-10" ref={mapRef}>
           <PhRegionMap selected={selected} />
         </div>
         <h2 className="mt-16 font-display text-2xl font-bold">All regions</h2>
