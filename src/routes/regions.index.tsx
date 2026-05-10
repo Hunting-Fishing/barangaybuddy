@@ -8,7 +8,7 @@ import { MapPin } from "lucide-react";
 import { PhRegionMap } from "@/components/ph-region-map";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
-export const Route = createFileRoute("/regions")({
+export const Route = createFileRoute("/regions/")({
   head: () => ({
     meta: [
       { title: "Browse all regions — BarangayHub" },
