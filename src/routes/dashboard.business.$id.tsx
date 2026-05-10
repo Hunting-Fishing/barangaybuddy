@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { z } from "zod";
-import { ArrowLeft, Plus, Trash2, Upload, Pencil } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, Pencil, Fuel, ThumbsUp, ThumbsDown } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard/business/$id")({
   head: () => ({ meta: [{ title: "Manage business — BarangayHub" }] }),
@@ -26,6 +27,14 @@ const listingSchema = z.object({
   category: z.string().max(60).optional(),
 });
 
+const FUEL_LABELS: Record<string, string> = {
+  gasoline_91: "Gas 91",
+  gasoline_95: "Gas 95",
+  gasoline_97: "Gas 97",
+  diesel: "Diesel",
+};
+const FUEL_TYPES = Object.keys(FUEL_LABELS) as Array<keyof typeof FUEL_LABELS>;
+
 function ManageBusiness() {
   const { id } = Route.useParams();
   const { user, loading } = useAuth();
@@ -36,13 +45,35 @@ function ManageBusiness() {
   const [form, setForm] = useState({ name: "", description: "", price: "", unit: "", category: "", image_url: "" });
   const [busy, setBusy] = useState(false);
 
+  // Fuel-station state
+  const [fuelPrices, setFuelPrices] = useState<any[]>([]);
+  const [fuelForm, setFuelForm] = useState({ fuel_type: "gasoline_95", price: "" });
+  const [details, setDetails] = useState({ brand: "", address: "", hours: "", contact_phone: "" });
+
   useEffect(() => { if (!loading && !user) nav({ to: "/login" }); }, [user, loading, nav]);
 
   async function load() {
     const { data: b } = await supabase.from("businesses").select("*").eq("id", id).maybeSingle();
     setBiz(b);
+    if (b) {
+      setDetails({
+        brand: (b.tags?.[0] as string) ?? "",
+        address: b.address ?? "",
+        hours: b.hours ?? "",
+        contact_phone: b.contact_phone ?? "",
+      });
+    }
     const { data: l } = await supabase.from("listings").select("*").eq("business_id", id).order("created_at", { ascending: false });
     setListings(l ?? []);
+    if (b?.type === "fuel_station") {
+      const { data: fp } = await supabase
+        .from("fuel_prices")
+        .select("*")
+        .eq("station_id", id)
+        .order("reported_at", { ascending: false })
+        .limit(50);
+      setFuelPrices(fp ?? []);
+    }
   }
   useEffect(() => { load(); }, [id]);
 
@@ -111,7 +142,51 @@ function ManageBusiness() {
     if (url) setForm({ ...form, image_url: url });
   }
 
+  async function saveDetails(e: React.FormEvent) {
+    e.preventDefault();
+    const tags = details.brand ? [details.brand.trim()] : [];
+    const { error } = await supabase.from("businesses").update({
+      tags,
+      address: details.address || null,
+      hours: details.hours || null,
+      contact_phone: details.contact_phone || null,
+    }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Station details saved"); load();
+  }
+
+  async function postFuelPrice(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    const parsed = z.object({
+      fuel_type: z.enum(["gasoline_91", "gasoline_95", "gasoline_97", "diesel"]),
+      price: z.coerce.number().positive().max(999),
+    }).safeParse(fuelForm);
+    if (!parsed.success) return toast.error(parsed.error.issues[0].message);
+    const { error } = await supabase.from("fuel_prices").insert({
+      station_id: id,
+      reported_by: user.id,
+      ...parsed.data,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Price posted!");
+    setFuelForm({ ...fuelForm, price: "" });
+    load();
+  }
+
+  async function removeFuelPrice(fid: string) {
+    if (!confirm("Delete this price report?")) return;
+    const { error } = await supabase.from("fuel_prices").delete().eq("id", fid);
+    if (error) return toast.error(error.message);
+    toast.success("Removed"); load();
+  }
+
+  // Latest price per fuel type
+  const latestByType = FUEL_TYPES.map((t) => ({ type: t, row: fuelPrices.find((p) => p.fuel_type === t) }));
+
   if (!biz) return <div className="min-h-screen"><SiteHeader /><main className="container mx-auto p-16">Loading…</main></div>;
+
+  const isFuel = biz.type === "fuel_station";
 
   return (
     <div className="min-h-screen bg-background">
@@ -152,6 +227,104 @@ function ManageBusiness() {
             </div>
           </div>
         </Card>
+
+        {isFuel && (
+          <>
+            <Card className="mt-8 p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-sun shadow-sun">
+                  <Fuel className="h-5 w-5 text-sun-foreground" />
+                </div>
+                <h2 className="font-display text-xl font-bold">Station details</h2>
+              </div>
+              <form onSubmit={saveDetails} className="mt-4 grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label>Brand (e.g. Petron, Shell, Caltex)</Label>
+                  <Input value={details.brand} onChange={(e) => setDetails({ ...details, brand: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Contact phone</Label>
+                  <Input value={details.contact_phone} onChange={(e) => setDetails({ ...details, contact_phone: e.target.value })} />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Address</Label>
+                  <Input value={details.address} onChange={(e) => setDetails({ ...details, address: e.target.value })} placeholder="Street, landmark" />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Hours</Label>
+                  <Input value={details.hours} onChange={(e) => setDetails({ ...details, hours: e.target.value })} placeholder="Mon–Sun 24/7" />
+                </div>
+                <div className="md:col-span-2">
+                  <Button type="submit">Save station details</Button>
+                </div>
+              </form>
+            </Card>
+
+            <Card className="mt-8 p-6">
+              <h2 className="font-display text-xl font-bold">Post current fuel price</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Update what your pump is charging right now. The community can upvote or downvote each report.</p>
+              <form onSubmit={postFuelPrice} className="mt-4 grid gap-4 md:grid-cols-[1fr_1fr_auto]">
+                <div>
+                  <Label>Fuel type</Label>
+                  <Select value={fuelForm.fuel_type} onValueChange={(v) => setFuelForm({ ...fuelForm, fuel_type: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {FUEL_TYPES.map((t) => <SelectItem key={t} value={t}>{FUEL_LABELS[t]}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Price (₱ / liter)</Label>
+                  <Input type="number" step="0.01" value={fuelForm.price} onChange={(e) => setFuelForm({ ...fuelForm, price: e.target.value })} required />
+                </div>
+                <div className="flex items-end">
+                  <Button type="submit" className="gap-2"><Plus className="h-4 w-4" /> Post price</Button>
+                </div>
+              </form>
+
+              <div className="mt-6 grid gap-3 md:grid-cols-4">
+                {latestByType.map(({ type, row }) => (
+                  <div key={type} className="rounded-lg border border-border p-4">
+                    <div className="text-xs uppercase text-muted-foreground">{FUEL_LABELS[type]}</div>
+                    {row ? (
+                      <>
+                        <div className="font-display text-2xl font-bold text-sea">₱{Number(row.price).toFixed(2)}</div>
+                        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="inline-flex items-center gap-1"><ThumbsUp className="h-3 w-3" /> {row.upvotes}</span>
+                          <span className="inline-flex items-center gap-1"><ThumbsDown className="h-3 w-3" /> {row.downvotes}</span>
+                        </div>
+                      </>
+                    ) : <div className="mt-1 text-sm text-muted-foreground">No data</div>}
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card className="mt-8 p-6">
+              <h2 className="font-display text-xl font-bold">Price history</h2>
+              <div className="mt-4 space-y-2">
+                {fuelPrices.length === 0 && <p className="text-sm text-muted-foreground">No prices posted yet.</p>}
+                {fuelPrices.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between rounded-md border border-border px-4 py-3">
+                    <div>
+                      <div className="text-sm font-medium">{FUEL_LABELS[p.fuel_type]} · ₱{Number(p.price).toFixed(2)}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(p.reported_at).toLocaleString()}</div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><ThumbsUp className="h-3 w-3" /> {p.upvotes}</span>
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><ThumbsDown className="h-3 w-3" /> {p.downvotes}</span>
+                      {p.reported_by === user?.id && (
+                        <Button size="sm" variant="ghost" onClick={() => removeFuelPrice(p.id)} className="gap-1 text-destructive">
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </>
+        )}
 
         <section className="mt-12">
           <div className="flex items-center justify-between">
