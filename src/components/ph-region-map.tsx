@@ -50,13 +50,11 @@ export function PhRegionMap() {
             className="group absolute -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${h.x}%`, top: `${h.y}%` }}
           >
-            <span className="relative flex items-center justify-center">
-              <span className="absolute h-7 w-7 animate-ping rounded-full bg-primary/40 opacity-60 group-hover:opacity-100" />
-              <span className="relative flex h-7 min-w-7 items-center justify-center rounded-full border-2 border-background bg-primary px-1.5 text-[10px] font-bold text-primary-foreground shadow-md transition-transform group-hover:scale-125 group-focus-visible:scale-125">
-                {h.short}
-              </span>
+            <span className="relative flex h-6 w-6 items-center justify-center">
+              <span className="absolute inset-0 rounded-full bg-primary/30 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+              <span className="absolute inset-1.5 rounded-full bg-primary/0 ring-2 ring-primary/0 transition-all group-hover:bg-primary group-hover:ring-primary/40 group-focus-visible:bg-primary group-focus-visible:ring-primary/40" />
             </span>
-            <span className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-0.5 text-[11px] font-medium text-background opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+            <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-0.5 text-[11px] font-medium text-background opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
               {h.name}
             </span>
           </Link>
