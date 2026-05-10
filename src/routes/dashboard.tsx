@@ -132,11 +132,12 @@ function Dashboard() {
 
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {businesses.map((b) => (
-            <Link key={b.id} to="/business/$slug" params={{ slug: b.slug }}>
+            <Link key={b.id} to="/dashboard/business/$id" params={{ id: b.id }}>
               <Card className="p-5 transition-all hover:-translate-y-1 hover:shadow-elegant">
                 <div className="text-xs uppercase text-muted-foreground">{b.type.replace("_", " ")}</div>
                 <h3 className="mt-1 font-display text-lg font-bold">{b.name}</h3>
                 <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{b.description}</p>
+                <p className="mt-3 text-xs text-primary">Manage listings & images →</p>
               </Card>
             </Link>
           ))}

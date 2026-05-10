@@ -23,6 +23,7 @@ import { Route as ProvincesProvinceRouteImport } from './routes/provinces.$provi
 import { Route as MessagesConversationIdRouteImport } from './routes/messages.$conversationId'
 import { Route as CitiesCityRouteImport } from './routes/cities.$city'
 import { Route as BusinessSlugRouteImport } from './routes/business.$slug'
+import { Route as DashboardBusinessIdRouteImport } from './routes/dashboard.business.$id'
 import { Route as BarangaysCityBarangayRouteImport } from './routes/barangays.$city.$barangay'
 
 const SignupRoute = SignupRouteImport.update({
@@ -95,6 +96,11 @@ const BusinessSlugRoute = BusinessSlugRouteImport.update({
   path: '/business/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardBusinessIdRoute = DashboardBusinessIdRouteImport.update({
+  id: '/business/$id',
+  path: '/business/$id',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const BarangaysCityBarangayRoute = BarangaysCityBarangayRouteImport.update({
   id: '/barangays/$city/$barangay',
   path: '/barangays/$city/$barangay',
@@ -103,7 +109,7 @@ const BarangaysCityBarangayRoute = BarangaysCityBarangayRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
+  '/dashboard': typeof DashboardRouteWithChildren
   '/fuel': typeof FuelRoute
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
@@ -117,10 +123,11 @@ export interface FileRoutesByFullPath {
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
+  '/dashboard/business/$id': typeof DashboardBusinessIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
+  '/dashboard': typeof DashboardRouteWithChildren
   '/fuel': typeof FuelRoute
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
@@ -134,11 +141,12 @@ export interface FileRoutesByTo {
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
+  '/dashboard/business/$id': typeof DashboardBusinessIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRoute
+  '/dashboard': typeof DashboardRouteWithChildren
   '/fuel': typeof FuelRoute
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
@@ -152,6 +160,7 @@ export interface FileRoutesById {
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
+  '/dashboard/business/$id': typeof DashboardBusinessIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
     | '/provinces/$province'
     | '/regions/$region'
     | '/barangays/$city/$barangay'
+    | '/dashboard/business/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/provinces/$province'
     | '/regions/$region'
     | '/barangays/$city/$barangay'
+    | '/dashboard/business/$id'
   id:
     | '__root__'
     | '/'
@@ -205,11 +216,12 @@ export interface FileRouteTypes {
     | '/provinces/$province'
     | '/regions/$region'
     | '/barangays/$city/$barangay'
+    | '/dashboard/business/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRoute: typeof DashboardRoute
+  DashboardRoute: typeof DashboardRouteWithChildren
   FuelRoute: typeof FuelRoute
   LoginRoute: typeof LoginRoute
   MessagesRoute: typeof MessagesRouteWithChildren
@@ -323,6 +335,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BusinessSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/business/$id': {
+      id: '/dashboard/business/$id'
+      path: '/business/$id'
+      fullPath: '/dashboard/business/$id'
+      preLoaderRoute: typeof DashboardBusinessIdRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/barangays/$city/$barangay': {
       id: '/barangays/$city/$barangay'
       path: '/barangays/$city/$barangay'
@@ -332,6 +351,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface DashboardRouteChildren {
+  DashboardBusinessIdRoute: typeof DashboardBusinessIdRoute
+}
+
+const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardBusinessIdRoute: DashboardBusinessIdRoute,
+}
+
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
 
 interface MessagesRouteChildren {
   MessagesConversationIdRoute: typeof MessagesConversationIdRoute
@@ -358,7 +389,7 @@ const RegionsRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRoute: DashboardRoute,
+  DashboardRoute: DashboardRouteWithChildren,
   FuelRoute: FuelRoute,
   LoginRoute: LoginRoute,
   MessagesRoute: MessagesRouteWithChildren,
