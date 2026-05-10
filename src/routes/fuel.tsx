@@ -37,6 +37,7 @@ function FuelPage() {
   const [stationId, setStationId] = useState("");
   const [fuelType, setFuelType] = useState("gasoline_95");
   const [price, setPrice] = useState("");
+  const [myVotes, setMyVotes] = useState<Record<string, 1 | -1>>({});
 
   async function load() {
     const { data } = await supabase
@@ -45,12 +46,26 @@ function FuelPage() {
       .order("reported_at", { ascending: false })
       .limit(100);
     setPrices(data ?? []);
+    if (user && data && data.length) {
+      const ids = data.map((p) => p.id);
+      const { data: votes } = await supabase
+        .from("fuel_price_votes")
+        .select("fuel_price_id, vote")
+        .eq("user_id", user.id)
+        .in("fuel_price_id", ids);
+      const map: Record<string, 1 | -1> = {};
+      (votes ?? []).forEach((v: any) => { map[v.fuel_price_id] = v.vote; });
+      setMyVotes(map);
+    } else {
+      setMyVotes({});
+    }
   }
 
   useEffect(() => {
     load();
     supabase.from("businesses").select("id, name").eq("type", "fuel_station").eq("is_published", true).then(({ data }) => setStations(data ?? []));
-  }, []);
+     
+  }, [user?.id]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -71,8 +86,23 @@ function FuelPage() {
 
   async function vote(id: string, v: 1 | -1) {
     if (!user) return toast.error("Sign in to vote.");
-    await supabase.from("fuel_price_votes").upsert({ fuel_price_id: id, user_id: user.id, vote: v }, { onConflict: "fuel_price_id,user_id" });
-    toast.success("Vote recorded.");
+    const current = myVotes[id];
+    if (current === v) {
+      const { error } = await supabase
+        .from("fuel_price_votes")
+        .delete()
+        .eq("fuel_price_id", id)
+        .eq("user_id", user.id);
+      if (error) return toast.error(error.message);
+      toast.success("Vote removed.");
+    } else {
+      const { error } = await supabase
+        .from("fuel_price_votes")
+        .upsert({ fuel_price_id: id, user_id: user.id, vote: v }, { onConflict: "fuel_price_id,user_id" });
+      if (error) return toast.error(error.message);
+      toast.success(current ? "Vote changed." : "Vote recorded.");
+    }
+    load();
   }
 
   return (
@@ -137,9 +167,21 @@ function FuelPage() {
                       <div className="text-xs uppercase text-muted-foreground">{FUEL_LABELS[p.fuel_type]}</div>
                       <div className="font-display text-2xl font-bold">₱{Number(p.price).toFixed(2)}</div>
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <button onClick={() => vote(p.id, 1)} className="rounded-md p-1 hover:bg-secondary"><ThumbsUp className="h-4 w-4" /></button>
-                      <button onClick={() => vote(p.id, -1)} className="rounded-md p-1 hover:bg-secondary"><ThumbsDown className="h-4 w-4" /></button>
+                    <div className="flex flex-col items-center gap-1">
+                      <button
+                        onClick={() => vote(p.id, 1)}
+                        aria-pressed={myVotes[p.id] === 1}
+                        className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${myVotes[p.id] === 1 ? "bg-primary text-primary-foreground" : "hover:bg-secondary"}`}
+                      >
+                        <ThumbsUp className="h-3.5 w-3.5" /> {p.upvotes ?? 0}
+                      </button>
+                      <button
+                        onClick={() => vote(p.id, -1)}
+                        aria-pressed={myVotes[p.id] === -1}
+                        className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${myVotes[p.id] === -1 ? "bg-destructive text-destructive-foreground" : "hover:bg-secondary"}`}
+                      >
+                        <ThumbsDown className="h-3.5 w-3.5" /> {p.downvotes ?? 0}
+                      </button>
                     </div>
                   </div>
                 </Card>
