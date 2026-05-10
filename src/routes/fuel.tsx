@@ -37,6 +37,7 @@ function FuelPage() {
   const [stationId, setStationId] = useState("");
   const [fuelType, setFuelType] = useState("gasoline_95");
   const [price, setPrice] = useState("");
+  const [myVotes, setMyVotes] = useState<Record<string, 1 | -1>>({});
 
   async function load() {
     const { data } = await supabase
@@ -45,12 +46,26 @@ function FuelPage() {
       .order("reported_at", { ascending: false })
       .limit(100);
     setPrices(data ?? []);
+    if (user && data && data.length) {
+      const ids = data.map((p) => p.id);
+      const { data: votes } = await supabase
+        .from("fuel_price_votes")
+        .select("fuel_price_id, vote")
+        .eq("user_id", user.id)
+        .in("fuel_price_id", ids);
+      const map: Record<string, 1 | -1> = {};
+      (votes ?? []).forEach((v: any) => { map[v.fuel_price_id] = v.vote; });
+      setMyVotes(map);
+    } else {
+      setMyVotes({});
+    }
   }
 
   useEffect(() => {
     load();
     supabase.from("businesses").select("id, name").eq("type", "fuel_station").eq("is_published", true).then(({ data }) => setStations(data ?? []));
-  }, []);
+     
+  }, [user?.id]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
