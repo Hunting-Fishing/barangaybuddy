@@ -10,13 +10,26 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as RegionsRouteImport } from './routes/regions'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as FuelRouteImport } from './routes/fuel'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RegionsRegionRouteImport } from './routes/regions.$region'
+import { Route as ProvincesProvinceRouteImport } from './routes/provinces.$province'
+import { Route as CitiesCityRouteImport } from './routes/cities.$city'
+import { Route as BusinessSlugRouteImport } from './routes/business.$slug'
+import { Route as BarangaysCityBarangayRouteImport } from './routes/barangays.$city.$barangay'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -24,9 +37,19 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RegionsRoute = RegionsRouteImport.update({
+  id: '/regions',
+  path: '/regions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FuelRoute = FuelRouteImport.update({
+  id: '/fuel',
+  path: '/fuel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -34,39 +57,132 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RegionsRegionRoute = RegionsRegionRouteImport.update({
+  id: '/$region',
+  path: '/$region',
+  getParentRoute: () => RegionsRoute,
+} as any)
+const ProvincesProvinceRoute = ProvincesProvinceRouteImport.update({
+  id: '/provinces/$province',
+  path: '/provinces/$province',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CitiesCityRoute = CitiesCityRouteImport.update({
+  id: '/cities/$city',
+  path: '/cities/$city',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessSlugRoute = BusinessSlugRouteImport.update({
+  id: '/business/$slug',
+  path: '/business/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BarangaysCityBarangayRoute = BarangaysCityBarangayRouteImport.update({
+  id: '/barangays/$city/$barangay',
+  path: '/barangays/$city/$barangay',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/fuel': typeof FuelRoute
   '/login': typeof LoginRoute
+  '/regions': typeof RegionsRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
+  '/business/$slug': typeof BusinessSlugRoute
+  '/cities/$city': typeof CitiesCityRoute
+  '/provinces/$province': typeof ProvincesProvinceRoute
+  '/regions/$region': typeof RegionsRegionRoute
+  '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/fuel': typeof FuelRoute
   '/login': typeof LoginRoute
+  '/regions': typeof RegionsRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
+  '/business/$slug': typeof BusinessSlugRoute
+  '/cities/$city': typeof CitiesCityRoute
+  '/provinces/$province': typeof ProvincesProvinceRoute
+  '/regions/$region': typeof RegionsRegionRoute
+  '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/fuel': typeof FuelRoute
   '/login': typeof LoginRoute
+  '/regions': typeof RegionsRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
+  '/business/$slug': typeof BusinessSlugRoute
+  '/cities/$city': typeof CitiesCityRoute
+  '/provinces/$province': typeof ProvincesProvinceRoute
+  '/regions/$region': typeof RegionsRegionRoute
+  '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/reset-password' | '/signup'
+  fullPaths:
+    | '/'
+    | '/fuel'
+    | '/login'
+    | '/regions'
+    | '/reset-password'
+    | '/search'
+    | '/signup'
+    | '/business/$slug'
+    | '/cities/$city'
+    | '/provinces/$province'
+    | '/regions/$region'
+    | '/barangays/$city/$barangay'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/reset-password' | '/signup'
-  id: '__root__' | '/' | '/login' | '/reset-password' | '/signup'
+  to:
+    | '/'
+    | '/fuel'
+    | '/login'
+    | '/regions'
+    | '/reset-password'
+    | '/search'
+    | '/signup'
+    | '/business/$slug'
+    | '/cities/$city'
+    | '/provinces/$province'
+    | '/regions/$region'
+    | '/barangays/$city/$barangay'
+  id:
+    | '__root__'
+    | '/'
+    | '/fuel'
+    | '/login'
+    | '/regions'
+    | '/reset-password'
+    | '/search'
+    | '/signup'
+    | '/business/$slug'
+    | '/cities/$city'
+    | '/provinces/$province'
+    | '/regions/$region'
+    | '/barangays/$city/$barangay'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FuelRoute: typeof FuelRoute
   LoginRoute: typeof LoginRoute
+  RegionsRoute: typeof RegionsRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SearchRoute: typeof SearchRoute
   SignupRoute: typeof SignupRoute
+  BusinessSlugRoute: typeof BusinessSlugRoute
+  CitiesCityRoute: typeof CitiesCityRoute
+  ProvincesProvinceRoute: typeof ProvincesProvinceRoute
+  BarangaysCityBarangayRoute: typeof BarangaysCityBarangayRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -78,11 +194,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/regions': {
+      id: '/regions'
+      path: '/regions'
+      fullPath: '/regions'
+      preLoaderRoute: typeof RegionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -92,6 +222,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/fuel': {
+      id: '/fuel'
+      path: '/fuel'
+      fullPath: '/fuel'
+      preLoaderRoute: typeof FuelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -99,14 +236,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/regions/$region': {
+      id: '/regions/$region'
+      path: '/$region'
+      fullPath: '/regions/$region'
+      preLoaderRoute: typeof RegionsRegionRouteImport
+      parentRoute: typeof RegionsRoute
+    }
+    '/provinces/$province': {
+      id: '/provinces/$province'
+      path: '/provinces/$province'
+      fullPath: '/provinces/$province'
+      preLoaderRoute: typeof ProvincesProvinceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cities/$city': {
+      id: '/cities/$city'
+      path: '/cities/$city'
+      fullPath: '/cities/$city'
+      preLoaderRoute: typeof CitiesCityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/business/$slug': {
+      id: '/business/$slug'
+      path: '/business/$slug'
+      fullPath: '/business/$slug'
+      preLoaderRoute: typeof BusinessSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/barangays/$city/$barangay': {
+      id: '/barangays/$city/$barangay'
+      path: '/barangays/$city/$barangay'
+      fullPath: '/barangays/$city/$barangay'
+      preLoaderRoute: typeof BarangaysCityBarangayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface RegionsRouteChildren {
+  RegionsRegionRoute: typeof RegionsRegionRoute
+}
+
+const RegionsRouteChildren: RegionsRouteChildren = {
+  RegionsRegionRoute: RegionsRegionRoute,
+}
+
+const RegionsRouteWithChildren =
+  RegionsRoute._addFileChildren(RegionsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FuelRoute: FuelRoute,
   LoginRoute: LoginRoute,
+  RegionsRoute: RegionsRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  SearchRoute: SearchRoute,
   SignupRoute: SignupRoute,
+  BusinessSlugRoute: BusinessSlugRoute,
+  CitiesCityRoute: CitiesCityRoute,
+  ProvincesProvinceRoute: ProvincesProvinceRoute,
+  BarangaysCityBarangayRoute: BarangaysCityBarangayRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
