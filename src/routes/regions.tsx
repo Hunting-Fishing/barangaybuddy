@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Card } from "@/components/ui/card";
 import { MapPin } from "lucide-react";
+import { PhRegionMap } from "@/components/ph-region-map";
 
 export const Route = createFileRoute("/regions")({
   head: () => ({
@@ -28,7 +29,11 @@ function Regions() {
       <main className="container mx-auto px-4 py-16">
         <h1 className="font-display text-4xl font-bold md:text-5xl">All regions</h1>
         <p className="mt-2 text-muted-foreground">17 regions · 86 provinces · 1,647 cities & municipalities · 42,042 barangays</p>
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10">
+          <PhRegionMap />
+        </div>
+        <h2 className="mt-16 font-display text-2xl font-bold">All regions</h2>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {regions.map((r) => (
             <Link key={r.code} to="/regions/$region" params={{ region: r.slug }}>
               <Card className="flex items-center gap-4 p-5 transition-all hover:-translate-y-1 hover:shadow-elegant">
