@@ -86,8 +86,23 @@ function FuelPage() {
 
   async function vote(id: string, v: 1 | -1) {
     if (!user) return toast.error("Sign in to vote.");
-    await supabase.from("fuel_price_votes").upsert({ fuel_price_id: id, user_id: user.id, vote: v }, { onConflict: "fuel_price_id,user_id" });
-    toast.success("Vote recorded.");
+    const current = myVotes[id];
+    if (current === v) {
+      const { error } = await supabase
+        .from("fuel_price_votes")
+        .delete()
+        .eq("fuel_price_id", id)
+        .eq("user_id", user.id);
+      if (error) return toast.error(error.message);
+      toast.success("Vote removed.");
+    } else {
+      const { error } = await supabase
+        .from("fuel_price_votes")
+        .upsert({ fuel_price_id: id, user_id: user.id, vote: v }, { onConflict: "fuel_price_id,user_id" });
+      if (error) return toast.error(error.message);
+      toast.success(current ? "Vote changed." : "Vote recorded.");
+    }
+    load();
   }
 
   return (
