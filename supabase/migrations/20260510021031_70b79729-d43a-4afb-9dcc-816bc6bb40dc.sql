@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.sync_fuel_price_votes() FROM PUBLIC, anon, authenticated;
