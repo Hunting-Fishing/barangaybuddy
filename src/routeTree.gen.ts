@@ -13,11 +13,14 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegionsRouteImport } from './routes/regions'
+import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FuelRouteImport } from './routes/fuel'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RegionsRegionRouteImport } from './routes/regions.$region'
 import { Route as ProvincesProvinceRouteImport } from './routes/provinces.$province'
+import { Route as MessagesConversationIdRouteImport } from './routes/messages.$conversationId'
 import { Route as CitiesCityRouteImport } from './routes/cities.$city'
 import { Route as BusinessSlugRouteImport } from './routes/business.$slug'
 import { Route as BarangaysCityBarangayRouteImport } from './routes/barangays.$city.$barangay'
@@ -42,6 +45,11 @@ const RegionsRoute = RegionsRouteImport.update({
   path: '/regions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MessagesRoute = MessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -50,6 +58,11 @@ const LoginRoute = LoginRouteImport.update({
 const FuelRoute = FuelRouteImport.update({
   id: '/fuel',
   path: '/fuel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -66,6 +79,11 @@ const ProvincesProvinceRoute = ProvincesProvinceRouteImport.update({
   id: '/provinces/$province',
   path: '/provinces/$province',
   getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesConversationIdRoute = MessagesConversationIdRouteImport.update({
+  id: '/$conversationId',
+  path: '/$conversationId',
+  getParentRoute: () => MessagesRoute,
 } as any)
 const CitiesCityRoute = CitiesCityRouteImport.update({
   id: '/cities/$city',
@@ -85,28 +103,34 @@ const BarangaysCityBarangayRoute = BarangaysCityBarangayRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/fuel': typeof FuelRoute
   '/login': typeof LoginRoute
+  '/messages': typeof MessagesRouteWithChildren
   '/regions': typeof RegionsRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/business/$slug': typeof BusinessSlugRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/fuel': typeof FuelRoute
   '/login': typeof LoginRoute
+  '/messages': typeof MessagesRouteWithChildren
   '/regions': typeof RegionsRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/business/$slug': typeof BusinessSlugRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
@@ -114,14 +138,17 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/dashboard': typeof DashboardRoute
   '/fuel': typeof FuelRoute
   '/login': typeof LoginRoute
+  '/messages': typeof MessagesRouteWithChildren
   '/regions': typeof RegionsRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/business/$slug': typeof BusinessSlugRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
@@ -130,42 +157,51 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/dashboard'
     | '/fuel'
     | '/login'
+    | '/messages'
     | '/regions'
     | '/reset-password'
     | '/search'
     | '/signup'
     | '/business/$slug'
     | '/cities/$city'
+    | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
     | '/barangays/$city/$barangay'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/dashboard'
     | '/fuel'
     | '/login'
+    | '/messages'
     | '/regions'
     | '/reset-password'
     | '/search'
     | '/signup'
     | '/business/$slug'
     | '/cities/$city'
+    | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
     | '/barangays/$city/$barangay'
   id:
     | '__root__'
     | '/'
+    | '/dashboard'
     | '/fuel'
     | '/login'
+    | '/messages'
     | '/regions'
     | '/reset-password'
     | '/search'
     | '/signup'
     | '/business/$slug'
     | '/cities/$city'
+    | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
     | '/barangays/$city/$barangay'
@@ -173,8 +209,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRoute: typeof DashboardRoute
   FuelRoute: typeof FuelRoute
   LoginRoute: typeof LoginRoute
+  MessagesRoute: typeof MessagesRouteWithChildren
   RegionsRoute: typeof RegionsRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   SearchRoute: typeof SearchRoute
@@ -215,6 +253,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/messages': {
+      id: '/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof MessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -227,6 +272,13 @@ declare module '@tanstack/react-router' {
       path: '/fuel'
       fullPath: '/fuel'
       preLoaderRoute: typeof FuelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -249,6 +301,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/provinces/$province'
       preLoaderRoute: typeof ProvincesProvinceRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/messages/$conversationId': {
+      id: '/messages/$conversationId'
+      path: '/$conversationId'
+      fullPath: '/messages/$conversationId'
+      preLoaderRoute: typeof MessagesConversationIdRouteImport
+      parentRoute: typeof MessagesRoute
     }
     '/cities/$city': {
       id: '/cities/$city'
@@ -274,6 +333,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface MessagesRouteChildren {
+  MessagesConversationIdRoute: typeof MessagesConversationIdRoute
+}
+
+const MessagesRouteChildren: MessagesRouteChildren = {
+  MessagesConversationIdRoute: MessagesConversationIdRoute,
+}
+
+const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
+  MessagesRouteChildren,
+)
+
 interface RegionsRouteChildren {
   RegionsRegionRoute: typeof RegionsRegionRoute
 }
@@ -287,8 +358,10 @@ const RegionsRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRoute: DashboardRoute,
   FuelRoute: FuelRoute,
   LoginRoute: LoginRoute,
+  MessagesRoute: MessagesRouteWithChildren,
   RegionsRoute: RegionsRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   SearchRoute: SearchRoute,
