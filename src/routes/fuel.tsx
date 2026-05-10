@@ -167,9 +167,21 @@ function FuelPage() {
                       <div className="text-xs uppercase text-muted-foreground">{FUEL_LABELS[p.fuel_type]}</div>
                       <div className="font-display text-2xl font-bold">₱{Number(p.price).toFixed(2)}</div>
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <button onClick={() => vote(p.id, 1)} className="rounded-md p-1 hover:bg-secondary"><ThumbsUp className="h-4 w-4" /></button>
-                      <button onClick={() => vote(p.id, -1)} className="rounded-md p-1 hover:bg-secondary"><ThumbsDown className="h-4 w-4" /></button>
+                    <div className="flex flex-col items-center gap-1">
+                      <button
+                        onClick={() => vote(p.id, 1)}
+                        aria-pressed={myVotes[p.id] === 1}
+                        className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${myVotes[p.id] === 1 ? "bg-primary text-primary-foreground" : "hover:bg-secondary"}`}
+                      >
+                        <ThumbsUp className="h-3.5 w-3.5" /> {p.upvotes ?? 0}
+                      </button>
+                      <button
+                        onClick={() => vote(p.id, -1)}
+                        aria-pressed={myVotes[p.id] === -1}
+                        className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${myVotes[p.id] === -1 ? "bg-destructive text-destructive-foreground" : "hover:bg-secondary"}`}
+                      >
+                        <ThumbsDown className="h-3.5 w-3.5" /> {p.downvotes ?? 0}
+                      </button>
                     </div>
                   </div>
                 </Card>
