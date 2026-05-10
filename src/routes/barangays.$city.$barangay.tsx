@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Store, Briefcase, UtensilsCrossed, Coffee, Fuel } from "lucide-react";
 
 export const Route = createFileRoute("/barangays/$city/$barangay")({
@@ -22,14 +23,22 @@ const TYPES = [
 function BrgyPage() {
   const { city, barangay } = Route.useParams();
   const [brgy, setBrgy] = useState<any>(null);
+  const [province, setProvince] = useState<any>(null);
+  const [region, setRegion] = useState<any>(null);
   const [businesses, setBusinesses] = useState<any[]>([]);
 
   useEffect(() => {
     (async () => {
-      const { data: c } = await supabase.from("cities_municipalities").select("code,name").eq("slug", city).maybeSingle();
+      const { data: c } = await supabase.from("cities_municipalities").select("code,name,province_code").eq("slug", city).maybeSingle();
       if (!c) return;
       const { data: b } = await supabase.from("barangays").select("*").eq("city_code", c.code).eq("slug", barangay).maybeSingle();
       setBrgy(b ? { ...b, city_name: c.name } : null);
+      const { data: p } = await supabase.from("provinces").select("name,slug,region_code").eq("code", c.province_code).maybeSingle();
+      setProvince(p);
+      if (p) {
+        const { data: r } = await supabase.from("regions").select("name,slug").eq("code", p.region_code).maybeSingle();
+        setRegion(r);
+      }
       if (b) {
         const { data: biz } = await supabase.from("businesses").select("*").eq("barangay_code", b.code).eq("is_published", true);
         setBusinesses(biz ?? []);
@@ -40,9 +49,21 @@ function BrgyPage() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
-      <main className="container mx-auto px-4 py-16">
-        <Link to="/cities/$city" params={{ city }} className="text-sm text-muted-foreground hover:text-foreground">← {brgy?.city_name}</Link>
-        <h1 className="mt-2 font-display text-4xl font-bold md:text-5xl">Barangay {brgy?.name}</h1>
+      <main className="container mx-auto px-4 py-12">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem><BreadcrumbLink asChild><Link to="/">Home</Link></BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem><BreadcrumbLink asChild><Link to="/regions">Regions</Link></BreadcrumbLink></BreadcrumbItem>
+            {region && (<><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbLink asChild><Link to="/regions/$region" params={{ region: region.slug }}>{region.name}</Link></BreadcrumbLink></BreadcrumbItem></>)}
+            {province && (<><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbLink asChild><Link to="/provinces/$province" params={{ province: province.slug }}>{province.name}</Link></BreadcrumbLink></BreadcrumbItem></>)}
+            <BreadcrumbSeparator />
+            <BreadcrumbItem><BreadcrumbLink asChild><Link to="/cities/$city" params={{ city }}>{brgy?.city_name ?? "…"}</Link></BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem><BreadcrumbPage>Barangay {brgy?.name ?? "…"}</BreadcrumbPage></BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <h1 className="mt-6 font-display text-4xl font-bold md:text-5xl">Barangay {brgy?.name}</h1>
         <p className="mt-2 text-muted-foreground">{businesses.length} businesses listed</p>
 
         <Tabs defaultValue="store" className="mt-8">
