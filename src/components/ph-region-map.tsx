@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import mapImg from "@/assets/ph-regions-map.png";
+import { cn } from "@/lib/utils";
 
 type Hotspot = {
   slug: string;
@@ -31,7 +32,7 @@ const HOTSPOTS: Hotspot[] = [
   { slug: "bangsamoro-autonomous-region-in-muslim-mindanao", short: "BARMM", name: "BARMM", x: 45, y: 78 },
 ];
 
-export function PhRegionMap() {
+export function PhRegionMap({ selected }: { selected?: string }) {
   return (
     <div className="relative mx-auto w-full max-w-2xl">
       <div className="relative aspect-[1200/1280] overflow-hidden rounded-2xl border border-border bg-secondary/30 shadow-elegant">
@@ -41,22 +42,30 @@ export function PhRegionMap() {
           className="absolute inset-0 h-full w-full object-contain"
           loading="lazy"
         />
-        {HOTSPOTS.map((h) => (
-          <Link
-            key={h.slug}
-            to="/regions/$region"
-            params={{ region: h.slug }}
-            aria-label={h.name}
-            title={h.name}
-            className="group absolute flex h-14 w-24 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md transition-colors hover:bg-primary/20 focus-visible:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            style={{ left: `${h.x}%`, top: `${h.y}%` }}
-          >
-            <span className="sr-only">{h.name}</span>
-          </Link>
-        ))}
+        {HOTSPOTS.map((h) => {
+          const isActive = selected === h.slug;
+          return (
+            <Link
+              key={h.slug}
+              to="/regions"
+              search={{ region: h.slug }}
+              hash={h.slug}
+              aria-label={h.name}
+              aria-current={isActive ? "true" : undefined}
+              title={h.name}
+              className={cn(
+                "group absolute flex h-14 w-24 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md ring-offset-background transition-all hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                isActive && "bg-primary/30 ring-2 ring-primary scale-110"
+              )}
+              style={{ left: `${h.x}%`, top: `${h.y}%` }}
+            >
+              <span className="sr-only">{h.name}</span>
+            </Link>
+          );
+        })}
       </div>
       <p className="mt-3 text-center text-xs text-muted-foreground">
-        Tap a region label on the map to open its page.
+        Tap a region label on the map to highlight and jump to its details below.
       </p>
     </div>
   );
