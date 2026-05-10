@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.prevent_duplicate_fuel_price() FROM PUBLIC, anon, authenticated;
