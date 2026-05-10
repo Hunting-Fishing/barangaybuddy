@@ -5,29 +5,30 @@ type Hotspot = {
   slug: string;
   short: string;
   name: string;
-  /** percent from left/top of the image */
+  /** percent from left/top of the image — placed on the visible map LABEL */
   x: number;
   y: number;
 };
 
+// Coordinates aligned to the label positions on the map image
 const HOTSPOTS: Hotspot[] = [
   { slug: "region-i", short: "I", name: "Ilocos Region", x: 26, y: 18 },
-  { slug: "cordillera-administrative-region", short: "CAR", name: "Cordillera Administrative Region", x: 31, y: 24 },
-  { slug: "region-ii", short: "II", name: "Cagayan Valley", x: 53, y: 21 },
-  { slug: "region-iii", short: "III", name: "Central Luzon", x: 28, y: 33 },
-  { slug: "national-capital-region", short: "NCR", name: "National Capital Region", x: 31, y: 40 },
-  { slug: "region-iv-a", short: "IV-A", name: "CALABARZON", x: 52, y: 33 },
-  { slug: "mimaropa-region", short: "IV-B", name: "MIMAROPA", x: 26, y: 46 },
-  { slug: "region-v", short: "V", name: "Bicol Region", x: 62, y: 40 },
-  { slug: "region-viii", short: "VIII", name: "Eastern Visayas", x: 70, y: 51 },
+  { slug: "cordillera-administrative-region", short: "CAR", name: "Cordillera Administrative Region", x: 26, y: 25 },
+  { slug: "region-ii", short: "II", name: "Cagayan Valley", x: 57, y: 19 },
+  { slug: "region-iii", short: "III", name: "Central Luzon", x: 25, y: 35 },
+  { slug: "national-capital-region", short: "NCR", name: "National Capital Region", x: 26, y: 40 },
+  { slug: "region-iv-a", short: "IV-A", name: "CALABARZON", x: 55, y: 34 },
+  { slug: "mimaropa-region", short: "IV-B", name: "MIMAROPA", x: 25, y: 47 },
+  { slug: "region-v", short: "V", name: "Bicol Region", x: 67, y: 39 },
+  { slug: "region-viii", short: "VIII", name: "Eastern Visayas", x: 75, y: 50 },
   { slug: "region-vi", short: "VI", name: "Western Visayas", x: 45, y: 60 },
-  { slug: "region-vii", short: "VII", name: "Central Visayas", x: 48, y: 67 },
-  { slug: "region-ix", short: "IX", name: "Zamboanga Peninsula", x: 38, y: 75 },
-  { slug: "region-x", short: "X", name: "Northern Mindanao", x: 73, y: 73 },
-  { slug: "region-xiii", short: "XIII", name: "Caraga", x: 75, y: 63 },
-  { slug: "region-xi", short: "XI", name: "Davao Region", x: 74, y: 82 },
-  { slug: "region-xii", short: "XII", name: "SOCCSKSARGEN", x: 58, y: 83 },
-  { slug: "bangsamoro-autonomous-region-in-muslim-mindanao", short: "BARMM", name: "BARMM", x: 50, y: 79 },
+  { slug: "region-vii", short: "VII", name: "Central Visayas", x: 55, y: 65 },
+  { slug: "region-ix", short: "IX", name: "Zamboanga Peninsula", x: 32, y: 75 },
+  { slug: "region-x", short: "X", name: "Northern Mindanao", x: 70, y: 70 },
+  { slug: "region-xiii", short: "XIII", name: "Caraga", x: 80, y: 60 },
+  { slug: "region-xi", short: "XI", name: "Davao Region", x: 75, y: 82 },
+  { slug: "region-xii", short: "XII", name: "SOCCSKSARGEN", x: 55, y: 82 },
+  { slug: "bangsamoro-autonomous-region-in-muslim-mindanao", short: "BARMM", name: "BARMM", x: 45, y: 78 },
 ];
 
 export function PhRegionMap() {
@@ -47,21 +48,15 @@ export function PhRegionMap() {
             params={{ region: h.slug }}
             aria-label={h.name}
             title={h.name}
-            className="group absolute -translate-x-1/2 -translate-y-1/2"
+            className="group absolute flex h-14 w-24 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md transition-colors hover:bg-primary/20 focus-visible:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             style={{ left: `${h.x}%`, top: `${h.y}%` }}
           >
-            <span className="relative flex h-6 w-6 items-center justify-center">
-              <span className="absolute inset-0 rounded-full bg-primary/30 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
-              <span className="absolute inset-1.5 rounded-full bg-primary/0 ring-2 ring-primary/0 transition-all group-hover:bg-primary group-hover:ring-primary/40 group-focus-visible:bg-primary group-focus-visible:ring-primary/40" />
-            </span>
-            <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-0.5 text-[11px] font-medium text-background opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-              {h.name}
-            </span>
+            <span className="sr-only">{h.name}</span>
           </Link>
         ))}
       </div>
       <p className="mt-3 text-center text-xs text-muted-foreground">
-        Tap a region marker to explore its provinces, cities and barangays.
+        Tap a region label on the map to open its page.
       </p>
     </div>
   );
