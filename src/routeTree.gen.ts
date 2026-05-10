@@ -12,12 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as RegionsRouteImport } from './routes/regions'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as FuelRouteImport } from './routes/fuel'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RegionsIndexRouteImport } from './routes/regions.index'
 import { Route as RegionsRegionRouteImport } from './routes/regions.$region'
 import { Route as ProvincesProvinceRouteImport } from './routes/provinces.$province'
 import { Route as MessagesConversationIdRouteImport } from './routes/messages.$conversationId'
@@ -39,11 +39,6 @@ const SearchRoute = SearchRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RegionsRoute = RegionsRouteImport.update({
-  id: '/regions',
-  path: '/regions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MessagesRoute = MessagesRouteImport.update({
@@ -71,10 +66,15 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RegionsIndexRoute = RegionsIndexRouteImport.update({
+  id: '/regions/',
+  path: '/regions/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegionsRegionRoute = RegionsRegionRouteImport.update({
-  id: '/$region',
-  path: '/$region',
-  getParentRoute: () => RegionsRoute,
+  id: '/regions/$region',
+  path: '/regions/$region',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ProvincesProvinceRoute = ProvincesProvinceRouteImport.update({
   id: '/provinces/$province',
@@ -113,7 +113,6 @@ export interface FileRoutesByFullPath {
   '/fuel': typeof FuelRoute
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
-  '/regions': typeof RegionsRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
@@ -122,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
+  '/regions/': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRoute
 }
@@ -131,7 +131,6 @@ export interface FileRoutesByTo {
   '/fuel': typeof FuelRoute
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
-  '/regions': typeof RegionsRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
@@ -140,6 +139,7 @@ export interface FileRoutesByTo {
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
+  '/regions': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRoute
 }
@@ -150,7 +150,6 @@ export interface FileRoutesById {
   '/fuel': typeof FuelRoute
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
-  '/regions': typeof RegionsRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
@@ -159,6 +158,7 @@ export interface FileRoutesById {
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
+  '/regions/': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRoute
 }
@@ -170,7 +170,6 @@ export interface FileRouteTypes {
     | '/fuel'
     | '/login'
     | '/messages'
-    | '/regions'
     | '/reset-password'
     | '/search'
     | '/signup'
@@ -179,6 +178,7 @@ export interface FileRouteTypes {
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
+    | '/regions/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -188,7 +188,6 @@ export interface FileRouteTypes {
     | '/fuel'
     | '/login'
     | '/messages'
-    | '/regions'
     | '/reset-password'
     | '/search'
     | '/signup'
@@ -197,6 +196,7 @@ export interface FileRouteTypes {
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
+    | '/regions'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
   id:
@@ -206,7 +206,6 @@ export interface FileRouteTypes {
     | '/fuel'
     | '/login'
     | '/messages'
-    | '/regions'
     | '/reset-password'
     | '/search'
     | '/signup'
@@ -215,6 +214,7 @@ export interface FileRouteTypes {
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
+    | '/regions/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
   fileRoutesById: FileRoutesById
@@ -225,13 +225,14 @@ export interface RootRouteChildren {
   FuelRoute: typeof FuelRoute
   LoginRoute: typeof LoginRoute
   MessagesRoute: typeof MessagesRouteWithChildren
-  RegionsRoute: typeof RegionsRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   SearchRoute: typeof SearchRoute
   SignupRoute: typeof SignupRoute
   BusinessSlugRoute: typeof BusinessSlugRoute
   CitiesCityRoute: typeof CitiesCityRoute
   ProvincesProvinceRoute: typeof ProvincesProvinceRoute
+  RegionsRegionRoute: typeof RegionsRegionRoute
+  RegionsIndexRoute: typeof RegionsIndexRoute
   BarangaysCityBarangayRoute: typeof BarangaysCityBarangayRoute
 }
 
@@ -256,13 +257,6 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/regions': {
-      id: '/regions'
-      path: '/regions'
-      fullPath: '/regions'
-      preLoaderRoute: typeof RegionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/messages': {
@@ -300,12 +294,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/regions/': {
+      id: '/regions/'
+      path: '/regions'
+      fullPath: '/regions/'
+      preLoaderRoute: typeof RegionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/regions/$region': {
       id: '/regions/$region'
-      path: '/$region'
+      path: '/regions/$region'
       fullPath: '/regions/$region'
       preLoaderRoute: typeof RegionsRegionRouteImport
-      parentRoute: typeof RegionsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/provinces/$province': {
       id: '/provinces/$province'
@@ -376,32 +377,32 @@ const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
   MessagesRouteChildren,
 )
 
-interface RegionsRouteChildren {
-  RegionsRegionRoute: typeof RegionsRegionRoute
-}
-
-const RegionsRouteChildren: RegionsRouteChildren = {
-  RegionsRegionRoute: RegionsRegionRoute,
-}
-
-const RegionsRouteWithChildren =
-  RegionsRoute._addFileChildren(RegionsRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRouteWithChildren,
   FuelRoute: FuelRoute,
   LoginRoute: LoginRoute,
   MessagesRoute: MessagesRouteWithChildren,
-  RegionsRoute: RegionsRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   SearchRoute: SearchRoute,
   SignupRoute: SignupRoute,
   BusinessSlugRoute: BusinessSlugRoute,
   CitiesCityRoute: CitiesCityRoute,
   ProvincesProvinceRoute: ProvincesProvinceRoute,
+  RegionsRegionRoute: RegionsRegionRoute,
+  RegionsIndexRoute: RegionsIndexRoute,
   BarangaysCityBarangayRoute: BarangaysCityBarangayRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
