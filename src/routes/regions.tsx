@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Card } from "@/components/ui/card";
 import { MapPin } from "lucide-react";
+import { PhRegionMap } from "@/components/ph-region-map";
 
 export const Route = createFileRoute("/regions")({
   head: () => ({
