@@ -1,100 +1,55 @@
-# BarangayHub — Implementation Plan
+## Goal
 
-A nationwide Philippines networking platform organized by barangay. Business owners list stores, services, restaurants, and food vendors with tags & prices. Consumers browse, review, message, and crowdsource fuel prices (Gas Buddy style).
+Make every region card on `/regions` open a richer **region detail page** (`/regions/$region`) that mirrors the navigation pattern used by [PhilAtlas](https://www.philatlas.com/regions.html): breadcrumb trail at the top, a summary stat block, and the next administrative layer (provinces) presented as both a quick grid and a sortable table — so users can drill down region → province → city → barangay smoothly.
 
-## Tech foundation
+## What changes
 
-- TanStack Start (already scaffolded), Tailwind v4, shadcn/ui
-- Lovable Cloud (Postgres + Auth + Storage) for backend
-- Email/password + Google sign-in
-- TanStack Query for data fetching, Zod for validation
-- Distinctive Filipino-inspired design system (warm sun-gold + deep sea-blue, not generic SaaS)
+### 1. `/regions/$region` — full rebuild (PhilAtlas-style)
 
-## Phased build
+Currently it shows just a plain grid of provinces. We turn it into a structured profile page:
 
-Given the scope (42K barangays, 5+ feature areas), we'll build in phases. **Phase 1 ships an end-to-end usable MVP**; later phases add depth. I recommend approving Phase 1 first — it already covers every feature surface — then iterating.
+- **Breadcrumb**: `Home › Regions › {Region name}` (using shadcn `Breadcrumb`).
+- **Hero block**:
+  - Region name (display font, large)
+  - Region code badge (e.g. "Region III", "NCR", "BARMM")
+  - One-line description ("Administrative region in the Philippines")
+- **Summary stats card** (4 tiles): provinces count · cities count · municipalities count · barangays count. Computed in a single query per region by joining `provinces → cities_municipalities → barangays`.
+- **Provinces section** (the "next layer"):
+  - Heading: "Provinces"
+  - Card grid (current style, kept) — each card shows province name + small subtitle like "X cities · Y municipalities · Z barangays"
+  - Cards link to `/provinces/$province` (already exists)
+- **LGU table** (PhilAtlas-style, collapsible/optional below the grid):
+  - Columns: Name · Type (Province / HUC) · Cities · Municipalities · Barangays
+  - Uses shadcn `Table`
+  - Sticky header, sortable by name
+- Empty state if a region has no provinces yet.
 
----
+### 2. `/regions` — minor polish
 
-### Phase 1 — Core platform (this build)
+- Add the same breadcrumb at the top (`Home › Regions`).
+- Keep both the interactive map and the card grid (unchanged).
+- Region cards already link to `/regions/$region` — verify and keep.
 
-**1. Database schema (Lovable Cloud migrations)**
-- `regions`, `provinces`, `cities_municipalities`, `barangays` (PSGC hierarchy)
-- `profiles` (1:1 with auth.users — display name, avatar, phone)
-- `user_roles` + `app_role` enum (`owner`, `consumer`, `admin`) with `has_role()` security-definer function
-- `businesses` (owner_id, barangay_id, name, slug, type enum: `store|service|restaurant|food_vendor|fuel_station`, description, tags[], cover image, hours, contact)
-- `listings` (business_id, name, description, price, unit, category, image, in_stock) — used for products, services, menu items
-- `reviews` (business_id, user_id, rating 1-5, comment, created_at) — unique per (business, user)
-- `fuel_prices` (station_id → businesses, fuel_type enum: `gasoline_91|95|97|diesel`, price, reported_by, reported_at, upvotes, downvotes)
-- `conversations` + `messages` (user ↔ business owner in-app chat)
-- RLS on every table; storage bucket `business-media` (public read, owner write)
+### 3. Cascade the same pattern (lightweight)
 
-**2. PSGC barangay seed**
-- Fetch official PSGC dataset (~42K rows) and load via migration in chunked inserts
-- If full dataset migration is too large for a single run, seed regions/provinces/cities first, then stream barangays in a follow-up migration
+To keep navigation consistent across the hierarchy, apply matching breadcrumb + summary header to:
 
-**3. Auth**
-- `/login`, `/signup`, `/reset-password` with email/password + Google
-- During signup, user picks role (Business Owner / Consumer); trigger creates `profiles` + `user_roles` rows
-- `_authenticated/` route group for protected pages
+- `/provinces/$province` — breadcrumb `Home › Regions › {Region} › {Province}`, summary "X cities & municipalities · Y barangays", existing city/municipality grid kept.
+- `/cities/$city` — breadcrumb `Home › Regions › {Region} › {Province} › {City}`, summary "X barangays", existing barangay grid kept.
 
-**4. Public browsing (SSR-friendly)**
-- `/` — hero, featured businesses, search bar, top barangays, latest fuel prices
-- `/regions` → `/regions/$region` → `/provinces/$province` → `/cities/$city` → `/barangays/$barangay` drill-down
-- `/barangays/$barangay` — tabs: Stores · Services · Restaurants · Food Vendors · Fuel Stations
-- `/business/$slug` — full profile, listings grid, reviews, message owner button
-- `/search` — global search with filters (barangay, type, tags, price range, rating)
-- `/fuel` — Gas Buddy-style map/list of latest prices, filter by fuel type & area
+This gives users a clear path back up the chain at every level, matching how PhilAtlas lets you navigate region → province → city.
 
-**5. Business owner dashboard (`_authenticated/dashboard`)**
-- Create/edit business (one owner can have multiple)
-- Manage listings (CRUD with image upload, price, tags)
-- View incoming messages
-- View reviews
+## Out of scope (can be a follow-up)
 
-**6. Consumer features**
-- Post review + rating on any business
-- Submit fuel price update (verified by upvote/downvote from other users)
-- Send message to business owner
-- Saved/favorite businesses
-
-**7. In-app messaging**
-- Realtime via Lovable Cloud subscriptions
-- `/messages` inbox, `/messages/$conversationId` thread
-
-**8. Design system**
-- Bold identity: deep navy (`oklch` sea-blue) + sun-gold accent + warm off-white
-- Display font: a distinctive serif/grotesque (e.g. Fraunces or Bricolage); body: Inter
-- Custom tokens in `src/styles.css` for gradients, shadow-elegant, gradient-primary
-- Hero with subtle map-of-PI motif; cards with depth
-
-**9. SEO**
-- Per-route `head()` with unique title/description for each barangay, business, and section
-- JSON-LD `LocalBusiness` schema on business pages
-- Sitemap considerations (deferred to phase 2)
-
----
-
-### Phase 2 (later, separate request)
-- Admin moderation dashboard, reports/flags
-- Map view (Leaflet) for fuel + businesses
-- Push/email notifications, verified-owner badges, business hours real-time open/closed
-- Sitemap generation for 42K barangays, structured data expansion
-- Mobile PWA install, image optimization pipeline
-
----
+- Demographics / population / historical census data from PhilAtlas — our DB doesn't have those columns, so we won't fabricate them.
+- Per-region maps highlighting just that region.
+- Charts.
 
 ## Technical notes
 
-- **PSGC seed strategy**: download from `psa.gov.ph` PSGC publication or community-maintained JSON; chunk inserts (1000 rows per statement) inside one or two migrations. Indexed on `barangay.city_id`, `slug`, full-text search on name.
-- **Server access**: business writes/reads via `createServerFn` with `requireSupabaseAuth`; public browsing uses the browser Supabase client with RLS allowing anonymous SELECT on public tables.
-- **Roles**: stored in `user_roles` table only (never on profile), checked with `has_role(auth.uid(), 'owner')` inside RLS policies.
-- **Validation**: Zod schemas shared between client form and server fn for every mutation.
-- **Routing**: file-based under `src/routes/`, with `_authenticated/` group for owner/consumer-only pages and `barangays.$barangay.tsx` style dynamic routes.
-- **Realtime messaging**: Supabase realtime channel keyed by `conversation_id`; RLS ensures only participants can read.
-
-## What you'll get after Phase 1
-
-A live, end-to-end working site where anyone in the Philippines can sign up, register a business in their exact barangay, list products/services with prices and tags, receive reviews and messages, and where any user can crowdsource and view fuel prices nationwide.
-
-Approve to begin Phase 1.
+- Aggregations done client-side with one batched query per page load:
+  - On region page: fetch provinces for the region, then a single query `cities_municipalities` filtered by `province_code IN (...)`, then `barangays` filtered by `city_code IN (...)`. Group counts in JS.
+  - 1647 cities and 42k barangays total, but per-region subsets are small enough for a single round-trip.
+- Reuse existing shadcn primitives: `Breadcrumb`, `Card`, `Table`, `Badge`.
+- No DB migrations needed — current PSGC tables already model the full hierarchy.
+- No changes to fuel/voting/auth code.
