@@ -27,8 +27,15 @@ function Regions() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
-      <main className="container mx-auto px-4 py-16">
-        <h1 className="font-display text-4xl font-bold md:text-5xl">All regions</h1>
+      <main className="container mx-auto px-4 py-12">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem><BreadcrumbLink asChild><Link to="/">Home</Link></BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem><BreadcrumbPage>Regions</BreadcrumbPage></BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <h1 className="mt-6 font-display text-4xl font-bold md:text-5xl">All regions</h1>
         <p className="mt-2 text-muted-foreground">17 regions · 86 provinces · 1,647 cities & municipalities · 42,042 barangays</p>
         <div className="mt-10">
           <PhRegionMap />
