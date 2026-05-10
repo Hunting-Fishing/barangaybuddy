@@ -60,7 +60,8 @@ function ManageBusiness() {
     setBusy(true);
     const url = await uploadImage(file, field);
     if (url) {
-      const { error } = await supabase.from("businesses").update({ [field]: url }).eq("id", id);
+      const update: any = { [field]: url };
+      const { error } = await supabase.from("businesses").update(update).eq("id", id);
       if (error) toast.error(error.message); else { toast.success("Updated!"); load(); }
     }
     setBusy(false);
