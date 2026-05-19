@@ -170,16 +170,30 @@ function RegionPage() {
           </Card>
         )}
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {perProvince.map((p) => (
-            <Link key={p.code} to="/provinces/$province" params={{ province: p.slug }}>
-              <Card className="p-4 transition-all hover:shadow-elegant hover:-translate-y-0.5">
-                <div className="font-display font-bold">{p.name}</div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {p.cityCount} {p.cityCount === 1 ? "city" : "cities"} · {p.munCount} municipalit{p.munCount === 1 ? "y" : "ies"} · {p.brgyCount.toLocaleString()} barangays
-                </div>
-              </Card>
-            </Link>
-          ))}
+          {perProvince.map((p) => {
+            const isActive = selectedProvince === p.slug;
+            return (
+              <Link
+                key={p.code}
+                to="/provinces/$province"
+                params={{ province: p.slug }}
+                id={p.slug}
+                ref={(el) => { provinceRefs.current[p.slug] = el; }}
+              >
+                <Card
+                  className={cn(
+                    "p-4 transition-all hover:shadow-elegant hover:-translate-y-0.5",
+                    isActive && "ring-2 ring-primary shadow-elegant -translate-y-0.5"
+                  )}
+                >
+                  <div className="font-display font-bold">{p.name}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {p.cityCount} {p.cityCount === 1 ? "city" : "cities"} · {p.munCount} municipalit{p.munCount === 1 ? "y" : "ies"} · {p.brgyCount.toLocaleString()} barangays
+                  </div>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
 
         {/* LGU table */}
