@@ -1,17 +1,19 @@
-import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Card } from "@/components/ui/card";
-import { MapPin } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { MapPin, Search as SearchIcon, X } from "lucide-react";
 import { PhRegionMap } from "@/components/ph-region-map";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
 
 const searchSchema = z.object({
   region: z.string().optional(),
+  q: z.string().optional(),
 });
 
 export const Route = createFileRoute("/regions/")({
@@ -26,7 +28,8 @@ export const Route = createFileRoute("/regions/")({
 });
 
 function Regions() {
-  const { region: selected } = Route.useSearch();
+  const { region: selected, q } = Route.useSearch();
+  const navigate = useNavigate({ from: "/regions" });
   const location = useLocation();
   const [regions, setRegions] = useState<any[]>([]);
   const refs = useRef<Record<string, HTMLAnchorElement | null>>({});
@@ -36,11 +39,29 @@ function Regions() {
     supabase.from("regions").select("*").order("name").then(({ data }) => setRegions(data ?? []));
   }, []);
 
+  const query = (q ?? "").trim().toLowerCase();
+  const filtered = useMemo(
+    () => (query ? regions.filter((r) => r.name.toLowerCase().includes(query)) : regions),
+    [regions, query]
+  );
+
+  // Keep URL highlight in sync with search results: if the currently selected
+  // region falls out of the filter, snap to the first match (or clear).
+  useEffect(() => {
+    if (regions.length === 0 || !query) return;
+    const stillVisible = selected && filtered.some((r) => r.slug === selected);
+    if (stillVisible) return;
+    const next = filtered[0]?.slug;
+    navigate({
+      search: (prev: { region?: string; q?: string }) => ({ ...prev, region: next }),
+      replace: true,
+    });
+  }, [query, filtered, regions.length, selected, navigate]);
+
   // Re-run on every history entry (incl. back/forward) so highlight + scroll
   // stay in sync with the URL even when navigating to a previously visited state.
   useEffect(() => {
     if (regions.length === 0) return;
-    // Defer past the browser's own scroll restoration on popstate.
     const id = window.setTimeout(() => {
       if (selected) {
         const el = refs.current[selected];
@@ -72,8 +93,46 @@ function Regions() {
           <PhRegionMap selected={selected} />
         </div>
         <h2 className="mt-16 font-display text-2xl font-bold">All regions</h2>
+        <div className="mt-4 relative max-w-md">
+          <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Filter regions by name…"
+            value={q ?? ""}
+            onChange={(e) => {
+              const value = e.target.value;
+              navigate({
+                search: (prev: { region?: string; q?: string }) => ({
+                  ...prev,
+                  q: value || undefined,
+                }),
+                replace: true,
+              });
+            }}
+            className="pl-9 pr-9"
+            aria-label="Filter regions by name"
+          />
+          {q ? (
+            <button
+              type="button"
+              onClick={() =>
+                navigate({
+                  search: (prev: { region?: string; q?: string }) => ({ ...prev, q: undefined }),
+                  replace: true,
+                })
+              }
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
+        {regions.length > 0 && filtered.length === 0 ? (
+          <p className="mt-6 text-sm text-muted-foreground">No regions match "{q}".</p>
+        ) : null}
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {regions.map((r) => {
+          {filtered.map((r) => {
             const isActive = selected === r.slug;
             return (
               <Link
