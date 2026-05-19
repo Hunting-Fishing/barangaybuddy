@@ -22,7 +22,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Building2, MapPin, Layers, Landmark } from "lucide-react";
+import { Building2, MapPin, Layers, Landmark, Check, Share2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const searchSchema = z.object({ province: z.string().optional() });
@@ -148,10 +150,12 @@ function RegionPage() {
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <h1 className="font-display text-4xl font-bold md:text-5xl">{regionData?.name ?? "…"}</h1>
           {regionData?.code && <Badge variant="secondary" className="text-sm">{regionData.code}</Badge>}
+          <ShareButton title={regionData?.name} />
         </div>
         <p className="mt-2 text-muted-foreground">
           Administrative region in the Philippines. Browse provinces, cities and municipalities below.
         </p>
+
 
         {/* Summary stats */}
         <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -253,5 +257,37 @@ function StatTile({ icon, label, value }: { icon: React.ReactNode; label: string
         <div className="text-xs text-muted-foreground">{label}</div>
       </div>
     </Card>
+  );
+}
+
+function ShareButton({ title }: { title?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const onShare = async () => {
+    if (typeof window === "undefined") return;
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: title ?? document.title, url });
+          return;
+        } catch {
+          // user dismissed — fall through to clipboard copy
+        }
+      }
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("Link copied", { description: url });
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Couldn't copy link", { description: "Copy it from the address bar instead." });
+    }
+  };
+
+  return (
+    <Button type="button" variant="outline" size="sm" onClick={onShare} className="gap-2">
+      {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+      {copied ? "Copied" : "Share"}
+    </Button>
   );
 }
