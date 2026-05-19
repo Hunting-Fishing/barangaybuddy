@@ -117,6 +117,20 @@ function RegionPage() {
     });
   }, [provinces, cities, brgys]);
 
+  // Deep-link: highlight + scroll to the selected province on mount and on
+  // back/forward navigation.
+  useEffect(() => {
+    if (!selectedProvince || perProvince.length === 0) return;
+    const id = window.setTimeout(() => {
+      const el = provinceRefs.current[selectedProvince];
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus({ preventScroll: true });
+      }
+    }, 60);
+    return () => window.clearTimeout(id);
+  }, [selectedProvince, perProvince, location.href]);
+
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
