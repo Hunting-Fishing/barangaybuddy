@@ -150,10 +150,12 @@ function RegionPage() {
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <h1 className="font-display text-4xl font-bold md:text-5xl">{regionData?.name ?? "…"}</h1>
           {regionData?.code && <Badge variant="secondary" className="text-sm">{regionData.code}</Badge>}
+          <ShareButton title={regionData?.name} />
         </div>
         <p className="mt-2 text-muted-foreground">
           Administrative region in the Philippines. Browse provinces, cities and municipalities below.
         </p>
+
 
         {/* Summary stats */}
         <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
