@@ -1,17 +1,19 @@
-import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Card } from "@/components/ui/card";
-import { MapPin } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { MapPin, Search as SearchIcon, X } from "lucide-react";
 import { PhRegionMap } from "@/components/ph-region-map";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
 
 const searchSchema = z.object({
   region: z.string().optional(),
+  q: z.string().optional(),
 });
 
 export const Route = createFileRoute("/regions/")({
@@ -26,7 +28,8 @@ export const Route = createFileRoute("/regions/")({
 });
 
 function Regions() {
-  const { region: selected } = Route.useSearch();
+  const { region: selected, q } = Route.useSearch();
+  const navigate = useNavigate({ from: "/regions" });
   const location = useLocation();
   const [regions, setRegions] = useState<any[]>([]);
   const refs = useRef<Record<string, HTMLAnchorElement | null>>({});
