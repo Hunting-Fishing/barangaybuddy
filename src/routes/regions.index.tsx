@@ -39,11 +39,29 @@ function Regions() {
     supabase.from("regions").select("*").order("name").then(({ data }) => setRegions(data ?? []));
   }, []);
 
+  const query = (q ?? "").trim().toLowerCase();
+  const filtered = useMemo(
+    () => (query ? regions.filter((r) => r.name.toLowerCase().includes(query)) : regions),
+    [regions, query]
+  );
+
+  // Keep URL highlight in sync with search results: if the currently selected
+  // region falls out of the filter, snap to the first match (or clear).
+  useEffect(() => {
+    if (regions.length === 0 || !query) return;
+    const stillVisible = selected && filtered.some((r) => r.slug === selected);
+    if (stillVisible) return;
+    const next = filtered[0]?.slug;
+    navigate({
+      search: (prev) => ({ ...prev, region: next }),
+      replace: true,
+    });
+  }, [query, filtered, regions.length, selected, navigate]);
+
   // Re-run on every history entry (incl. back/forward) so highlight + scroll
   // stay in sync with the URL even when navigating to a previously visited state.
   useEffect(() => {
     if (regions.length === 0) return;
-    // Defer past the browser's own scroll restoration on popstate.
     const id = window.setTimeout(() => {
       if (selected) {
         const el = refs.current[selected];
