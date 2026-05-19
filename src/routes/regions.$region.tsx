@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -22,8 +23,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Building2, MapPin, Layers, Landmark } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const searchSchema = z.object({ province: z.string().optional() });
 
 export const Route = createFileRoute("/regions/$region")({
+  validateSearch: (s) => searchSchema.parse(s),
   component: RegionPage,
 });
 
@@ -33,11 +38,14 @@ type Brgy = { code: string; city_code: string };
 
 function RegionPage() {
   const { region } = Route.useParams();
+  const { province: selectedProvince } = Route.useSearch();
+  const location = useLocation();
   const [regionData, setRegionData] = useState<any>(null);
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [brgys, setBrgys] = useState<Brgy[]>([]);
   const [loading, setLoading] = useState(true);
+  const provinceRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
 
   useEffect(() => {
     (async () => {
@@ -109,6 +117,20 @@ function RegionPage() {
     });
   }, [provinces, cities, brgys]);
 
+  // Deep-link: highlight + scroll to the selected province on mount and on
+  // back/forward navigation.
+  useEffect(() => {
+    if (!selectedProvince || perProvince.length === 0) return;
+    const id = window.setTimeout(() => {
+      const el = provinceRefs.current[selectedProvince];
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus({ preventScroll: true });
+      }
+    }, 60);
+    return () => window.clearTimeout(id);
+  }, [selectedProvince, perProvince, location.href]);
+
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -148,16 +170,30 @@ function RegionPage() {
           </Card>
         )}
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {perProvince.map((p) => (
-            <Link key={p.code} to="/provinces/$province" params={{ province: p.slug }}>
-              <Card className="p-4 transition-all hover:shadow-elegant hover:-translate-y-0.5">
-                <div className="font-display font-bold">{p.name}</div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {p.cityCount} {p.cityCount === 1 ? "city" : "cities"} · {p.munCount} municipalit{p.munCount === 1 ? "y" : "ies"} · {p.brgyCount.toLocaleString()} barangays
-                </div>
-              </Card>
-            </Link>
-          ))}
+          {perProvince.map((p) => {
+            const isActive = selectedProvince === p.slug;
+            return (
+              <Link
+                key={p.code}
+                to="/provinces/$province"
+                params={{ province: p.slug }}
+                id={p.slug}
+                ref={(el) => { provinceRefs.current[p.slug] = el; }}
+              >
+                <Card
+                  className={cn(
+                    "p-4 transition-all hover:shadow-elegant hover:-translate-y-0.5",
+                    isActive && "ring-2 ring-primary shadow-elegant -translate-y-0.5"
+                  )}
+                >
+                  <div className="font-display font-bold">{p.name}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {p.cityCount} {p.cityCount === 1 ? "city" : "cities"} · {p.munCount} municipalit{p.munCount === 1 ? "y" : "ies"} · {p.brgyCount.toLocaleString()} barangays
+                  </div>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
 
         {/* LGU table */}
