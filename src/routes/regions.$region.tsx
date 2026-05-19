@@ -259,3 +259,35 @@ function StatTile({ icon, label, value }: { icon: React.ReactNode; label: string
     </Card>
   );
 }
+
+function ShareButton({ title }: { title?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const onShare = async () => {
+    if (typeof window === "undefined") return;
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: title ?? document.title, url });
+          return;
+        } catch {
+          // user dismissed — fall through to clipboard copy
+        }
+      }
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("Link copied", { description: url });
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Couldn't copy link", { description: "Copy it from the address bar instead." });
+    }
+  };
+
+  return (
+    <Button type="button" variant="outline" size="sm" onClick={onShare} className="gap-2">
+      {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+      {copied ? "Copied" : "Share"}
+    </Button>
+  );
+}
