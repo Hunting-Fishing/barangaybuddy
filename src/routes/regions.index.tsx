@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { z } from "zod";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -16,8 +17,27 @@ const searchSchema = z.object({
   q: z.string().optional(),
 });
 
+type RegionRow = { code: string; slug: string; name: string };
+
+const regionsQueryOptions = () =>
+  queryOptions({
+    queryKey: ["regions"],
+    queryFn: async (): Promise<RegionRow[]> => {
+      const { data, error } = await supabase.from("regions").select("*").order("name");
+      if (error) throw new Error(error.message);
+      return (data ?? []) as RegionRow[];
+    },
+    // Region list is essentially static — keep it fresh for the session so
+    // back/forward navigation reads instantly from cache.
+    staleTime: 60 * 60 * 1000, // 1 hour
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours
+  });
+
 export const Route = createFileRoute("/regions/")({
   validateSearch: (s) => searchSchema.parse(s),
+  loader: ({ context }) => {
+    context.queryClient.ensureQueryData(regionsQueryOptions());
+  },
   head: () => ({
     meta: [
       { title: "Browse all regions — BarangayHub" },
@@ -31,13 +51,9 @@ function Regions() {
   const { region: selected, q } = Route.useSearch();
   const navigate = useNavigate({ from: "/regions" });
   const location = useLocation();
-  const [regions, setRegions] = useState<any[]>([]);
+  const { data: regions } = useSuspenseQuery(regionsQueryOptions());
   const refs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const mapRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    supabase.from("regions").select("*").order("name").then(({ data }) => setRegions(data ?? []));
-  }, []);
 
   const query = (q ?? "").trim().toLowerCase();
   const filtered = useMemo(
