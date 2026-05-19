@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -22,8 +23,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Building2, MapPin, Layers, Landmark } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const searchSchema = z.object({ province: z.string().optional() });
 
 export const Route = createFileRoute("/regions/$region")({
+  validateSearch: (s) => searchSchema.parse(s),
   component: RegionPage,
 });
 
