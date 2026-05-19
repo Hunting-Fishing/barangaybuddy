@@ -53,7 +53,7 @@ function Regions() {
     if (stillVisible) return;
     const next = filtered[0]?.slug;
     navigate({
-      search: (prev) => ({ ...prev, region: next }),
+      search: (prev: { region?: string; q?: string }) => ({ ...prev, region: next }),
       replace: true,
     });
   }, [query, filtered, regions.length, selected, navigate]);
