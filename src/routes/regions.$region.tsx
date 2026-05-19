@@ -22,7 +22,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Building2, MapPin, Layers, Landmark } from "lucide-react";
+import { Building2, MapPin, Layers, Landmark, Check, Share2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const searchSchema = z.object({ province: z.string().optional() });
