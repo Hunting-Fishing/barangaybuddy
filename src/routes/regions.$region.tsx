@@ -38,11 +38,14 @@ type Brgy = { code: string; city_code: string };
 
 function RegionPage() {
   const { region } = Route.useParams();
+  const { province: selectedProvince } = Route.useSearch();
+  const location = useLocation();
   const [regionData, setRegionData] = useState<any>(null);
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [brgys, setBrgys] = useState<Brgy[]>([]);
   const [loading, setLoading] = useState(true);
+  const provinceRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
 
   useEffect(() => {
     (async () => {
