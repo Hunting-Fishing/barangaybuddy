@@ -89,8 +89,12 @@ function candidateTitles(level: Level, name: string, province?: string | null): 
     if (inParen) candidates.push(inParen);
   } else {
     const prov = province ? lowerSmallWords(province.replace(/\s*\(.*?\)\s*/g, "").trim()) : null;
-    // Strip trailing " City" for province-qualified variants (Wikipedia convention: "Alaminos, Pangasinan")
-    const bare = fixed.replace(/\s+City$/i, "").trim();
+    // Strip trailing " City" AND leading "City of " so Wikipedia conventions match
+    // (e.g. "City of Pasig" → "Pasig", "Alaminos City" → "Alaminos").
+    const bare = fixed
+      .replace(/^City\s+of\s+/i, "")
+      .replace(/\s+City$/i, "")
+      .trim();
     if (prov) {
       candidates.push(
         `${bare}, ${prov}`,
