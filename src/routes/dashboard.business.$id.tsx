@@ -92,7 +92,13 @@ function ManageBusiness() {
         hours: b.hours ?? "",
         contact_phone: b.contact_phone ?? "",
       });
+      setCatForm({
+        additional_types: (b.additional_types ?? []) as BizType[],
+        custom_types: (b.custom_types ?? []) as string[],
+        tags: b.type === "fuel_station" ? [] : ((b.tags ?? []) as string[]),
+      });
     }
+
     const { data: l } = await supabase.from("listings").select("*").eq("business_id", id).order("created_at", { ascending: false });
     setListings(l ?? []);
     if (b?.type === "fuel_station") {
