@@ -158,8 +158,8 @@ async function fileToRasterUrl(fileTitle: string): Promise<string | null> {
   return info.thumburl ?? info.url ?? null;
 }
 
-async function resolveFlag(level: Level, name: string): Promise<{ url: string; via: string } | null> {
-  for (const title of candidateTitles(level, name)) {
+async function resolveFlag(level: Level, name: string, province?: string | null): Promise<{ url: string; via: string } | null> {
+  for (const title of candidateTitles(level, name, province)) {
     const file = await findInfoboxImageOnPage(title);
     if (!file) continue;
     const url = await fileToRasterUrl(file);
