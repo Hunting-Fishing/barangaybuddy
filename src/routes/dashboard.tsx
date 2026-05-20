@@ -15,6 +15,9 @@ import { z } from "zod";
 import { Plus, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { FeatureTagsPicker } from "@/components/feature-tags-picker";
+import { sanitizeCustomLabel, dedupeCaseInsensitive } from "@/lib/business-tags";
+
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Owner Dashboard — BarangayHub" }] }),
