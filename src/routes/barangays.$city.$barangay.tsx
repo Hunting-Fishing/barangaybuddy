@@ -68,7 +68,14 @@ function BrgyPage() {
               image_url: l.image_url,
               in_stock: l.in_stock,
               category: l.category,
-              business: { id: bz.id, name: bz.name, slug: bz.slug, type: bz.type },
+              business: {
+                id: bz.id,
+                name: bz.name,
+                slug: bz.slug,
+                type: bz.type,
+                latitude: bz.latitude != null ? Number(bz.latitude) : null,
+                longitude: bz.longitude != null ? Number(bz.longitude) : null,
+              },
             };
           });
           setListings(feed);

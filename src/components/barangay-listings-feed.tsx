@@ -1,15 +1,23 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   computeUnitPrice,
   formatPerEach,
   formatPerUnit,
   formatPrice,
 } from "@/lib/unit-price";
-import { Search, Sparkles } from "lucide-react";
+import { Search, Sparkles, Navigation } from "lucide-react";
 
 export interface FeedListing {
   id: string;
@@ -23,26 +31,96 @@ export interface FeedListing {
   image_url: string | null;
   in_stock: boolean;
   category: string | null;
-  business: { id: string; name: string; slug: string; type: string };
+  business: {
+    id: string;
+    name: string;
+    slug: string;
+    type: string;
+    latitude?: number | null;
+    longitude?: number | null;
+  };
 }
+
+type SortMode = "best" | "per-each" | "per-kg" | "per-l" | "per-pc" | "distance";
 
 interface Row extends FeedListing {
   perEach: number | null;
   perUnit: number | null;
   baseUnit: "kg" | "L" | "pc" | null;
+  distanceKm: number | null;
+}
+
+const SORT_OPTIONS: { value: SortMode; label: string }[] = [
+  { value: "best", label: "Best deal" },
+  { value: "per-each", label: "Lowest per each" },
+  { value: "per-kg", label: "Lowest per kg" },
+  { value: "per-l", label: "Lowest per L" },
+  { value: "per-pc", label: "Lowest per piece" },
+  { value: "distance", label: "Nearest to me" },
+];
+
+function haversineKm(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+) {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const lat1 = (a.lat * Math.PI) / 180;
+  const lat2 = (b.lat * Math.PI) / 180;
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  return 2 * R * Math.asin(Math.sqrt(s));
 }
 
 export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string | null>(null);
+  const [sort, setSort] = useState<SortMode>("best");
+  const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
+  const [geoErr, setGeoErr] = useState<string | null>(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+
+  const requestLocation = () => {
+    if (!("geolocation" in navigator)) {
+      setGeoErr("Location not supported by this browser.");
+      return;
+    }
+    setGeoLoading(true);
+    setGeoErr(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGeoLoading(false);
+      },
+      (err) => {
+        setGeoErr(err.message || "Could not get location.");
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 },
+    );
+  };
+
+  useEffect(() => {
+    if (sort === "distance" && !geo && !geoLoading && !geoErr) {
+      requestLocation();
+    }
+  }, [sort]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const rows: Row[] = useMemo(
     () =>
       listings.map((l) => {
         const up = computeUnitPrice(l.price, l.pack_qty, l.size_value, l.size_unit);
-        return { ...l, ...up };
+        const lat = l.business.latitude;
+        const lng = l.business.longitude;
+        const distanceKm =
+          geo && lat != null && lng != null
+            ? haversineKm(geo, { lat: Number(lat), lng: Number(lng) })
+            : null;
+        return { ...l, ...up, distanceKm };
       }),
-    [listings],
+    [listings, geo],
   );
 
   const categories = useMemo(() => {
@@ -64,6 +142,25 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
     });
   }, [rows, q, cat]);
 
+  const itemScore = (r: Row): number => {
+    const inf = Number.POSITIVE_INFINITY;
+    switch (sort) {
+      case "per-each":
+        return r.perEach ?? inf;
+      case "per-kg":
+        return r.baseUnit === "kg" && r.perUnit != null ? r.perUnit : inf;
+      case "per-l":
+        return r.baseUnit === "L" && r.perUnit != null ? r.perUnit : inf;
+      case "per-pc":
+        return r.baseUnit === "pc" && r.perUnit != null ? r.perUnit : inf;
+      case "distance":
+        return r.distanceKm ?? inf;
+      case "best":
+      default:
+        return r.perEach ?? inf;
+    }
+  };
+
   const groups = useMemo(() => {
     const map = new Map<string, { key: string; label: string; items: Row[] }>();
     for (const r of filtered) {
@@ -71,19 +168,23 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
       if (!map.has(key)) map.set(key, { key, label: r.name, items: [] });
       map.get(key)!.items.push(r);
     }
-    // sort each group's items: cheapest per-each first, nulls last
     for (const g of map.values()) {
-      g.items.sort((a, b) => {
-        const av = a.perEach ?? Number.POSITIVE_INFINITY;
-        const bv = b.perEach ?? Number.POSITIVE_INFINITY;
-        return av - bv;
+      g.items.sort((a, b) => itemScore(a) - itemScore(b));
+    }
+    const list = Array.from(map.values());
+    if (sort === "best") {
+      list.sort(
+        (a, b) => b.items.length - a.items.length || a.label.localeCompare(b.label),
+      );
+    } else {
+      list.sort((a, b) => {
+        const av = a.items.length ? itemScore(a.items[0]) : Number.POSITIVE_INFINITY;
+        const bv = b.items.length ? itemScore(b.items[0]) : Number.POSITIVE_INFINITY;
+        return av - bv || a.label.localeCompare(b.label);
       });
     }
-    // sort groups: most listings first, then alphabetical
-    return Array.from(map.values()).sort(
-      (a, b) => b.items.length - a.items.length || a.label.localeCompare(b.label),
-    );
-  }, [filtered]);
+    return list;
+  }, [filtered, sort, geo]);
 
   if (listings.length === 0) {
     return (
@@ -108,36 +209,71 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
             className="pl-9"
           />
         </div>
-        {categories.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+        <Select value={sort} onValueChange={(v) => setSort(v as SortMode)}>
+          <SelectTrigger className="md:w-56">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {sort === "distance" && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs">
+          <Navigation className="h-3.5 w-3.5" />
+          {geo ? (
+            <span className="text-muted-foreground">
+              Sorted from your location. Sellers without a map pin appear last.
+            </span>
+          ) : geoLoading ? (
+            <span className="text-muted-foreground">Getting your location…</span>
+          ) : (
+            <>
+              <span className="text-muted-foreground">
+                {geoErr ? `Location blocked: ${geoErr}` : "Allow location to sort by distance."}
+              </span>
+              <Button size="sm" variant="outline" onClick={requestLocation}>
+                Use my location
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+
+      {categories.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setCat(null)}
+            className={`rounded-full px-3 py-1 text-xs ${
+              cat === null
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-secondary-foreground"
+            }`}
+          >
+            All
+          </button>
+          {categories.map((c) => (
             <button
+              key={c}
               type="button"
-              onClick={() => setCat(null)}
+              onClick={() => setCat(c === cat ? null : c)}
               className={`rounded-full px-3 py-1 text-xs ${
-                cat === null
+                cat === c
                   ? "bg-primary text-primary-foreground"
                   : "bg-secondary text-secondary-foreground"
               }`}
             >
-              All
+              {c}
             </button>
-            {categories.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setCat(c === cat ? null : c)}
-                className={`rounded-full px-3 py-1 text-xs ${
-                  cat === c
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-secondary-foreground"
-                }`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       {groups.length === 0 && (
         <p className="text-sm text-muted-foreground">No matches.</p>
@@ -154,7 +290,12 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
             </div>
             <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
               {g.items.map((r, idx) => (
-                <ListingRow key={r.id} row={r} isBest={idx === 0 && g.items.length > 1 && r.perEach != null} />
+                <ListingRow
+                  key={r.id}
+                  row={r}
+                  showDistance={sort === "distance" && geo != null}
+                  isBest={idx === 0 && g.items.length > 1 && r.perEach != null}
+                />
               ))}
             </div>
           </section>
@@ -164,13 +305,28 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
   );
 }
 
-function ListingRow({ row, isBest }: { row: Row; isBest: boolean }) {
+function ListingRow({
+  row,
+  isBest,
+  showDistance,
+}: {
+  row: Row;
+  isBest: boolean;
+  showDistance: boolean;
+}) {
   const sizeLabel =
     row.size_value && row.size_unit
       ? `${row.size_value}${row.size_unit} each`
       : null;
   const packLabel = row.pack_qty && row.pack_qty > 1 ? `${row.pack_qty}-pack` : null;
   const subtitle = [packLabel, sizeLabel].filter(Boolean).join(" · ");
+
+  const distLabel =
+    showDistance && row.distanceKm != null
+      ? row.distanceKm < 1
+        ? `${Math.round(row.distanceKm * 1000)} m away`
+        : `${row.distanceKm.toFixed(1)} km away`
+      : null;
 
   return (
     <div className="flex gap-4 p-4">
@@ -193,6 +349,9 @@ function ListingRow({ row, isBest }: { row: Row; isBest: boolean }) {
             >
               {row.business.name}
             </Link>
+            {distLabel && (
+              <div className="mt-0.5 text-xs text-muted-foreground">{distLabel}</div>
+            )}
           </div>
           <div className="text-right">
             <div className="font-display text-lg font-bold">{formatPrice(row.price)}</div>
