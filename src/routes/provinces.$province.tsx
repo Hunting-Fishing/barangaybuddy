@@ -7,6 +7,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { Card } from "@/components/ui/card";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
+import { LocalityFlag } from "@/components/locality-flag";
 
 const searchSchema = z.object({ city: z.string().optional() });
 
