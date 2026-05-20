@@ -166,6 +166,59 @@ function Dashboard() {
                   })}
                 </div>
               </div>
+
+              <div className="md:col-span-2">
+                <Label>Other categories <span className="text-xs text-muted-foreground">— type anything not listed above (e.g. Bar, Pub, Billiards hall)</span></Label>
+                {form.custom_types.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {form.custom_types.map((c) => (
+                      <Badge key={c} className="gap-1">
+                        {c}
+                        <button type="button" onClick={() => setForm({ ...form, custom_types: form.custom_types.filter((x) => x !== c) })} className="hover:text-destructive/80">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-2 flex gap-2">
+                  <Input
+                    value={customTypeInput}
+                    onChange={(e) => setCustomTypeInput(e.target.value)}
+                    placeholder="e.g. Bar, Pub, Pool hall…"
+                    maxLength={30}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const clean = sanitizeCustomLabel(customTypeInput);
+                        if (!clean) return toast.error("Use 2–30 letters/numbers.");
+                        if (form.custom_types.some((c) => c.toLowerCase() === clean.toLowerCase())) { setCustomTypeInput(""); return; }
+                        if (form.custom_types.length >= 10) return toast.error("Up to 10 custom categories.");
+                        setForm({ ...form, custom_types: [...form.custom_types, clean] });
+                        setCustomTypeInput("");
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" className="gap-1" onClick={() => {
+                    const clean = sanitizeCustomLabel(customTypeInput);
+                    if (!clean) return toast.error("Use 2–30 letters/numbers.");
+                    if (form.custom_types.some((c) => c.toLowerCase() === clean.toLowerCase())) { setCustomTypeInput(""); return; }
+                    if (form.custom_types.length >= 10) return toast.error("Up to 10 custom categories.");
+                    setForm({ ...form, custom_types: [...form.custom_types, clean] });
+                    setCustomTypeInput("");
+                  }}>
+                    <Plus className="h-4 w-4" /> Add
+                  </Button>
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <Label>Features & amenities <span className="text-xs text-muted-foreground">— what does the place have? (billiards, videoke, WiFi, GCash…)</span></Label>
+                <div className="mt-2">
+                  <FeatureTagsPicker value={form.tags} onChange={(tags) => setForm({ ...form, tags })} />
+                </div>
+              </div>
+
               <div className="md:col-span-2">
                 <Label>Description</Label>
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
