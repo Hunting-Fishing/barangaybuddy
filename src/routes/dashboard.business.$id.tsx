@@ -321,7 +321,7 @@ function ManageBusiness() {
                       <label key={t} className="flex cursor-pointer items-center gap-2 text-sm">
                         <Checkbox
                           checked={checked}
-                          onCheckedChange={(c) => setCatForm({ ...catForm, additional_types: c ? [...catForm.additional_types, t] : catForm.additional_types.filter((x) => x !== t) })}
+                          onCheckedChange={(c: boolean | "indeterminate") => setCatForm({ ...catForm, additional_types: c ? [...catForm.additional_types, t] : catForm.additional_types.filter((x) => x !== t) })}
                         />
                         {TYPE_LABEL[t]}
                       </label>
