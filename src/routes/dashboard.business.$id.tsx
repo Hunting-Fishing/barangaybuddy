@@ -203,6 +203,23 @@ function ManageBusiness() {
     toast.success("Station details saved"); load();
   }
 
+  async function saveCategories(e: React.FormEvent) {
+    e.preventDefault();
+    const parsed = z.object({
+      additional_types: z.array(z.enum(TYPES)).max(10),
+      custom_types: z.array(z.string().trim().min(2).max(30)).max(10),
+      tags: z.array(z.string().trim().min(1).max(40)).max(50),
+    }).safeParse(catForm);
+    if (!parsed.success) return toast.error(parsed.error.issues[0].message);
+    const additional_types = parsed.data.additional_types.filter((t) => t !== biz.type);
+    const custom_types = dedupeCaseInsensitive(parsed.data.custom_types);
+    const tags = dedupeCaseInsensitive(parsed.data.tags);
+    const { error } = await supabase.from("businesses").update({ additional_types, custom_types, tags }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Categories & features saved"); load();
+  }
+
+
   async function postFuelPrice(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
