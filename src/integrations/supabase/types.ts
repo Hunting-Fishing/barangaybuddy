@@ -120,6 +120,7 @@ export type Database = {
       cities_municipalities: {
         Row: {
           code: string
+          flag_url: string | null
           is_city: boolean
           name: string
           province_code: string
@@ -127,6 +128,7 @@ export type Database = {
         }
         Insert: {
           code: string
+          flag_url?: string | null
           is_city?: boolean
           name: string
           province_code: string
@@ -134,6 +136,7 @@ export type Database = {
         }
         Update: {
           code?: string
+          flag_url?: string | null
           is_city?: boolean
           name?: string
           province_code?: string
@@ -395,18 +398,21 @@ export type Database = {
       provinces: {
         Row: {
           code: string
+          flag_url: string | null
           name: string
           region_code: string
           slug: string
         }
         Insert: {
           code: string
+          flag_url?: string | null
           name: string
           region_code: string
           slug: string
         }
         Update: {
           code?: string
+          flag_url?: string | null
           name?: string
           region_code?: string
           slug?: string
@@ -424,16 +430,19 @@ export type Database = {
       regions: {
         Row: {
           code: string
+          flag_url: string | null
           name: string
           slug: string
         }
         Insert: {
           code: string
+          flag_url?: string | null
           name: string
           slug: string
         }
         Update: {
           code?: string
+          flag_url?: string | null
           name?: string
           slug?: string
         }
