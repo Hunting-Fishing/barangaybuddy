@@ -191,20 +191,30 @@ async function uploadFlag(folder: Level, slug: string, buf: Buffer): Promise<str
 
 async function processLevel(level: Level, table: string) {
   console.log(`\n=== ${level.toUpperCase()} ===`);
-  let q = supabase.from(table).select("code,slug,name,flag_url").order("name");
+  const selectCols =
+    level === "cities" ? "code,slug,name,flag_url,province_code" : "code,slug,name,flag_url";
+  let q = supabase.from(table).select(selectCols).order("name");
   if (!FORCE) q = q.is("flag_url", null);
   const { data, error } = await q;
   if (error) throw error;
-  let rows = (data ?? []) as Row[];
+  let rows = (data ?? []) as (Row & { province_code?: string })[];
   if (rows.length > LIMIT) rows = rows.slice(0, LIMIT);
   console.log(`${rows.length} rows to process${FORCE ? " (force)" : ""}`);
+
+  // Pre-fetch province code -> name map for city-level province qualification
+  const provinceMap = new Map<string, string>();
+  if (level === "cities") {
+    const { data: provs } = await supabase.from("provinces").select("code,name");
+    for (const p of provs ?? []) provinceMap.set(p.code, p.name);
+  }
 
   const misses: { level: Level; slug: string; name: string; reason: string }[] = [];
   let ok = 0;
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     try {
-      const found = await resolveFlag(level, row.name);
+      const province = level === "cities" ? provinceMap.get(row.province_code ?? "") ?? null : null;
+      const found = await resolveFlag(level, row.name, province);
       if (!found) {
         misses.push({ level, slug: row.slug, name: row.name, reason: "no candidate image" });
         process.stdout.write(`  · [${i + 1}/${rows.length}] ${row.name} — miss\n`);
