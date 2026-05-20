@@ -261,7 +261,7 @@ function Dashboard() {
                 {Array.isArray(b.tags) && b.tags.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-1">
                     {b.tags.slice(0, 6).map((t: string) => (
-                      <span key={t} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-secondary-foreground">{/* eslint-disable-next-line */}{t}</span>
+                      <span key={t} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-secondary-foreground">{tagLabel(t)}</span>
                     ))}
                     {b.tags.length > 6 && <span className="text-[10px] text-muted-foreground">+{b.tags.length - 6} more</span>}
                   </div>
