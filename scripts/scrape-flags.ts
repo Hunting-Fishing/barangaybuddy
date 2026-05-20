@@ -59,22 +59,29 @@ type Row = { code: string; slug: string; name: string; flag_url: string | null }
 // likelihood. First match with an infobox image wins.
 function candidateTitles(level: Level, name: string): string[] {
   const trimmed = name.trim();
+  const parenMatch = trimmed.match(/\(([^)]+)\)/);
+  const inParen = parenMatch?.[1]?.trim();
   const noParen = trimmed.replace(/\s*\(.*?\)\s*/g, "").trim();
   const candidates: string[] = [];
   if (level === "regions") {
-    candidates.push(trimmed, `${trimmed} (administrative region)`, `${trimmed}, Philippines`);
+    // For PH regions the Wikipedia article title is usually the friendly
+    // name (e.g. "Bicol Region", "Cordillera Administrative Region"), which
+    // is what we stored inside the parens.
+    if (inParen) candidates.push(inParen);
+    candidates.push(trimmed, noParen, `${noParen} (Philippines)`);
   } else if (level === "provinces") {
     candidates.push(trimmed, `${trimmed} (province)`, `Province of ${noParen}`, `${noParen}, Philippines`);
+    if (inParen) candidates.push(inParen);
   } else {
-    // city / municipality
     candidates.push(
       trimmed,
       `${noParen}, Philippines`,
       `${noParen} (city)`,
       `${noParen} (municipality)`,
     );
+    if (inParen) candidates.push(inParen);
   }
-  return [...new Set(candidates)];
+  return [...new Set(candidates)].filter(Boolean);
 }
 
 // Search the page's images for a likely flag/seal file.
