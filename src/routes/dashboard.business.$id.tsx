@@ -12,8 +12,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { z } from "zod";
-import { ArrowLeft, Plus, Trash2, Upload, Pencil, Fuel, ThumbsUp, ThumbsDown } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, Pencil, Fuel, ThumbsUp, ThumbsDown, X } from "lucide-react";
 import { computeUnitPrice, formatPerEach, formatPerUnit, SIZE_UNITS, type SizeUnit } from "@/lib/unit-price";
+import { FeatureTagsPicker } from "@/components/feature-tags-picker";
+import { sanitizeCustomLabel, dedupeCaseInsensitive } from "@/lib/business-tags";
+import { Badge } from "@/components/ui/badge";
+
+const TYPES = [
+  "store", "sari_sari", "service", "restaurant", "food_vendor", "ambulant_vendor",
+  "market_vendor", "wet_market", "dry_goods", "bakery", "farmer", "fisher",
+  "livestock", "agri_supply", "fuel_station", "pharmacy", "hardware",
+  "repair_shop", "salon", "laundry", "transport",
+] as const;
+type BizType = typeof TYPES[number];
+const TYPE_LABEL: Record<BizType, string> = {
+  store: "Store", sari_sari: "Sari-sari store", service: "Service",
+  restaurant: "Restaurant", food_vendor: "Food vendor", ambulant_vendor: "Ambulant vendor",
+  market_vendor: "Market vendor", wet_market: "Wet market", dry_goods: "Dry goods",
+  bakery: "Bakery", farmer: "Farmer", fisher: "Fisher", livestock: "Livestock",
+  agri_supply: "Agri supply", fuel_station: "Fuel station", pharmacy: "Pharmacy",
+  hardware: "Hardware", repair_shop: "Repair shop", salon: "Salon",
+  laundry: "Laundry", transport: "Transport",
+};
+
 
 export const Route = createFileRoute("/dashboard/business/$id")({
   head: () => ({ meta: [{ title: "Manage business — BarangayHub" }] }),
