@@ -53,7 +53,7 @@ async function rateLimitedFetch(url: string, init?: RequestInit, attempt = 0): P
 
 type Level = "regions" | "provinces" | "cities";
 
-type Row = { code: string; slug: string; name: string; flag_url: string | null };
+type Row = { code: string; slug: string; name: string; flag_url: string | null; province_name?: string | null };
 
 // Build the list of candidate Wikipedia article titles to try, ranked by
 // likelihood. First match with an infobox image wins.
@@ -61,7 +61,7 @@ function lowerSmallWords(s: string): string {
   return s.replace(/\b(Del|De|Of|And|The|La|Las|Los|El)\b/g, (w) => w.toLowerCase());
 }
 
-function candidateTitles(level: Level, name: string): string[] {
+function candidateTitles(level: Level, name: string, province?: string | null): string[] {
   const trimmed = name.trim();
   const parenMatch = trimmed.match(/\(([^)]+)\)/);
   const inParen = parenMatch?.[1]?.trim();
@@ -82,6 +82,18 @@ function candidateTitles(level: Level, name: string): string[] {
     );
     if (inParen) candidates.push(inParen);
   } else {
+    const prov = province ? lowerSmallWords(province.replace(/\s*\(.*?\)\s*/g, "").trim()) : null;
+    // Strip trailing " City" for province-qualified variants (Wikipedia convention: "Alaminos, Pangasinan")
+    const bare = fixed.replace(/\s+City$/i, "").trim();
+    if (prov) {
+      candidates.push(
+        `${bare}, ${prov}`,
+        `${fixed}, ${prov}`,
+        `${bare}, ${prov}, Philippines`,
+        `${fixed} (${prov})`,
+        `${bare} (${prov})`,
+      );
+    }
     candidates.push(
       fixed,
       `${fixed}, Philippines`,
@@ -99,7 +111,7 @@ function candidateTitles(level: Level, name: string): string[] {
 async function findInfoboxImageOnPage(title: string): Promise<string | null> {
   // Step 1: get all image filenames on the page
   const imagesUrl =
-    `${ENWIKI_API}?action=query&format=json&prop=images&imlimit=50&titles=${encodeURIComponent(title)}&origin=*`;
+    `${ENWIKI_API}?action=query&format=json&prop=images&imlimit=50&redirects=1&titles=${encodeURIComponent(title)}&origin=*`;
   const res = await rateLimitedFetch(imagesUrl);
   if (!res.ok) return null;
   const json: any = await res.json();
@@ -146,8 +158,8 @@ async function fileToRasterUrl(fileTitle: string): Promise<string | null> {
   return info.thumburl ?? info.url ?? null;
 }
 
-async function resolveFlag(level: Level, name: string): Promise<{ url: string; via: string } | null> {
-  for (const title of candidateTitles(level, name)) {
+async function resolveFlag(level: Level, name: string, province?: string | null): Promise<{ url: string; via: string } | null> {
+  for (const title of candidateTitles(level, name, province)) {
     const file = await findInfoboxImageOnPage(title);
     if (!file) continue;
     const url = await fileToRasterUrl(file);
@@ -179,20 +191,30 @@ async function uploadFlag(folder: Level, slug: string, buf: Buffer): Promise<str
 
 async function processLevel(level: Level, table: string) {
   console.log(`\n=== ${level.toUpperCase()} ===`);
-  let q = supabase.from(table).select("code,slug,name,flag_url").order("name");
+  const selectCols =
+    level === "cities" ? "code,slug,name,flag_url,province_code" : "code,slug,name,flag_url";
+  let q = supabase.from(table).select(selectCols).order("name");
   if (!FORCE) q = q.is("flag_url", null);
   const { data, error } = await q;
   if (error) throw error;
-  let rows = (data ?? []) as Row[];
+  let rows = (data ?? []) as (Row & { province_code?: string })[];
   if (rows.length > LIMIT) rows = rows.slice(0, LIMIT);
   console.log(`${rows.length} rows to process${FORCE ? " (force)" : ""}`);
+
+  // Pre-fetch province code -> name map for city-level province qualification
+  const provinceMap = new Map<string, string>();
+  if (level === "cities") {
+    const { data: provs } = await supabase.from("provinces").select("code,name");
+    for (const p of provs ?? []) provinceMap.set(p.code, p.name);
+  }
 
   const misses: { level: Level; slug: string; name: string; reason: string }[] = [];
   let ok = 0;
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     try {
-      const found = await resolveFlag(level, row.name);
+      const province = level === "cities" ? provinceMap.get(row.province_code ?? "") ?? null : null;
+      const found = await resolveFlag(level, row.name, province);
       if (!found) {
         misses.push({ level, slug: row.slug, name: row.name, reason: "no candidate image" });
         process.stdout.write(`  · [${i + 1}/${rows.length}] ${row.name} — miss\n`);
