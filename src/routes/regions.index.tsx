@@ -18,7 +18,7 @@ const searchSchema = z.object({
   q: z.string().optional(),
 });
 
-type RegionRow = { code: string; slug: string; name: string };
+type RegionRow = { code: string; slug: string; name: string; flag_url: string | null };
 
 const regionsQueryOptions = () =>
   queryOptions({
