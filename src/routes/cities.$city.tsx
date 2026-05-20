@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Card } from "@/components/ui/card";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { LocalityFlag } from "@/components/locality-flag";
 
 export const Route = createFileRoute("/cities/$city")({
   component: CityPage,
