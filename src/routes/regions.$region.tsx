@@ -26,6 +26,7 @@ import { Building2, MapPin, Layers, Landmark, Check, Share2 } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { LocalityFlag } from "@/components/locality-flag";
 
 const searchSchema = z.object({ province: z.string().optional() });
 
