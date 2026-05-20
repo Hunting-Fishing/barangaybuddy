@@ -1,0 +1,18 @@
+export const BUSINESS_TYPES = [
+  "store", "sari_sari", "service", "restaurant", "food_vendor", "ambulant_vendor",
+  "market_vendor", "wet_market", "dry_goods", "bakery", "farmer", "fisher",
+  "livestock", "agri_supply", "fuel_station", "pharmacy", "hardware",
+  "repair_shop", "salon", "laundry", "transport",
+] as const;
+
+export type BusinessType = typeof BUSINESS_TYPES[number];
+
+export const BUSINESS_TYPE_LABEL: Record<BusinessType, string> = {
+  store: "Store", sari_sari: "Sari-sari store", service: "Service",
+  restaurant: "Restaurant", food_vendor: "Food vendor", ambulant_vendor: "Ambulant vendor",
+  market_vendor: "Market vendor", wet_market: "Wet market", dry_goods: "Dry goods",
+  bakery: "Bakery", farmer: "Farmer", fisher: "Fisher", livestock: "Livestock",
+  agri_supply: "Agri supply", fuel_station: "Fuel station", pharmacy: "Pharmacy",
+  hardware: "Hardware", repair_shop: "Repair shop", salon: "Salon",
+  laundry: "Laundry", transport: "Transport",
+};
