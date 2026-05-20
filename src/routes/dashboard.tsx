@@ -253,11 +253,22 @@ function Dashboard() {
           {businesses.map((b) => (
             <Link key={b.id} to="/dashboard/business/$id" params={{ id: b.id }}>
               <Card className="p-5 transition-all hover:-translate-y-1 hover:shadow-elegant">
-                <div className="text-xs uppercase text-muted-foreground">{b.type.replace("_", " ")}</div>
+                <div className="text-xs uppercase text-muted-foreground">
+                  {[TYPE_LABEL[b.type as BizType] ?? b.type, ...(b.additional_types ?? []).map((t: BizType) => TYPE_LABEL[t] ?? t), ...(b.custom_types ?? [])].join(" · ")}
+                </div>
                 <h3 className="mt-1 font-display text-lg font-bold">{b.name}</h3>
                 <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{b.description}</p>
+                {Array.isArray(b.tags) && b.tags.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {b.tags.slice(0, 6).map((t: string) => (
+                      <span key={t} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-secondary-foreground">{/* eslint-disable-next-line */}{t}</span>
+                    ))}
+                    {b.tags.length > 6 && <span className="text-[10px] text-muted-foreground">+{b.tags.length - 6} more</span>}
+                  </div>
+                )}
                 <p className="mt-3 text-xs text-primary">Manage listings & images →</p>
               </Card>
+
             </Link>
           ))}
           {businesses.length === 0 && <p className="text-muted-foreground">No businesses yet. Create your first one above.</p>}
