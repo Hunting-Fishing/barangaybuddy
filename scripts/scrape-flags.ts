@@ -61,7 +61,7 @@ function lowerSmallWords(s: string): string {
   return s.replace(/\b(Del|De|Of|And|The|La|Las|Los|El)\b/g, (w) => w.toLowerCase());
 }
 
-function candidateTitles(level: Level, name: string): string[] {
+function candidateTitles(level: Level, name: string, province?: string | null): string[] {
   const trimmed = name.trim();
   const parenMatch = trimmed.match(/\(([^)]+)\)/);
   const inParen = parenMatch?.[1]?.trim();
@@ -82,6 +82,18 @@ function candidateTitles(level: Level, name: string): string[] {
     );
     if (inParen) candidates.push(inParen);
   } else {
+    const prov = province ? lowerSmallWords(province.replace(/\s*\(.*?\)\s*/g, "").trim()) : null;
+    // Strip trailing " City" for province-qualified variants (Wikipedia convention: "Alaminos, Pangasinan")
+    const bare = fixed.replace(/\s+City$/i, "").trim();
+    if (prov) {
+      candidates.push(
+        `${bare}, ${prov}`,
+        `${fixed}, ${prov}`,
+        `${bare}, ${prov}, Philippines`,
+        `${fixed} (${prov})`,
+        `${bare} (${prov})`,
+      );
+    }
     candidates.push(
       fixed,
       `${fixed}, Philippines`,
