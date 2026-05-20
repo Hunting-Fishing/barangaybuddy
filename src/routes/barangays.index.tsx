@@ -79,7 +79,7 @@ function BarangaysIndex() {
     const id = window.setTimeout(() => {
       if ((draft || undefined) === q) return;
       navigate({
-        search: (prev) => ({ ...prev, q: draft || undefined }),
+        search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, q: draft || undefined }),
         replace: true,
       });
     }, 250);
