@@ -7,98 +7,14 @@
   },
   {
     "level": "regions",
-    "slug": "cordillera-administrative-region",
-    "name": "Cordillera Administrative Region (CAR)",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "regions",
     "slug": "mimaropa-region",
     "name": "MIMAROPA Region",
     "reason": "no candidate image"
   },
   {
     "level": "regions",
-    "slug": "national-capital-region",
-    "name": "National Capital Region (NCR)",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "regions",
-    "slug": "region-i",
-    "name": "Region I (Ilocos Region)",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "regions",
-    "slug": "region-ii",
-    "name": "Region II (Cagayan Valley)",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "regions",
-    "slug": "region-iii",
-    "name": "Region III (Central Luzon)",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "regions",
     "slug": "region-iv-a",
     "name": "Region IV-A (CALABARZON)",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "regions",
-    "slug": "region-ix",
-    "name": "Region IX (Zamboanga Peninsula)",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "regions",
-    "slug": "region-v",
-    "name": "Region V (Bicol Region)",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "regions",
-    "slug": "region-vi",
-    "name": "Region VI (Western Visayas)",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "regions",
-    "slug": "region-vii",
-    "name": "Region VII (Central Visayas)",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "regions",
-    "slug": "region-viii",
-    "name": "Region VIII (Eastern Visayas)",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "regions",
-    "slug": "region-x",
-    "name": "Region X (Northern Mindanao)",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "regions",
-    "slug": "region-xi",
-    "name": "Region XI (Davao Region)",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "regions",
-    "slug": "region-xii",
-    "name": "Region XII (SOCCSKSARGEN)",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "regions",
-    "slug": "region-xiii",
-    "name": "Region XIII (Caraga)",
     "reason": "no candidate image"
   }
 ]
