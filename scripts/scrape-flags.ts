@@ -62,7 +62,13 @@ function lowerSmallWords(s: string): string {
 }
 
 function candidateTitles(level: Level, name: string, province?: string | null): string[] {
-  const trimmed = name.trim();
+  // Normalize source: fix smart apostrophes/backticks and lowercase the letter
+  // immediately after an apostrophe (so "Brooke'S Point" → "Brooke's Point",
+  // "T`Boli" → "T'Boli").
+  const trimmed = name
+    .trim()
+    .replace(/[`’‘´]/g, "'")
+    .replace(/'([A-Z])/g, (_m, c) => "'" + c.toLowerCase());
   const parenMatch = trimmed.match(/\(([^)]+)\)/);
   const inParen = parenMatch?.[1]?.trim();
   const noParen = trimmed.replace(/\s*\(.*?\)\s*/g, "").trim();
