@@ -53,7 +53,7 @@ async function rateLimitedFetch(url: string, init?: RequestInit, attempt = 0): P
 
 type Level = "regions" | "provinces" | "cities";
 
-type Row = { code: string; slug: string; name: string; flag_url: string | null };
+type Row = { code: string; slug: string; name: string; flag_url: string | null; province_name?: string | null };
 
 // Build the list of candidate Wikipedia article titles to try, ranked by
 // likelihood. First match with an infobox image wins.
