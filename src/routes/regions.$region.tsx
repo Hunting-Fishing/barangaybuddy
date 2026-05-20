@@ -55,7 +55,7 @@ function RegionPage() {
       const { data: r } = await supabase.from("regions").select("*").eq("slug", region).maybeSingle();
       setRegionData(r);
       if (r) {
-        const { data: p } = await supabase.from("provinces").select("code,name,slug").eq("region_code", r.code).order("name");
+        const { data: p } = await supabase.from("provinces").select("code,name,slug,flag_url").eq("region_code", r.code).order("name");
         const provList = (p ?? []) as Province[];
         setProvinces(provList);
 
