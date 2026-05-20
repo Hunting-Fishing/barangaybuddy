@@ -1,0 +1,44 @@
+[
+  {
+    "level": "provinces",
+    "slug": "compostela-valley",
+    "name": "Compostela Valley",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "marinduque",
+    "name": "Marinduque",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "national-capital-region-fourth-district",
+    "name": "National Capital Region - Fourth District",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "national-capital-region-manila",
+    "name": "National Capital Region - Manila",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "national-capital-region-second-district",
+    "name": "National Capital Region - Second District",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "national-capital-region-third-district",
+    "name": "National Capital Region - Third District",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "taguig-pateros",
+    "name": "Taguig - Pateros",
+    "reason": "no candidate image"
+  }
+]

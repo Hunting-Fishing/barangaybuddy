@@ -26,6 +26,7 @@ import { Building2, MapPin, Layers, Landmark, Check, Share2 } from "lucide-react
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { LocalityFlag } from "@/components/locality-flag";
 
 const searchSchema = z.object({ province: z.string().optional() });
 
@@ -34,7 +35,7 @@ export const Route = createFileRoute("/regions/$region")({
   component: RegionPage,
 });
 
-type Province = { code: string; name: string; slug: string };
+type Province = { code: string; name: string; slug: string; flag_url: string | null };
 type City = { code: string; province_code: string; is_city: boolean };
 type Brgy = { code: string; city_code: string };
 
@@ -55,7 +56,7 @@ function RegionPage() {
       const { data: r } = await supabase.from("regions").select("*").eq("slug", region).maybeSingle();
       setRegionData(r);
       if (r) {
-        const { data: p } = await supabase.from("provinces").select("code,name,slug").eq("region_code", r.code).order("name");
+        const { data: p } = await supabase.from("provinces").select("code,name,slug,flag_url").eq("region_code", r.code).order("name");
         const provList = (p ?? []) as Province[];
         setProvinces(provList);
 
@@ -148,6 +149,7 @@ function RegionPage() {
         </Breadcrumb>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
+          <LocalityFlag src={regionData?.flag_url} name={regionData?.name ?? "Region"} className="h-14 w-14" />
           <h1 className="font-display text-4xl font-bold md:text-5xl">{regionData?.name ?? "…"}</h1>
           {regionData?.code && <Badge variant="secondary" className="text-sm">{regionData.code}</Badge>}
           <ShareButton title={regionData?.name} />
@@ -186,13 +188,16 @@ function RegionPage() {
               >
                 <Card
                   className={cn(
-                    "p-4 transition-all hover:shadow-elegant hover:-translate-y-0.5",
+                    "flex items-center gap-3 p-4 transition-all hover:shadow-elegant hover:-translate-y-0.5",
                     isActive && "ring-2 ring-primary shadow-elegant -translate-y-0.5"
                   )}
                 >
-                  <div className="font-display font-bold">{p.name}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {p.cityCount} {p.cityCount === 1 ? "city" : "cities"} · {p.munCount} municipalit{p.munCount === 1 ? "y" : "ies"} · {p.brgyCount.toLocaleString()} barangays
+                  <LocalityFlag src={p.flag_url} name={p.name} className="h-10 w-10" />
+                  <div className="min-w-0">
+                    <div className="font-display font-bold truncate">{p.name}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {p.cityCount} {p.cityCount === 1 ? "city" : "cities"} · {p.munCount} municipalit{p.munCount === 1 ? "y" : "ies"} · {p.brgyCount.toLocaleString()} barangays
+                    </div>
                   </div>
                 </Card>
               </Link>

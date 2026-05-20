@@ -7,7 +7,8 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { MapPin, Search as SearchIcon, X } from "lucide-react";
+import { Search as SearchIcon, X } from "lucide-react";
+import { LocalityFlag } from "@/components/locality-flag";
 import { PhRegionMap } from "@/components/ph-region-map";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,7 @@ const searchSchema = z.object({
   q: z.string().optional(),
 });
 
-type RegionRow = { code: string; slug: string; name: string };
+type RegionRow = { code: string; slug: string; name: string; flag_url: string | null };
 
 const regionsQueryOptions = () =>
   queryOptions({
@@ -164,9 +165,7 @@ function Regions() {
                     isActive && "ring-2 ring-primary shadow-elegant -translate-y-1"
                   )}
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-sun shadow-sun">
-                    <MapPin className="h-6 w-6 text-sun-foreground" />
-                  </div>
+                  <LocalityFlag src={r.flag_url} name={r.name} />
                   <div>
                     <h3 className="font-display font-bold">{r.name}</h3>
                     <p className="text-xs text-muted-foreground">View provinces →</p>

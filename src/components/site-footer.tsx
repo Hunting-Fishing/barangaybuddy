@@ -39,8 +39,20 @@ export function SiteFooter() {
           </p>
         </div>
       </div>
-      <div className="border-t border-border/60 py-5 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} BarangayHub. Para sa Pilipino, gawa ng Pilipino.
+      <div className="space-y-1 border-t border-border/60 py-5 text-center text-xs text-muted-foreground">
+        <div>© {new Date().getFullYear()} BarangayHub. Para sa Pilipino, gawa ng Pilipino.</div>
+        <div>
+          Flags &amp; seals via{" "}
+          <a
+            href="https://commons.wikimedia.org/wiki/Flags_of_cities_and_municipalities_in_the_Philippines"
+            target="_blank"
+            rel="noreferrer noopener"
+            className="underline hover:text-foreground"
+          >
+            Wikimedia Commons
+          </a>
+          .
+        </div>
       </div>
     </footer>
   );
