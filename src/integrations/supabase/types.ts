@@ -45,6 +45,7 @@ export type Database = {
       }
       businesses: {
         Row: {
+          additional_types: Database["public"]["Enums"]["business_type"][]
           address: string | null
           barangay_code: string
           contact_email: string | null
@@ -66,6 +67,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          additional_types?: Database["public"]["Enums"]["business_type"][]
           address?: string | null
           barangay_code: string
           contact_email?: string | null
@@ -87,6 +89,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          additional_types?: Database["public"]["Enums"]["business_type"][]
           address?: string | null
           barangay_code?: string
           contact_email?: string | null
@@ -537,6 +540,22 @@ export type Database = {
         | "restaurant"
         | "food_vendor"
         | "fuel_station"
+        | "sari_sari"
+        | "market_vendor"
+        | "wet_market"
+        | "dry_goods"
+        | "farmer"
+        | "fisher"
+        | "ambulant_vendor"
+        | "bakery"
+        | "pharmacy"
+        | "hardware"
+        | "repair_shop"
+        | "salon"
+        | "laundry"
+        | "transport"
+        | "agri_supply"
+        | "livestock"
       fuel_type: "gasoline_91" | "gasoline_95" | "gasoline_97" | "diesel"
     }
     CompositeTypes: {
@@ -672,6 +691,22 @@ export const Constants = {
         "restaurant",
         "food_vendor",
         "fuel_station",
+        "sari_sari",
+        "market_vendor",
+        "wet_market",
+        "dry_goods",
+        "farmer",
+        "fisher",
+        "ambulant_vendor",
+        "bakery",
+        "pharmacy",
+        "hardware",
+        "repair_shop",
+        "salon",
+        "laundry",
+        "transport",
+        "agri_supply",
+        "livestock",
       ],
       fuel_type: ["gasoline_91", "gasoline_95", "gasoline_97", "diesel"],
     },
