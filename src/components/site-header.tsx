@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { MapPin, Menu, Search, Fuel, LayoutDashboard, MessageSquare, LogOut } from "lucide-react";
+import { MapPin, Menu, Search, Fuel, LayoutDashboard, MessageSquare, LogOut, Home } from "lucide-react";
 import { useState } from "react";
 import {
   DropdownMenu,
@@ -34,6 +34,9 @@ export function SiteHeader() {
         <nav className="hidden items-center gap-1 md:flex">
           <Link to="/regions" className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
             Browse
+          </Link>
+          <Link to="/barangays" className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+            <Home className="h-4 w-4" /> Barangays
           </Link>
           <Link to="/search" className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
             <Search className="h-4 w-4" /> Search

@@ -18,6 +18,7 @@ import { Route as FuelRouteImport } from './routes/fuel'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RegionsIndexRouteImport } from './routes/regions.index'
+import { Route as BarangaysIndexRouteImport } from './routes/barangays.index'
 import { Route as RegionsRegionRouteImport } from './routes/regions.$region'
 import { Route as ProvincesProvinceRouteImport } from './routes/provinces.$province'
 import { Route as MessagesConversationIdRouteImport } from './routes/messages.$conversationId'
@@ -71,6 +72,11 @@ const RegionsIndexRoute = RegionsIndexRouteImport.update({
   path: '/regions/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BarangaysIndexRoute = BarangaysIndexRouteImport.update({
+  id: '/barangays/',
+  path: '/barangays/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegionsRegionRoute = RegionsRegionRouteImport.update({
   id: '/regions/$region',
   path: '/regions/$region',
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
+  '/barangays/': typeof BarangaysIndexRoute
   '/regions/': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
+  '/barangays': typeof BarangaysIndexRoute
   '/regions': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRoute
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
+  '/barangays/': typeof BarangaysIndexRoute
   '/regions/': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRoute
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
+    | '/barangays/'
     | '/regions/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
+    | '/barangays'
     | '/regions'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
+    | '/barangays/'
     | '/regions/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
@@ -232,6 +244,7 @@ export interface RootRouteChildren {
   CitiesCityRoute: typeof CitiesCityRoute
   ProvincesProvinceRoute: typeof ProvincesProvinceRoute
   RegionsRegionRoute: typeof RegionsRegionRoute
+  BarangaysIndexRoute: typeof BarangaysIndexRoute
   RegionsIndexRoute: typeof RegionsIndexRoute
   BarangaysCityBarangayRoute: typeof BarangaysCityBarangayRoute
 }
@@ -299,6 +312,13 @@ declare module '@tanstack/react-router' {
       path: '/regions'
       fullPath: '/regions/'
       preLoaderRoute: typeof RegionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/barangays/': {
+      id: '/barangays/'
+      path: '/barangays'
+      fullPath: '/barangays/'
+      preLoaderRoute: typeof BarangaysIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/regions/$region': {
@@ -390,6 +410,7 @@ const rootRouteChildren: RootRouteChildren = {
   CitiesCityRoute: CitiesCityRoute,
   ProvincesProvinceRoute: ProvincesProvinceRoute,
   RegionsRegionRoute: RegionsRegionRoute,
+  BarangaysIndexRoute: BarangaysIndexRoute,
   RegionsIndexRoute: RegionsIndexRoute,
   BarangaysCityBarangayRoute: BarangaysCityBarangayRoute,
 }
