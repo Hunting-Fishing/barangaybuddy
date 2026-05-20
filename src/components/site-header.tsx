@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { MapPin, Menu, Search, Fuel, LayoutDashboard, MessageSquare, LogOut } from "lucide-react";
+import { MapPin, Menu, Search, Fuel, LayoutDashboard, MessageSquare, LogOut, Home } from "lucide-react";
 import { useState } from "react";
 import {
   DropdownMenu,
