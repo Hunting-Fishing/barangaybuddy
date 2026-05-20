@@ -111,7 +111,7 @@ function candidateTitles(level: Level, name: string, province?: string | null): 
 async function findInfoboxImageOnPage(title: string): Promise<string | null> {
   // Step 1: get all image filenames on the page
   const imagesUrl =
-    `${ENWIKI_API}?action=query&format=json&prop=images&imlimit=50&titles=${encodeURIComponent(title)}&origin=*`;
+    `${ENWIKI_API}?action=query&format=json&prop=images&imlimit=50&redirects=1&titles=${encodeURIComponent(title)}&origin=*`;
   const res = await rateLimitedFetch(imagesUrl);
   if (!res.ok) return null;
   const json: any = await res.json();
