@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ArrowLeft, Plus, Trash2, Upload, Pencil, Fuel, ThumbsUp, ThumbsDown } from "lucide-react";
+import { computeUnitPrice, formatPerEach, formatPerUnit, SIZE_UNITS, type SizeUnit } from "@/lib/unit-price";
 
 export const Route = createFileRoute("/dashboard/business/$id")({
   head: () => ({ meta: [{ title: "Manage business — BarangayHub" }] }),
@@ -25,6 +26,9 @@ const listingSchema = z.object({
   price: z.number().nonnegative().optional(),
   unit: z.string().max(40).optional(),
   category: z.string().max(60).optional(),
+  pack_qty: z.number().int().min(1).max(100000).default(1),
+  size_value: z.number().positive().max(1000000).optional(),
+  size_unit: z.enum(["g", "kg", "ml", "L", "pc"]).optional(),
 });
 
 const FUEL_LABELS: Record<string, string> = {
