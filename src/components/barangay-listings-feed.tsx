@@ -131,10 +131,22 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
     return Array.from(set).sort();
   }, [rows]);
 
+  const radiusActive = sort === "distance" && geo != null;
+  const hiddenByRadius = useMemo(
+    () =>
+      radiusActive
+        ? rows.filter((r) => r.distanceKm == null || r.distanceKm > radiusKm).length
+        : 0,
+    [rows, radiusActive, radiusKm],
+  );
+
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return rows.filter((r) => {
       if (cat && r.category !== cat) return false;
+      if (radiusActive) {
+        if (r.distanceKm == null || r.distanceKm > radiusKm) return false;
+      }
       if (!needle) return true;
       return (
         r.name.toLowerCase().includes(needle) ||
@@ -142,7 +154,7 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
         r.business.name.toLowerCase().includes(needle)
       );
     });
-  }, [rows, q, cat]);
+  }, [rows, q, cat, radiusActive, radiusKm]);
 
   const itemScore = (r: Row): number => {
     const inf = Number.POSITIVE_INFINITY;
