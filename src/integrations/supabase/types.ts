@@ -52,6 +52,7 @@ export type Database = {
           contact_phone: string | null
           cover_image_url: string | null
           created_at: string
+          custom_types: string[]
           description: string | null
           hours: string | null
           id: string
@@ -74,6 +75,7 @@ export type Database = {
           contact_phone?: string | null
           cover_image_url?: string | null
           created_at?: string
+          custom_types?: string[]
           description?: string | null
           hours?: string | null
           id?: string
@@ -96,6 +98,7 @@ export type Database = {
           contact_phone?: string | null
           cover_image_url?: string | null
           created_at?: string
+          custom_types?: string[]
           description?: string | null
           hours?: string | null
           id?: string

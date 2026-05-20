@@ -15,6 +15,9 @@ import { z } from "zod";
 import { Plus, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { FeatureTagsPicker } from "@/components/feature-tags-picker";
+import { sanitizeCustomLabel, dedupeCaseInsensitive, tagLabel } from "@/lib/business-tags";
+
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Owner Dashboard — BarangayHub" }] }),
@@ -43,8 +46,10 @@ function Dashboard() {
   const nav = useNavigate();
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<{ name: string; type: BizType; additional_types: BizType[]; description: string; barangay_search: string; barangay_code: string; barangay_label: string }>({ name: "", type: "store", additional_types: [], description: "", barangay_search: "", barangay_code: "", barangay_label: "" });
+  const [form, setForm] = useState<{ name: string; type: BizType; additional_types: BizType[]; custom_types: string[]; tags: string[]; description: string; barangay_search: string; barangay_code: string; barangay_label: string }>({ name: "", type: "store", additional_types: [], custom_types: [], tags: [], description: "", barangay_search: "", barangay_code: "", barangay_label: "" });
+  const [customTypeInput, setCustomTypeInput] = useState("");
   const [brgyResults, setBrgyResults] = useState<any[]>([]);
+
 
   useEffect(() => {
     if (!loading && !user) nav({ to: "/login" });
@@ -77,19 +82,25 @@ function Dashboard() {
       name: z.string().trim().min(2).max(120),
       type: z.enum(TYPES),
       additional_types: z.array(z.enum(TYPES)).max(10),
+      custom_types: z.array(z.string().trim().min(2).max(30)).max(10),
+      tags: z.array(z.string().trim().min(1).max(40)).max(50),
       description: z.string().max(2000).optional(),
       barangay_code: z.string().min(1, "Choose a barangay"),
     }).safeParse({ ...form, description: form.description || undefined });
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
     const slug = `${parsed.data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${Math.random().toString(36).slice(2, 7)}`;
     const additional_types = parsed.data.additional_types.filter((t) => t !== parsed.data.type);
-    const { error } = await supabase.from("businesses").insert({ ...parsed.data, additional_types, owner_id: user.id, slug });
+    const custom_types = dedupeCaseInsensitive(parsed.data.custom_types);
+    const tags = dedupeCaseInsensitive(parsed.data.tags);
+    const { error } = await supabase.from("businesses").insert({ ...parsed.data, additional_types, custom_types, tags, owner_id: user.id, slug });
     if (error) return toast.error(error.message);
     toast.success("Business created!");
     setShowForm(false);
-    setForm({ name: "", type: "store", additional_types: [], description: "", barangay_search: "", barangay_code: "", barangay_label: "" });
+    setForm({ name: "", type: "store", additional_types: [], custom_types: [], tags: [], description: "", barangay_search: "", barangay_code: "", barangay_label: "" });
+    setCustomTypeInput("");
     load();
   }
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -155,6 +166,59 @@ function Dashboard() {
                   })}
                 </div>
               </div>
+
+              <div className="md:col-span-2">
+                <Label>Other categories <span className="text-xs text-muted-foreground">— type anything not listed above (e.g. Bar, Pub, Billiards hall)</span></Label>
+                {form.custom_types.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {form.custom_types.map((c) => (
+                      <Badge key={c} className="gap-1">
+                        {c}
+                        <button type="button" onClick={() => setForm({ ...form, custom_types: form.custom_types.filter((x) => x !== c) })} className="hover:text-destructive/80">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-2 flex gap-2">
+                  <Input
+                    value={customTypeInput}
+                    onChange={(e) => setCustomTypeInput(e.target.value)}
+                    placeholder="e.g. Bar, Pub, Pool hall…"
+                    maxLength={30}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const clean = sanitizeCustomLabel(customTypeInput);
+                        if (!clean) return toast.error("Use 2–30 letters/numbers.");
+                        if (form.custom_types.some((c) => c.toLowerCase() === clean.toLowerCase())) { setCustomTypeInput(""); return; }
+                        if (form.custom_types.length >= 10) return toast.error("Up to 10 custom categories.");
+                        setForm({ ...form, custom_types: [...form.custom_types, clean] });
+                        setCustomTypeInput("");
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" className="gap-1" onClick={() => {
+                    const clean = sanitizeCustomLabel(customTypeInput);
+                    if (!clean) return toast.error("Use 2–30 letters/numbers.");
+                    if (form.custom_types.some((c) => c.toLowerCase() === clean.toLowerCase())) { setCustomTypeInput(""); return; }
+                    if (form.custom_types.length >= 10) return toast.error("Up to 10 custom categories.");
+                    setForm({ ...form, custom_types: [...form.custom_types, clean] });
+                    setCustomTypeInput("");
+                  }}>
+                    <Plus className="h-4 w-4" /> Add
+                  </Button>
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <Label>Features & amenities <span className="text-xs text-muted-foreground">— what does the place have? (billiards, videoke, WiFi, GCash…)</span></Label>
+                <div className="mt-2">
+                  <FeatureTagsPicker value={form.tags} onChange={(tags) => setForm({ ...form, tags })} />
+                </div>
+              </div>
+
               <div className="md:col-span-2">
                 <Label>Description</Label>
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
@@ -189,11 +253,22 @@ function Dashboard() {
           {businesses.map((b) => (
             <Link key={b.id} to="/dashboard/business/$id" params={{ id: b.id }}>
               <Card className="p-5 transition-all hover:-translate-y-1 hover:shadow-elegant">
-                <div className="text-xs uppercase text-muted-foreground">{b.type.replace("_", " ")}</div>
+                <div className="text-xs uppercase text-muted-foreground">
+                  {[TYPE_LABEL[b.type as BizType] ?? b.type, ...(b.additional_types ?? []).map((t: BizType) => TYPE_LABEL[t] ?? t), ...(b.custom_types ?? [])].join(" · ")}
+                </div>
                 <h3 className="mt-1 font-display text-lg font-bold">{b.name}</h3>
                 <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{b.description}</p>
+                {Array.isArray(b.tags) && b.tags.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {b.tags.slice(0, 6).map((t: string) => (
+                      <span key={t} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-secondary-foreground">{tagLabel(t)}</span>
+                    ))}
+                    {b.tags.length > 6 && <span className="text-[10px] text-muted-foreground">+{b.tags.length - 6} more</span>}
+                  </div>
+                )}
                 <p className="mt-3 text-xs text-primary">Manage listings & images →</p>
               </Card>
+
             </Link>
           ))}
           {businesses.length === 0 && <p className="text-muted-foreground">No businesses yet. Create your first one above.</p>}

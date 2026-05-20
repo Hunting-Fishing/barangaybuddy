@@ -12,8 +12,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { z } from "zod";
-import { ArrowLeft, Plus, Trash2, Upload, Pencil, Fuel, ThumbsUp, ThumbsDown } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, Pencil, Fuel, ThumbsUp, ThumbsDown, X } from "lucide-react";
 import { computeUnitPrice, formatPerEach, formatPerUnit, SIZE_UNITS, type SizeUnit } from "@/lib/unit-price";
+import { FeatureTagsPicker } from "@/components/feature-tags-picker";
+import { sanitizeCustomLabel, dedupeCaseInsensitive } from "@/lib/business-tags";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+
+
+const TYPES = [
+  "store", "sari_sari", "service", "restaurant", "food_vendor", "ambulant_vendor",
+  "market_vendor", "wet_market", "dry_goods", "bakery", "farmer", "fisher",
+  "livestock", "agri_supply", "fuel_station", "pharmacy", "hardware",
+  "repair_shop", "salon", "laundry", "transport",
+] as const;
+type BizType = typeof TYPES[number];
+const TYPE_LABEL: Record<BizType, string> = {
+  store: "Store", sari_sari: "Sari-sari store", service: "Service",
+  restaurant: "Restaurant", food_vendor: "Food vendor", ambulant_vendor: "Ambulant vendor",
+  market_vendor: "Market vendor", wet_market: "Wet market", dry_goods: "Dry goods",
+  bakery: "Bakery", farmer: "Farmer", fisher: "Fisher", livestock: "Livestock",
+  agri_supply: "Agri supply", fuel_station: "Fuel station", pharmacy: "Pharmacy",
+  hardware: "Hardware", repair_shop: "Repair shop", salon: "Salon",
+  laundry: "Laundry", transport: "Transport",
+};
+
 
 export const Route = createFileRoute("/dashboard/business/$id")({
   head: () => ({ meta: [{ title: "Manage business — BarangayHub" }] }),
@@ -49,10 +72,15 @@ function ManageBusiness() {
   const [form, setForm] = useState({ name: "", description: "", price: "", unit: "", category: "", image_url: "", pack_qty: "1", size_value: "", size_unit: "" as "" | SizeUnit });
   const [busy, setBusy] = useState(false);
 
+  // Categories & features state (non-fuel businesses)
+  const [catForm, setCatForm] = useState<{ additional_types: BizType[]; custom_types: string[]; tags: string[] }>({ additional_types: [], custom_types: [], tags: [] });
+  const [customTypeInput, setCustomTypeInput] = useState("");
+
   // Fuel-station state
   const [fuelPrices, setFuelPrices] = useState<any[]>([]);
   const [fuelForm, setFuelForm] = useState({ fuel_type: "gasoline_95", price: "" });
   const [details, setDetails] = useState({ brand: "", address: "", hours: "", contact_phone: "" });
+
 
   useEffect(() => { if (!loading && !user) nav({ to: "/login" }); }, [user, loading, nav]);
 
@@ -66,7 +94,13 @@ function ManageBusiness() {
         hours: b.hours ?? "",
         contact_phone: b.contact_phone ?? "",
       });
+      setCatForm({
+        additional_types: (b.additional_types ?? []) as BizType[],
+        custom_types: (b.custom_types ?? []) as string[],
+        tags: b.type === "fuel_station" ? [] : ((b.tags ?? []) as string[]),
+      });
     }
+
     const { data: l } = await supabase.from("listings").select("*").eq("business_id", id).order("created_at", { ascending: false });
     setListings(l ?? []);
     if (b?.type === "fuel_station") {
@@ -171,6 +205,23 @@ function ManageBusiness() {
     toast.success("Station details saved"); load();
   }
 
+  async function saveCategories(e: React.FormEvent) {
+    e.preventDefault();
+    const parsed = z.object({
+      additional_types: z.array(z.enum(TYPES)).max(10),
+      custom_types: z.array(z.string().trim().min(2).max(30)).max(10),
+      tags: z.array(z.string().trim().min(1).max(40)).max(50),
+    }).safeParse(catForm);
+    if (!parsed.success) return toast.error(parsed.error.issues[0].message);
+    const additional_types = parsed.data.additional_types.filter((t) => t !== biz.type);
+    const custom_types = dedupeCaseInsensitive(parsed.data.custom_types);
+    const tags = dedupeCaseInsensitive(parsed.data.tags);
+    const { error } = await supabase.from("businesses").update({ additional_types, custom_types, tags }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Categories & features saved"); load();
+  }
+
+
   async function postFuelPrice(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
@@ -243,6 +294,101 @@ function ManageBusiness() {
             </div>
           </div>
         </Card>
+
+        {!isFuel && (
+          <Card className="mt-8 p-6">
+            <h2 className="font-display text-xl font-bold">Categories & features</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Primary type: <span className="font-medium text-foreground">{TYPE_LABEL[biz.type as BizType] ?? biz.type}</span>. Add what else this place is and what features it has.</p>
+            <form onSubmit={saveCategories} className="mt-4 space-y-6">
+              <div>
+                <Label>Additional categories</Label>
+                {catForm.additional_types.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {catForm.additional_types.map((t) => (
+                      <Badge key={t} variant="secondary" className="gap-1">
+                        {TYPE_LABEL[t] ?? t}
+                        <button type="button" onClick={() => setCatForm({ ...catForm, additional_types: catForm.additional_types.filter((x) => x !== t) })} className="hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-2 grid max-h-56 grid-cols-2 gap-1.5 overflow-auto rounded-md border border-border p-3 md:grid-cols-3">
+                  {TYPES.filter((t) => t !== biz.type).map((t) => {
+                    const checked = catForm.additional_types.includes(t);
+                    return (
+                      <label key={t} className="flex cursor-pointer items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(c: boolean | "indeterminate") => setCatForm({ ...catForm, additional_types: c ? [...catForm.additional_types, t] : catForm.additional_types.filter((x) => x !== t) })}
+                        />
+                        {TYPE_LABEL[t]}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <Label>Other categories <span className="text-xs text-muted-foreground">— type your own (Bar, Pub, Billiards hall…)</span></Label>
+                {catForm.custom_types.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {catForm.custom_types.map((c) => (
+                      <Badge key={c} className="gap-1">
+                        {c}
+                        <button type="button" onClick={() => setCatForm({ ...catForm, custom_types: catForm.custom_types.filter((x) => x !== c) })} className="hover:text-destructive/80">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-2 flex gap-2">
+                  <Input
+                    value={customTypeInput}
+                    onChange={(e) => setCustomTypeInput(e.target.value)}
+                    placeholder="e.g. Bar, Pub, Pool hall…"
+                    maxLength={30}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const clean = sanitizeCustomLabel(customTypeInput);
+                        if (!clean) return toast.error("Use 2–30 letters/numbers.");
+                        if (catForm.custom_types.some((c) => c.toLowerCase() === clean.toLowerCase())) { setCustomTypeInput(""); return; }
+                        if (catForm.custom_types.length >= 10) return toast.error("Up to 10 custom categories.");
+                        setCatForm({ ...catForm, custom_types: [...catForm.custom_types, clean] });
+                        setCustomTypeInput("");
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" className="gap-1" onClick={() => {
+                    const clean = sanitizeCustomLabel(customTypeInput);
+                    if (!clean) return toast.error("Use 2–30 letters/numbers.");
+                    if (catForm.custom_types.some((c) => c.toLowerCase() === clean.toLowerCase())) { setCustomTypeInput(""); return; }
+                    if (catForm.custom_types.length >= 10) return toast.error("Up to 10 custom categories.");
+                    setCatForm({ ...catForm, custom_types: [...catForm.custom_types, clean] });
+                    setCustomTypeInput("");
+                  }}>
+                    <Plus className="h-4 w-4" /> Add
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <Label>Features & amenities</Label>
+                <div className="mt-2">
+                  <FeatureTagsPicker value={catForm.tags} onChange={(tags) => setCatForm({ ...catForm, tags })} />
+                </div>
+              </div>
+
+              <div>
+                <Button type="submit">Save categories & features</Button>
+              </div>
+            </form>
+          </Card>
+        )}
+
 
         {isFuel && (
           <>
