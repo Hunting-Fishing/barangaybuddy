@@ -46,7 +46,7 @@ function ManageBusiness() {
   const [biz, setBiz] = useState<any>(null);
   const [listings, setListings] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", price: "", unit: "", category: "", image_url: "" });
+  const [form, setForm] = useState({ name: "", description: "", price: "", unit: "", category: "", image_url: "", pack_qty: "1", size_value: "", size_unit: "" as "" | SizeUnit });
   const [busy, setBusy] = useState(false);
 
   // Fuel-station state
