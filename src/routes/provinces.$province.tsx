@@ -73,7 +73,10 @@ function ProvincePage() {
             <BreadcrumbItem><BreadcrumbPage>{data?.name ?? "…"}</BreadcrumbPage></BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <h1 className="mt-6 font-display text-4xl font-bold md:text-5xl">{data?.name ?? "…"}</h1>
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <LocalityFlag src={data?.flag_url} name={data?.name ?? "Province"} className="h-14 w-14" />
+          <h1 className="font-display text-4xl font-bold md:text-5xl">{data?.name ?? "…"}</h1>
+        </div>
         <p className="mt-2 text-muted-foreground">{cities.length} cities & municipalities</p>
         <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {cities.map((c) => {
@@ -88,12 +91,15 @@ function ProvincePage() {
               >
                 <Card
                   className={cn(
-                    "p-4 transition-all hover:shadow-elegant hover:-translate-y-0.5",
+                    "flex items-center gap-3 p-4 transition-all hover:shadow-elegant hover:-translate-y-0.5",
                     isActive && "ring-2 ring-primary shadow-elegant -translate-y-0.5"
                   )}
                 >
-                  <div className="font-medium">{c.name}</div>
-                  <div className="text-xs text-muted-foreground">{c.is_city ? "City" : "Municipality"}</div>
+                  <LocalityFlag src={c.flag_url} name={c.name} className="h-10 w-10" />
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{c.name}</div>
+                    <div className="text-xs text-muted-foreground">{c.is_city ? "City" : "Municipality"}</div>
+                  </div>
                 </Card>
               </Link>
             );
