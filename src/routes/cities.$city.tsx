@@ -52,7 +52,10 @@ function CityPage() {
             <BreadcrumbItem><BreadcrumbPage>{data?.name ?? "…"}</BreadcrumbPage></BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <h1 className="mt-6 font-display text-4xl font-bold md:text-5xl">{data?.name ?? "…"}</h1>
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <LocalityFlag src={data?.flag_url} name={data?.name ?? "City"} className="h-14 w-14" />
+          <h1 className="font-display text-4xl font-bold md:text-5xl">{data?.name ?? "…"}</h1>
+        </div>
         <p className="mt-2 text-muted-foreground">{brgys.length} barangays · {data?.is_city ? "City" : "Municipality"}</p>
         <div className="mt-10 grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {brgys.map((b) => (
