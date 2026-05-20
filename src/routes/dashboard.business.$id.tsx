@@ -293,6 +293,101 @@ function ManageBusiness() {
           </div>
         </Card>
 
+        {!isFuel && (
+          <Card className="mt-8 p-6">
+            <h2 className="font-display text-xl font-bold">Categories & features</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Primary type: <span className="font-medium text-foreground">{TYPE_LABEL[biz.type as BizType] ?? biz.type}</span>. Add what else this place is and what features it has.</p>
+            <form onSubmit={saveCategories} className="mt-4 space-y-6">
+              <div>
+                <Label>Additional categories</Label>
+                {catForm.additional_types.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {catForm.additional_types.map((t) => (
+                      <Badge key={t} variant="secondary" className="gap-1">
+                        {TYPE_LABEL[t] ?? t}
+                        <button type="button" onClick={() => setCatForm({ ...catForm, additional_types: catForm.additional_types.filter((x) => x !== t) })} className="hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-2 grid max-h-56 grid-cols-2 gap-1.5 overflow-auto rounded-md border border-border p-3 md:grid-cols-3">
+                  {TYPES.filter((t) => t !== biz.type).map((t) => {
+                    const checked = catForm.additional_types.includes(t);
+                    return (
+                      <label key={t} className="flex cursor-pointer items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(c) => setCatForm({ ...catForm, additional_types: c ? [...catForm.additional_types, t] : catForm.additional_types.filter((x) => x !== t) })}
+                        />
+                        {TYPE_LABEL[t]}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <Label>Other categories <span className="text-xs text-muted-foreground">— type your own (Bar, Pub, Billiards hall…)</span></Label>
+                {catForm.custom_types.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {catForm.custom_types.map((c) => (
+                      <Badge key={c} className="gap-1">
+                        {c}
+                        <button type="button" onClick={() => setCatForm({ ...catForm, custom_types: catForm.custom_types.filter((x) => x !== c) })} className="hover:text-destructive/80">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-2 flex gap-2">
+                  <Input
+                    value={customTypeInput}
+                    onChange={(e) => setCustomTypeInput(e.target.value)}
+                    placeholder="e.g. Bar, Pub, Pool hall…"
+                    maxLength={30}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const clean = sanitizeCustomLabel(customTypeInput);
+                        if (!clean) return toast.error("Use 2–30 letters/numbers.");
+                        if (catForm.custom_types.some((c) => c.toLowerCase() === clean.toLowerCase())) { setCustomTypeInput(""); return; }
+                        if (catForm.custom_types.length >= 10) return toast.error("Up to 10 custom categories.");
+                        setCatForm({ ...catForm, custom_types: [...catForm.custom_types, clean] });
+                        setCustomTypeInput("");
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" className="gap-1" onClick={() => {
+                    const clean = sanitizeCustomLabel(customTypeInput);
+                    if (!clean) return toast.error("Use 2–30 letters/numbers.");
+                    if (catForm.custom_types.some((c) => c.toLowerCase() === clean.toLowerCase())) { setCustomTypeInput(""); return; }
+                    if (catForm.custom_types.length >= 10) return toast.error("Up to 10 custom categories.");
+                    setCatForm({ ...catForm, custom_types: [...catForm.custom_types, clean] });
+                    setCustomTypeInput("");
+                  }}>
+                    <Plus className="h-4 w-4" /> Add
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <Label>Features & amenities</Label>
+                <div className="mt-2">
+                  <FeatureTagsPicker value={catForm.tags} onChange={(tags) => setCatForm({ ...catForm, tags })} />
+                </div>
+              </div>
+
+              <div>
+                <Button type="submit">Save categories & features</Button>
+              </div>
+            </form>
+          </Card>
+        )}
+
+
         {isFuel && (
           <>
             <Card className="mt-8 p-6">
