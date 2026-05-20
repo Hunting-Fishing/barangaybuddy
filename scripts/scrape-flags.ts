@@ -57,27 +57,38 @@ type Row = { code: string; slug: string; name: string; flag_url: string | null }
 
 // Build the list of candidate Wikipedia article titles to try, ranked by
 // likelihood. First match with an infobox image wins.
+function lowerSmallWords(s: string): string {
+  return s.replace(/\b(Del|De|Of|And|The|La|Las|Los|El)\b/g, (w) => w.toLowerCase());
+}
+
 function candidateTitles(level: Level, name: string): string[] {
   const trimmed = name.trim();
   const parenMatch = trimmed.match(/\(([^)]+)\)/);
   const inParen = parenMatch?.[1]?.trim();
   const noParen = trimmed.replace(/\s*\(.*?\)\s*/g, "").trim();
+  const fixed = lowerSmallWords(noParen);
   const candidates: string[] = [];
   if (level === "regions") {
-    // For PH regions the Wikipedia article title is usually the friendly
-    // name (e.g. "Bicol Region", "Cordillera Administrative Region"), which
-    // is what we stored inside the parens.
     if (inParen) candidates.push(inParen);
-    candidates.push(trimmed, noParen, `${noParen} (Philippines)`);
+    candidates.push(trimmed, noParen, fixed, `${noParen} (Philippines)`);
   } else if (level === "provinces") {
-    candidates.push(trimmed, `${trimmed} (province)`, `Province of ${noParen}`, `${noParen}, Philippines`);
+    candidates.push(
+      fixed,
+      `${fixed} (province)`,
+      `Province of ${fixed}`,
+      noParen,
+      trimmed,
+      `${fixed}, Philippines`,
+    );
     if (inParen) candidates.push(inParen);
   } else {
     candidates.push(
+      fixed,
+      `${fixed}, Philippines`,
+      `${fixed} (city)`,
+      `${fixed} (municipality)`,
+      noParen,
       trimmed,
-      `${noParen}, Philippines`,
-      `${noParen} (city)`,
-      `${noParen} (municipality)`,
     );
     if (inParen) candidates.push(inParen);
   }
