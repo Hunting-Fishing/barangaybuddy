@@ -188,13 +188,16 @@ function RegionPage() {
               >
                 <Card
                   className={cn(
-                    "p-4 transition-all hover:shadow-elegant hover:-translate-y-0.5",
+                    "flex items-center gap-3 p-4 transition-all hover:shadow-elegant hover:-translate-y-0.5",
                     isActive && "ring-2 ring-primary shadow-elegant -translate-y-0.5"
                   )}
                 >
-                  <div className="font-display font-bold">{p.name}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {p.cityCount} {p.cityCount === 1 ? "city" : "cities"} · {p.munCount} municipalit{p.munCount === 1 ? "y" : "ies"} · {p.brgyCount.toLocaleString()} barangays
+                  <LocalityFlag src={p.flag_url} name={p.name} className="h-10 w-10" />
+                  <div className="min-w-0">
+                    <div className="font-display font-bold truncate">{p.name}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {p.cityCount} {p.cityCount === 1 ? "city" : "cities"} · {p.munCount} municipalit{p.munCount === 1 ? "y" : "ies"} · {p.brgyCount.toLocaleString()} barangays
+                    </div>
                   </div>
                 </Card>
               </Link>
