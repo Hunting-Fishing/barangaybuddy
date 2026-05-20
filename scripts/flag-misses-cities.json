@@ -7,96 +7,6 @@
   },
   {
     "level": "cities",
-    "slug": "brooke-s-point-palawan",
-    "name": "Brooke'S Point",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "cities",
-    "slug": "city-of-antipolo-rizal",
-    "name": "City Of Antipolo",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "cities",
-    "slug": "city-of-calapan-oriental-mindoro",
-    "name": "City Of Calapan",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "cities",
-    "slug": "city-of-kidapawan-cotabato",
-    "name": "City Of Kidapawan",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "cities",
-    "slug": "city-of-las-pi-as-national-capital-region-fourth-district",
-    "name": "City Of Las Piñas",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "cities",
-    "slug": "city-of-ligao-albay",
-    "name": "City Of Ligao",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "cities",
-    "slug": "city-of-makati-national-capital-region-fourth-district",
-    "name": "City Of Makati",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "cities",
-    "slug": "city-of-malaybalay-bukidnon",
-    "name": "City Of Malaybalay",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "cities",
-    "slug": "city-of-marikina-national-capital-region-second-district",
-    "name": "City Of Marikina",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "cities",
-    "slug": "city-of-muntinlupa-national-capital-region-fourth-district",
-    "name": "City Of Muntinlupa",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "cities",
-    "slug": "city-of-para-aque-national-capital-region-fourth-district",
-    "name": "City Of Parañaque",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "cities",
-    "slug": "city-of-pasig-national-capital-region-second-district",
-    "name": "City Of Pasig",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "cities",
-    "slug": "city-of-santiago-isabela",
-    "name": "City Of Santiago",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "cities",
-    "slug": "city-of-tagum-davao",
-    "name": "City Of Tagum",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "cities",
-    "slug": "city-of-tarlac-tarlac",
-    "name": "City Of Tarlac",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "cities",
     "slug": "cuyapo-nueva-ecija",
     "name": "Cuyapo",
     "reason": "no candidate image"
@@ -141,12 +51,6 @@
     "level": "cities",
     "slug": "port-area-national-capital-region-manila",
     "name": "Port Area",
-    "reason": "no candidate image"
-  },
-  {
-    "level": "cities",
-    "slug": "t-boli-south-cotabato",
-    "name": "T`Boli",
     "reason": "no candidate image"
   },
   {

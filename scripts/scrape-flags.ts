@@ -62,7 +62,13 @@ function lowerSmallWords(s: string): string {
 }
 
 function candidateTitles(level: Level, name: string, province?: string | null): string[] {
-  const trimmed = name.trim();
+  // Normalize source: fix smart apostrophes/backticks and lowercase the letter
+  // immediately after an apostrophe (so "Brooke'S Point" → "Brooke's Point",
+  // "T`Boli" → "T'Boli").
+  const trimmed = name
+    .trim()
+    .replace(/[`’‘´]/g, "'")
+    .replace(/'([A-Z])/g, (_m, c) => "'" + c.toLowerCase());
   const parenMatch = trimmed.match(/\(([^)]+)\)/);
   const inParen = parenMatch?.[1]?.trim();
   const noParen = trimmed.replace(/\s*\(.*?\)\s*/g, "").trim();
@@ -83,8 +89,12 @@ function candidateTitles(level: Level, name: string, province?: string | null): 
     if (inParen) candidates.push(inParen);
   } else {
     const prov = province ? lowerSmallWords(province.replace(/\s*\(.*?\)\s*/g, "").trim()) : null;
-    // Strip trailing " City" for province-qualified variants (Wikipedia convention: "Alaminos, Pangasinan")
-    const bare = fixed.replace(/\s+City$/i, "").trim();
+    // Strip trailing " City" AND leading "City of " so Wikipedia conventions match
+    // (e.g. "City of Pasig" → "Pasig", "Alaminos City" → "Alaminos").
+    const bare = fixed
+      .replace(/^City\s+of\s+/i, "")
+      .replace(/\s+City$/i, "")
+      .trim();
     if (prov) {
       candidates.push(
         `${bare}, ${prov}`,
@@ -95,8 +105,12 @@ function candidateTitles(level: Level, name: string, province?: string | null): 
       );
     }
     candidates.push(
+      bare,
       fixed,
+      `${bare}, Philippines`,
       `${fixed}, Philippines`,
+      `${bare} (city)`,
+      `${bare} (municipality)`,
       `${fixed} (city)`,
       `${fixed} (municipality)`,
       noParen,
