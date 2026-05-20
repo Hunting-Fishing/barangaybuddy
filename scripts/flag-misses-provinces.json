@@ -1,0 +1,116 @@
+[
+  {
+    "level": "provinces",
+    "slug": "agusan-del-norte",
+    "name": "Agusan Del Norte",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "agusan-del-sur",
+    "name": "Agusan Del Sur",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "compostela-valley",
+    "name": "Compostela Valley",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "cotabato",
+    "name": "Cotabato (North Cot.)",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "davao",
+    "name": "Davao (Davao Del Norte)",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "davao-del-sur",
+    "name": "Davao Del Sur",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "lanao-del-norte",
+    "name": "Lanao Del Norte",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "lanao-del-sur",
+    "name": "Lanao Del Sur",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "marinduque",
+    "name": "Marinduque",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "national-capital-region-fourth-district",
+    "name": "National Capital Region - Fourth District",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "national-capital-region-manila",
+    "name": "National Capital Region - Manila",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "national-capital-region-second-district",
+    "name": "National Capital Region - Second District",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "national-capital-region-third-district",
+    "name": "National Capital Region - Third District",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "samar",
+    "name": "Samar (Western Samar)",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "surigao-del-norte",
+    "name": "Surigao Del Norte",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "surigao-del-sur",
+    "name": "Surigao Del Sur",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "taguig-pateros",
+    "name": "Taguig - Pateros",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "zamboanga-del-norte",
+    "name": "Zamboanga Del Norte",
+    "reason": "no candidate image"
+  },
+  {
+    "level": "provinces",
+    "slug": "zamboanga-del-sur",
+    "name": "Zamboanga Del Sur",
+    "reason": "no candidate image"
+  }
+]
