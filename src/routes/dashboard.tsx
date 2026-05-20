@@ -46,8 +46,10 @@ function Dashboard() {
   const nav = useNavigate();
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<{ name: string; type: BizType; additional_types: BizType[]; description: string; barangay_search: string; barangay_code: string; barangay_label: string }>({ name: "", type: "store", additional_types: [], description: "", barangay_search: "", barangay_code: "", barangay_label: "" });
+  const [form, setForm] = useState<{ name: string; type: BizType; additional_types: BizType[]; custom_types: string[]; tags: string[]; description: string; barangay_search: string; barangay_code: string; barangay_label: string }>({ name: "", type: "store", additional_types: [], custom_types: [], tags: [], description: "", barangay_search: "", barangay_code: "", barangay_label: "" });
+  const [customTypeInput, setCustomTypeInput] = useState("");
   const [brgyResults, setBrgyResults] = useState<any[]>([]);
+
 
   useEffect(() => {
     if (!loading && !user) nav({ to: "/login" });
