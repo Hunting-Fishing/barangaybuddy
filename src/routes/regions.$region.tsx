@@ -34,7 +34,7 @@ export const Route = createFileRoute("/regions/$region")({
   component: RegionPage,
 });
 
-type Province = { code: string; name: string; slug: string };
+type Province = { code: string; name: string; slug: string; flag_url: string | null };
 type City = { code: string; province_code: string; is_city: boolean };
 type Brgy = { code: string; city_code: string };
 
