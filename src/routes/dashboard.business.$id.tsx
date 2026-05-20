@@ -104,7 +104,7 @@ function ManageBusiness() {
 
   function resetForm() {
     setEditing(null);
-    setForm({ name: "", description: "", price: "", unit: "", category: "", image_url: "" });
+    setForm({ name: "", description: "", price: "", unit: "", category: "", image_url: "", pack_qty: "1", size_value: "", size_unit: "" });
   }
 
   function startEdit(l: any) {
@@ -112,6 +112,9 @@ function ManageBusiness() {
     setForm({
       name: l.name, description: l.description ?? "", price: l.price?.toString() ?? "",
       unit: l.unit ?? "", category: l.category ?? "", image_url: l.image_url ?? "",
+      pack_qty: (l.pack_qty ?? 1).toString(),
+      size_value: l.size_value != null ? String(l.size_value) : "",
+      size_unit: (l.size_unit ?? "") as "" | SizeUnit,
     });
   }
 
@@ -123,9 +126,18 @@ function ManageBusiness() {
       price: form.price ? Number(form.price) : undefined,
       unit: form.unit || undefined,
       category: form.category || undefined,
+      pack_qty: form.pack_qty ? Number(form.pack_qty) : 1,
+      size_value: form.size_value ? Number(form.size_value) : undefined,
+      size_unit: form.size_unit || undefined,
     });
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
-    const payload = { ...parsed.data, image_url: form.image_url || null, business_id: id };
+    const payload = {
+      ...parsed.data,
+      size_value: parsed.data.size_value ?? null,
+      size_unit: parsed.data.size_unit ?? null,
+      image_url: form.image_url || null,
+      business_id: id,
+    };
     const { error } = editing
       ? await supabase.from("listings").update(payload).eq("id", editing.id)
       : await supabase.from("listings").insert(payload);
