@@ -212,7 +212,7 @@ function BarangaysIndex() {
 
   const setSearch = (next: Partial<{ q?: string; region?: string; province?: string }>) =>
     navigate({
-      search: (prev) => ({ ...prev, ...next }),
+      search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, ...next }),
       replace: true,
     });
 
