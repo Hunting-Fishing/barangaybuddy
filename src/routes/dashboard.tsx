@@ -12,21 +12,38 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Owner Dashboard — BarangayHub" }] }),
   component: Dashboard,
 });
 
-const TYPES = ["store", "service", "restaurant", "food_vendor", "fuel_station"] as const;
+const TYPES = [
+  "store", "sari_sari", "service", "restaurant", "food_vendor", "ambulant_vendor",
+  "market_vendor", "wet_market", "dry_goods", "bakery", "farmer", "fisher",
+  "livestock", "agri_supply", "fuel_station", "pharmacy", "hardware",
+  "repair_shop", "salon", "laundry", "transport",
+] as const;
+type BizType = typeof TYPES[number];
+const TYPE_LABEL: Record<BizType, string> = {
+  store: "Store", sari_sari: "Sari-sari store", service: "Service",
+  restaurant: "Restaurant", food_vendor: "Food vendor", ambulant_vendor: "Ambulant vendor",
+  market_vendor: "Market vendor", wet_market: "Wet market", dry_goods: "Dry goods",
+  bakery: "Bakery", farmer: "Farmer", fisher: "Fisher", livestock: "Livestock",
+  agri_supply: "Agri supply", fuel_station: "Fuel station", pharmacy: "Pharmacy",
+  hardware: "Hardware", repair_shop: "Repair shop", salon: "Salon",
+  laundry: "Laundry", transport: "Transport",
+};
 
 function Dashboard() {
   const { user, loading } = useAuth();
   const nav = useNavigate();
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", type: "store", description: "", barangay_search: "", barangay_code: "", barangay_label: "" });
+  const [form, setForm] = useState<{ name: string; type: BizType; additional_types: BizType[]; description: string; barangay_search: string; barangay_code: string; barangay_label: string }>({ name: "", type: "store", additional_types: [], description: "", barangay_search: "", barangay_code: "", barangay_label: "" });
   const [brgyResults, setBrgyResults] = useState<any[]>([]);
 
   useEffect(() => {
