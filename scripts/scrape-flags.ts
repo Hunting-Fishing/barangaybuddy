@@ -105,8 +105,12 @@ function candidateTitles(level: Level, name: string, province?: string | null): 
       );
     }
     candidates.push(
+      bare,
       fixed,
+      `${bare}, Philippines`,
       `${fixed}, Philippines`,
+      `${bare} (city)`,
+      `${bare} (municipality)`,
       `${fixed} (city)`,
       `${fixed} (municipality)`,
       noParen,
