@@ -82,6 +82,7 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
   const [geoErr, setGeoErr] = useState<string | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
+  const [radiusKm, setRadiusKm] = useState<number>(10);
 
   const requestLocation = () => {
     if (!("geolocation" in navigator)) {
