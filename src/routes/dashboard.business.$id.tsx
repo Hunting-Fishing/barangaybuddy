@@ -70,10 +70,15 @@ function ManageBusiness() {
   const [form, setForm] = useState({ name: "", description: "", price: "", unit: "", category: "", image_url: "", pack_qty: "1", size_value: "", size_unit: "" as "" | SizeUnit });
   const [busy, setBusy] = useState(false);
 
+  // Categories & features state (non-fuel businesses)
+  const [catForm, setCatForm] = useState<{ additional_types: BizType[]; custom_types: string[]; tags: string[] }>({ additional_types: [], custom_types: [], tags: [] });
+  const [customTypeInput, setCustomTypeInput] = useState("");
+
   // Fuel-station state
   const [fuelPrices, setFuelPrices] = useState<any[]>([]);
   const [fuelForm, setFuelForm] = useState({ fuel_type: "gasoline_95", price: "" });
   const [details, setDetails] = useState({ brand: "", address: "", hours: "", contact_phone: "" });
+
 
   useEffect(() => { if (!loading && !user) nav({ to: "/login" }); }, [user, loading, nav]);
 
