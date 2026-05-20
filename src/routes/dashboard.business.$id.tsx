@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ArrowLeft, Plus, Trash2, Upload, Pencil, Fuel, ThumbsUp, ThumbsDown } from "lucide-react";
+import { computeUnitPrice, formatPerEach, formatPerUnit, SIZE_UNITS, type SizeUnit } from "@/lib/unit-price";
 
 export const Route = createFileRoute("/dashboard/business/$id")({
   head: () => ({ meta: [{ title: "Manage business — BarangayHub" }] }),
@@ -25,6 +26,9 @@ const listingSchema = z.object({
   price: z.number().nonnegative().optional(),
   unit: z.string().max(40).optional(),
   category: z.string().max(60).optional(),
+  pack_qty: z.number().int().min(1).max(100000).default(1),
+  size_value: z.number().positive().max(1000000).optional(),
+  size_unit: z.enum(["g", "kg", "ml", "L", "pc"]).optional(),
 });
 
 const FUEL_LABELS: Record<string, string> = {
@@ -42,7 +46,7 @@ function ManageBusiness() {
   const [biz, setBiz] = useState<any>(null);
   const [listings, setListings] = useState<any[]>([]);
   const [editing, setEditing] = useState<any | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", price: "", unit: "", category: "", image_url: "" });
+  const [form, setForm] = useState({ name: "", description: "", price: "", unit: "", category: "", image_url: "", pack_qty: "1", size_value: "", size_unit: "" as "" | SizeUnit });
   const [busy, setBusy] = useState(false);
 
   // Fuel-station state
@@ -100,7 +104,7 @@ function ManageBusiness() {
 
   function resetForm() {
     setEditing(null);
-    setForm({ name: "", description: "", price: "", unit: "", category: "", image_url: "" });
+    setForm({ name: "", description: "", price: "", unit: "", category: "", image_url: "", pack_qty: "1", size_value: "", size_unit: "" });
   }
 
   function startEdit(l: any) {
@@ -108,6 +112,9 @@ function ManageBusiness() {
     setForm({
       name: l.name, description: l.description ?? "", price: l.price?.toString() ?? "",
       unit: l.unit ?? "", category: l.category ?? "", image_url: l.image_url ?? "",
+      pack_qty: (l.pack_qty ?? 1).toString(),
+      size_value: l.size_value != null ? String(l.size_value) : "",
+      size_unit: (l.size_unit ?? "") as "" | SizeUnit,
     });
   }
 
@@ -119,9 +126,18 @@ function ManageBusiness() {
       price: form.price ? Number(form.price) : undefined,
       unit: form.unit || undefined,
       category: form.category || undefined,
+      pack_qty: form.pack_qty ? Number(form.pack_qty) : 1,
+      size_value: form.size_value ? Number(form.size_value) : undefined,
+      size_unit: form.size_unit || undefined,
     });
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
-    const payload = { ...parsed.data, image_url: form.image_url || null, business_id: id };
+    const payload = {
+      ...parsed.data,
+      size_value: parsed.data.size_value ?? null,
+      size_unit: parsed.data.size_unit ?? null,
+      image_url: form.image_url || null,
+      business_id: id,
+    };
     const { error } = editing
       ? await supabase.from("listings").update(payload).eq("id", editing.id)
       : await supabase.from("listings").insert(payload);
@@ -347,8 +363,61 @@ function ManageBusiness() {
                 <Input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
               </div>
               <div>
-                <Label>Unit</Label>
+                <Label>Unit label (display only)</Label>
                 <Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="e.g. per kilo" />
+              </div>
+              <div>
+                <Label>Pack quantity</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={form.pack_qty}
+                  onChange={(e) => setForm({ ...form, pack_qty: e.target.value })}
+                  placeholder="1"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">How many pieces are in this pack? e.g. 10 for a 10-pack.</p>
+              </div>
+              <div>
+                <Label>Size per piece</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.size_value}
+                    onChange={(e) => setForm({ ...form, size_value: e.target.value })}
+                    placeholder="e.g. 35"
+                  />
+                  <Select value={form.size_unit || "none"} onValueChange={(v) => setForm({ ...form, size_unit: v === "none" ? "" : (v as SizeUnit) })}>
+                    <SelectTrigger className="w-28"><SelectValue placeholder="unit" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">—</SelectItem>
+                      {SIZE_UNITS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Optional. Lets shoppers compare by weight / volume.</p>
+              </div>
+              <div className="md:col-span-2 rounded-md border border-dashed border-border bg-secondary/40 p-3 text-sm">
+                {(() => {
+                  const up = computeUnitPrice(
+                    form.price ? Number(form.price) : null,
+                    form.pack_qty ? Number(form.pack_qty) : 1,
+                    form.size_value ? Number(form.size_value) : null,
+                    form.size_unit || null,
+                  );
+                  const pe = formatPerEach(up.perEach);
+                  const pu = formatPerUnit(up.perUnit, up.baseUnit);
+                  if (!pe && !pu) return <span className="text-muted-foreground">Live preview: enter a price and pack quantity to see per-each pricing.</span>;
+                  return (
+                    <span>
+                      <span className="font-medium">Shoppers will see:</span>{" "}
+                      {pe && <span className="font-display">{pe}</span>}
+                      {pe && pu && <span> · </span>}
+                      {pu && <span className="font-display">{pu}</span>}
+                    </span>
+                  );
+                })()}
               </div>
               <div className="md:col-span-2">
                 <Label>Description</Label>

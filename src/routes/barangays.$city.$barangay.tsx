@@ -6,7 +6,9 @@ import { SiteFooter } from "@/components/site-footer";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Store, Briefcase, UtensilsCrossed, Coffee, Fuel } from "lucide-react";
+import { Store, Briefcase, UtensilsCrossed, Coffee, Fuel, ShoppingBasket, MapPin } from "lucide-react";
+import { BusinessMap, type MapBusiness } from "@/components/business-map";
+import { BarangayListingsFeed, type FeedListing } from "@/components/barangay-listings-feed";
 
 export const Route = createFileRoute("/barangays/$city/$barangay")({
   component: BrgyPage,
@@ -26,6 +28,7 @@ function BrgyPage() {
   const [province, setProvince] = useState<any>(null);
   const [region, setRegion] = useState<any>(null);
   const [businesses, setBusinesses] = useState<any[]>([]);
+  const [listings, setListings] = useState<FeedListing[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -41,10 +44,52 @@ function BrgyPage() {
       }
       if (b) {
         const { data: biz } = await supabase.from("businesses").select("*").eq("barangay_code", b.code).eq("is_published", true);
-        setBusinesses(biz ?? []);
+        const list = biz ?? [];
+        setBusinesses(list);
+
+        const ids = list.map((x: any) => x.id);
+        if (ids.length) {
+          const { data: ll } = await supabase
+            .from("listings")
+            .select("id,name,normalized_name,description,price,pack_qty,size_value,size_unit,image_url,in_stock,category,business_id")
+            .in("business_id", ids);
+          const byId = new Map(list.map((x: any) => [x.id, x]));
+          const feed: FeedListing[] = (ll ?? []).map((l: any) => {
+            const bz = byId.get(l.business_id);
+            return {
+              id: l.id,
+              name: l.name,
+              normalized_name: l.normalized_name,
+              description: l.description,
+              price: l.price != null ? Number(l.price) : null,
+              pack_qty: l.pack_qty,
+              size_value: l.size_value != null ? Number(l.size_value) : null,
+              size_unit: l.size_unit,
+              image_url: l.image_url,
+              in_stock: l.in_stock,
+              category: l.category,
+              business: { id: bz.id, name: bz.name, slug: bz.slug, type: bz.type },
+            };
+          });
+          setListings(feed);
+        } else {
+          setListings([]);
+        }
       }
     })();
   }, [city, barangay]);
+
+  const mapBusinesses: MapBusiness[] = businesses
+    .filter((b) => b.latitude != null && b.longitude != null)
+    .map((b) => ({
+      id: b.id,
+      slug: b.slug,
+      name: b.name,
+      type: b.type,
+      latitude: Number(b.latitude),
+      longitude: Number(b.longitude),
+    }));
+  const unpinned = businesses.filter((b) => b.latitude == null || b.longitude == null);
 
   return (
     <div className="min-h-screen bg-background">
@@ -64,16 +109,41 @@ function BrgyPage() {
           </BreadcrumbList>
         </Breadcrumb>
         <h1 className="mt-6 font-display text-4xl font-bold md:text-5xl">Barangay {brgy?.name}</h1>
-        <p className="mt-2 text-muted-foreground">{businesses.length} businesses listed</p>
+        <p className="mt-2 text-muted-foreground">
+          {businesses.length} businesses · {listings.length} products listed
+        </p>
 
-        <Tabs defaultValue="store" className="mt-8">
+        <section className="mt-8">
+          {mapBusinesses.length > 0 ? (
+            <BusinessMap businesses={mapBusinesses} />
+          ) : (
+            <Card className="p-6 text-sm text-muted-foreground">
+              <MapPin className="mb-2 inline h-4 w-4" /> No businesses have pinned their location yet.
+            </Card>
+          )}
+          {unpinned.length > 0 && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {unpinned.length} business{unpinned.length === 1 ? "" : "es"} without a map pin yet.
+            </p>
+          )}
+        </section>
+
+        <Tabs defaultValue="products" className="mt-10">
           <TabsList className="flex flex-wrap">
+            <TabsTrigger value="products">
+              <ShoppingBasket className="mr-1.5 h-4 w-4" /> Products
+            </TabsTrigger>
             {TYPES.map(({ type, label, Icon }) => (
               <TabsTrigger key={type} value={type}>
                 <Icon className="mr-1.5 h-4 w-4" /> {label}
               </TabsTrigger>
             ))}
           </TabsList>
+
+          <TabsContent value="products" className="mt-6">
+            <BarangayListingsFeed listings={listings} />
+          </TabsContent>
+
           {TYPES.map(({ type }) => (
             <TabsContent key={type} value={type} className="mt-6">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
