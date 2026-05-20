@@ -165,9 +165,7 @@ function Regions() {
                     isActive && "ring-2 ring-primary shadow-elegant -translate-y-1"
                   )}
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-sun shadow-sun">
-                    <MapPin className="h-6 w-6 text-sun-foreground" />
-                  </div>
+                  <LocalityFlag src={r.flag_url} name={r.name} />
                   <div>
                     <h3 className="font-display font-bold">{r.name}</h3>
                     <p className="text-xs text-muted-foreground">View provinces →</p>
