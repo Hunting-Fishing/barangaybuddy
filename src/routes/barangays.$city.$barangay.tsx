@@ -75,6 +75,8 @@ function BrgyPage() {
                 type: bz.type,
                 latitude: bz.latitude != null ? Number(bz.latitude) : null,
                 longitude: bz.longitude != null ? Number(bz.longitude) : null,
+                address: bz.address ?? null,
+                cover_image_url: bz.cover_image_url ?? null,
               },
             };
           });
