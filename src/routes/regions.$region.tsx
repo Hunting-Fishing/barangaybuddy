@@ -149,6 +149,7 @@ function RegionPage() {
         </Breadcrumb>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
+          <LocalityFlag src={regionData?.flag_url} name={regionData?.name ?? "Region"} className="h-14 w-14" />
           <h1 className="font-display text-4xl font-bold md:text-5xl">{regionData?.name ?? "…"}</h1>
           {regionData?.code && <Badge variant="secondary" className="text-sm">{regionData.code}</Badge>}
           <ShareButton title={regionData?.name} />
