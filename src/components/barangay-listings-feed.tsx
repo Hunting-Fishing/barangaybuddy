@@ -12,13 +12,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import {
   computeUnitPrice,
   formatPerEach,
   formatPerUnit,
   formatPrice,
 } from "@/lib/unit-price";
-import { Search, Sparkles, Navigation } from "lucide-react";
+import { Search, Sparkles, Navigation, ShieldCheck, MapPin } from "lucide-react";
 
 export interface FeedListing {
   id: string;
@@ -39,6 +40,8 @@ export interface FeedListing {
     type: string;
     latitude?: number | null;
     longitude?: number | null;
+    address?: string | null;
+    cover_image_url?: string | null;
   };
 }
 
@@ -49,6 +52,8 @@ interface Row extends FeedListing {
   perUnit: number | null;
   baseUnit: "kg" | "L" | "pc" | null;
   distanceKm: number | null;
+  verified: boolean;
+  hasPin: boolean;
 }
 
 const SORT_OPTIONS: { value: SortMode; label: string }[] = [
@@ -83,6 +88,7 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
   const [geoErr, setGeoErr] = useState<string | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [radiusKm, setRadiusKm] = useState<number>(10);
+  const [includePinOnly, setIncludePinOnly] = useState(false);
 
   const requestLocation = () => {
     if (!("geolocation" in navigator)) {
@@ -116,11 +122,15 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
         const up = computeUnitPrice(l.price, l.pack_qty, l.size_value, l.size_unit);
         const lat = l.business.latitude;
         const lng = l.business.longitude;
+        const hasPin = lat != null && lng != null;
+        const hasAddress = !!(l.business.address && l.business.address.trim().length > 0);
+        const hasPhoto = !!l.business.cover_image_url;
+        const verified = hasAddress && hasPhoto;
         const distanceKm =
-          geo && lat != null && lng != null
+          geo && hasPin
             ? haversineKm(geo, { lat: Number(lat), lng: Number(lng) })
             : null;
-        return { ...l, ...up, distanceKm };
+        return { ...l, ...up, distanceKm, verified, hasPin };
       }),
     [listings, geo],
   );
@@ -132,18 +142,32 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
   }, [rows]);
 
   const radiusActive = sort === "distance" && geo != null;
+  const distanceMode = sort === "distance";
+
+  const hiddenByVerification = useMemo(
+    () =>
+      distanceMode && !includePinOnly
+        ? rows.filter((r) => !r.verified && r.hasPin).length
+        : 0,
+    [rows, distanceMode, includePinOnly],
+  );
+
   const hiddenByRadius = useMemo(
     () =>
       radiusActive
-        ? rows.filter((r) => r.distanceKm == null || r.distanceKm > radiusKm).length
+        ? rows.filter((r) => {
+            if (!includePinOnly && !r.verified) return false;
+            return r.distanceKm == null || r.distanceKm > radiusKm;
+          }).length
         : 0,
-    [rows, radiusActive, radiusKm],
+    [rows, radiusActive, radiusKm, includePinOnly],
   );
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return rows.filter((r) => {
       if (cat && r.category !== cat) return false;
+      if (distanceMode && !includePinOnly && !r.verified) return false;
       if (radiusActive) {
         if (r.distanceKm == null || r.distanceKm > radiusKm) return false;
       }
@@ -154,7 +178,7 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
         r.business.name.toLowerCase().includes(needle)
       );
     });
-  }, [rows, q, cat, radiusActive, radiusKm]);
+  }, [rows, q, cat, distanceMode, includePinOnly, radiusActive, radiusKm]);
 
   const itemScore = (r: Row): number => {
     const inf = Number.POSITIVE_INFINITY;
@@ -175,6 +199,14 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
     }
   };
 
+  // In distance mode, verified sellers always sort before unverified.
+  const compareRows = (a: Row, b: Row) => {
+    if (distanceMode) {
+      if (a.verified !== b.verified) return a.verified ? -1 : 1;
+    }
+    return itemScore(a) - itemScore(b);
+  };
+
   const groups = useMemo(() => {
     const map = new Map<string, { key: string; label: string; items: Row[] }>();
     for (const r of filtered) {
@@ -183,7 +215,7 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
       map.get(key)!.items.push(r);
     }
     for (const g of map.values()) {
-      g.items.sort((a, b) => itemScore(a) - itemScore(b));
+      g.items.sort(compareRows);
     }
     const list = Array.from(map.values());
     if (sort === "best") {
@@ -192,13 +224,14 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
       );
     } else {
       list.sort((a, b) => {
-        const av = a.items.length ? itemScore(a.items[0]) : Number.POSITIVE_INFINITY;
-        const bv = b.items.length ? itemScore(b.items[0]) : Number.POSITIVE_INFINITY;
-        return av - bv || a.label.localeCompare(b.label);
+        if (!a.items.length || !b.items.length) {
+          return a.items.length - b.items.length;
+        }
+        return compareRows(a.items[0], b.items[0]) || a.label.localeCompare(b.label);
       });
     }
     return list;
-  }, [filtered, sort, geo]);
+  }, [filtered, sort, geo, distanceMode]);
 
   if (listings.length === 0) {
     return (
@@ -243,7 +276,7 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
             <Navigation className="h-3.5 w-3.5" />
             {geo ? (
               <span className="text-muted-foreground">
-                Sorted from your location. Sellers without a map pin are excluded.
+                Sorted from your location. Verified sellers (full address + photo) appear first.
               </span>
             ) : geoLoading ? (
               <span className="text-muted-foreground">Getting your location…</span>
@@ -258,6 +291,26 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
               </>
             )}
           </div>
+
+          <label className="flex items-start justify-between gap-3 rounded-md border border-border bg-background/60 px-3 py-2">
+            <div className="flex-1">
+              <div className="flex items-center gap-1.5 font-medium text-foreground">
+                <MapPin className="h-3.5 w-3.5" /> Include pin-drop-only sellers
+              </div>
+              <p className="mt-0.5 text-muted-foreground">
+                Off by default. When on, sellers with a map pin but no full address are also shown — they're not verified yet.
+                {hiddenByVerification > 0 && !includePinOnly && (
+                  <span className="ml-1">({hiddenByVerification} currently hidden)</span>
+                )}
+              </p>
+            </div>
+            <Switch
+              checked={includePinOnly}
+              onCheckedChange={setIncludePinOnly}
+              aria-label="Include pin-drop-only sellers"
+            />
+          </label>
+
           {geo && (
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:min-w-[16rem]">
@@ -276,7 +329,7 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
               />
               {hiddenByRadius > 0 && (
                 <span className="text-muted-foreground">
-                  {hiddenByRadius} hidden
+                  {hiddenByRadius} hidden by radius
                 </span>
               )}
             </div>
@@ -403,6 +456,15 @@ function ListingRow({
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          {row.verified ? (
+            <Badge className="gap-1 bg-gradient-to-r from-sky-500 to-blue-600 text-white">
+              <ShieldCheck className="h-3 w-3" /> Verified
+            </Badge>
+          ) : row.hasPin ? (
+            <Badge variant="outline" className="gap-1">
+              <MapPin className="h-3 w-3" /> Pin only
+            </Badge>
+          ) : null}
           {isBest && (
             <Badge className="gap-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white">
               <Sparkles className="h-3 w-3" /> Best deal
