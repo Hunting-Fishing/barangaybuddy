@@ -363,8 +363,61 @@ function ManageBusiness() {
                 <Input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
               </div>
               <div>
-                <Label>Unit</Label>
+                <Label>Unit label (display only)</Label>
                 <Input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="e.g. per kilo" />
+              </div>
+              <div>
+                <Label>Pack quantity</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={form.pack_qty}
+                  onChange={(e) => setForm({ ...form, pack_qty: e.target.value })}
+                  placeholder="1"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">How many pieces are in this pack? e.g. 10 for a 10-pack.</p>
+              </div>
+              <div>
+                <Label>Size per piece</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.size_value}
+                    onChange={(e) => setForm({ ...form, size_value: e.target.value })}
+                    placeholder="e.g. 35"
+                  />
+                  <Select value={form.size_unit || "none"} onValueChange={(v) => setForm({ ...form, size_unit: v === "none" ? "" : (v as SizeUnit) })}>
+                    <SelectTrigger className="w-28"><SelectValue placeholder="unit" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">—</SelectItem>
+                      {SIZE_UNITS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">Optional. Lets shoppers compare by weight / volume.</p>
+              </div>
+              <div className="md:col-span-2 rounded-md border border-dashed border-border bg-secondary/40 p-3 text-sm">
+                {(() => {
+                  const up = computeUnitPrice(
+                    form.price ? Number(form.price) : null,
+                    form.pack_qty ? Number(form.pack_qty) : 1,
+                    form.size_value ? Number(form.size_value) : null,
+                    form.size_unit || null,
+                  );
+                  const pe = formatPerEach(up.perEach);
+                  const pu = formatPerUnit(up.perUnit, up.baseUnit);
+                  if (!pe && !pu) return <span className="text-muted-foreground">Live preview: enter a price and pack quantity to see per-each pricing.</span>;
+                  return (
+                    <span>
+                      <span className="font-medium">Shoppers will see:</span>{" "}
+                      {pe && <span className="font-display">{pe}</span>}
+                      {pe && pu && <span> · </span>}
+                      {pu && <span className="font-display">{pu}</span>}
+                    </span>
+                  );
+                })()}
               </div>
               <div className="md:col-span-2">
                 <Label>Description</Label>
