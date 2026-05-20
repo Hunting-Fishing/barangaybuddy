@@ -76,16 +76,18 @@ function Dashboard() {
     const parsed = z.object({
       name: z.string().trim().min(2).max(120),
       type: z.enum(TYPES),
+      additional_types: z.array(z.enum(TYPES)).max(10),
       description: z.string().max(2000).optional(),
       barangay_code: z.string().min(1, "Choose a barangay"),
     }).safeParse({ ...form, description: form.description || undefined });
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
     const slug = `${parsed.data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-${Math.random().toString(36).slice(2, 7)}`;
-    const { error } = await supabase.from("businesses").insert({ ...parsed.data, owner_id: user.id, slug });
+    const additional_types = parsed.data.additional_types.filter((t) => t !== parsed.data.type);
+    const { error } = await supabase.from("businesses").insert({ ...parsed.data, additional_types, owner_id: user.id, slug });
     if (error) return toast.error(error.message);
     toast.success("Business created!");
     setShowForm(false);
-    setForm({ name: "", type: "store", description: "", barangay_search: "", barangay_code: "", barangay_label: "" });
+    setForm({ name: "", type: "store", additional_types: [], description: "", barangay_search: "", barangay_code: "", barangay_label: "" });
     load();
   }
 
