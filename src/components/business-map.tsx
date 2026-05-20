@@ -9,6 +9,9 @@ export interface MapBusiness {
   type: string;
   latitude: number;
   longitude: number;
+  verified?: boolean;
+  hasFullAddress?: boolean;
+  hasCoverImage?: boolean;
 }
 
 const TYPE_COLORS: Record<string, string> = {
@@ -50,22 +53,40 @@ export function BusinessMap({ businesses }: { businesses: MapBusiness[] }) {
     );
     valid.forEach((b) => {
       const color = TYPE_COLORS[b.type] ?? "#64748b";
-      L.circleMarker([b.latitude, b.longitude], {
-        radius: 9,
-        color: "#fff",
-        weight: 2,
-        fillColor: color,
-        fillOpacity: 0.95,
-      })
+      const verified =
+        b.verified ?? (Boolean(b.hasFullAddress) && Boolean(b.hasCoverImage));
+      // Verified: solid filled circle with white ring.
+      // Pin-only: hollow ring with dashed border in the type color.
+      const marker = verified
+        ? L.circleMarker([b.latitude, b.longitude], {
+            radius: 10,
+            color: "#ffffff",
+            weight: 2.5,
+            fillColor: color,
+            fillOpacity: 1,
+          })
+        : L.circleMarker([b.latitude, b.longitude], {
+            radius: 9,
+            color: color,
+            weight: 2.5,
+            dashArray: "3 3",
+            fillColor: "#ffffff",
+            fillOpacity: 0.9,
+          });
+      marker
         .bindPopup(
-          `<div style="font-family:inherit"><strong>${escapeHtml(
-            b.name,
-          )}</strong><br/><span style="text-transform:capitalize;color:#64748b">${b.type.replace(
-            "_",
-            " ",
-          )}</span><br/><a href="/business/${encodeURIComponent(
-            b.slug,
-          )}">View page →</a></div>`,
+          `<div style="font-family:inherit;min-width:160px">
+            <strong>${escapeHtml(b.name)}</strong>
+            <div style="margin-top:2px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <span style="text-transform:capitalize;color:#64748b;font-size:12px">${b.type.replace("_", " ")}</span>
+              <span style="font-size:11px;padding:1px 6px;border-radius:999px;${
+                verified
+                  ? "background:#dcfce7;color:#15803d"
+                  : "background:#fef3c7;color:#92400e"
+              }">${verified ? "Verified" : "Pin only"}</span>
+            </div>
+            <a style="display:inline-block;margin-top:6px" href="/business/${encodeURIComponent(b.slug)}">View page →</a>
+          </div>`,
         )
         .addTo(layer);
     });
@@ -85,16 +106,38 @@ export function BusinessMap({ businesses }: { businesses: MapBusiness[] }) {
   return (
     <div className="overflow-hidden rounded-xl border border-border">
       <div ref={ref} className="h-[360px] w-full" />
-      <div className="flex flex-wrap gap-3 border-t border-border bg-card px-4 py-2 text-xs text-muted-foreground">
-        {Object.entries(TYPE_COLORS).map(([type, color]) => (
-          <span key={type} className="inline-flex items-center gap-1.5 capitalize">
+      <div className="space-y-2 border-t border-border bg-card px-4 py-2.5 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="font-medium text-foreground">Type</span>
+          {Object.entries(TYPE_COLORS).map(([type, color]) => (
+            <span key={type} className="inline-flex items-center gap-1.5 capitalize">
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: color }}
+              />
+              {type.replace("_", " ")}
+            </span>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="font-medium text-foreground">Status</span>
+          <span className="inline-flex items-center gap-1.5">
             <span
-              className="inline-block h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: color }}
+              className="inline-block h-3 w-3 rounded-full border-2 border-white"
+              style={{ backgroundColor: "#64748b", boxShadow: "0 0 0 1px #cbd5e1" }}
             />
-            {type.replace("_", " ")}
+            Verified (full address + photo)
           </span>
-        ))}
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              className="inline-block h-3 w-3 rounded-full bg-background"
+              style={{
+                border: "2px dashed #64748b",
+              }}
+            />
+            Pin only
+          </span>
+        </div>
       </div>
     </div>
   );

@@ -90,14 +90,21 @@ function BrgyPage() {
 
   const mapBusinesses: MapBusiness[] = businesses
     .filter((b) => b.latitude != null && b.longitude != null)
-    .map((b) => ({
-      id: b.id,
-      slug: b.slug,
-      name: b.name,
-      type: b.type,
-      latitude: Number(b.latitude),
-      longitude: Number(b.longitude),
-    }));
+    .map((b) => {
+      const hasFullAddress = Boolean(b.address && String(b.address).trim());
+      const hasCoverImage = Boolean(b.cover_image_url);
+      return {
+        id: b.id,
+        slug: b.slug,
+        name: b.name,
+        type: b.type,
+        latitude: Number(b.latitude),
+        longitude: Number(b.longitude),
+        hasFullAddress,
+        hasCoverImage,
+        verified: hasFullAddress && hasCoverImage,
+      };
+    });
   const unpinned = businesses.filter((b) => b.latitude == null || b.longitude == null);
 
   return (
