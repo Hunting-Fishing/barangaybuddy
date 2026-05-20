@@ -17,6 +17,8 @@ import { computeUnitPrice, formatPerEach, formatPerUnit, SIZE_UNITS, type SizeUn
 import { FeatureTagsPicker } from "@/components/feature-tags-picker";
 import { sanitizeCustomLabel, dedupeCaseInsensitive } from "@/lib/business-tags";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+
 
 const TYPES = [
   "store", "sari_sari", "service", "restaurant", "food_vendor", "ambulant_vendor",
