@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import {
   computeUnitPrice,
   formatPerEach,
@@ -81,6 +82,7 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
   const [geo, setGeo] = useState<{ lat: number; lng: number } | null>(null);
   const [geoErr, setGeoErr] = useState<string | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
+  const [radiusKm, setRadiusKm] = useState<number>(10);
 
   const requestLocation = () => {
     if (!("geolocation" in navigator)) {
@@ -129,10 +131,22 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
     return Array.from(set).sort();
   }, [rows]);
 
+  const radiusActive = sort === "distance" && geo != null;
+  const hiddenByRadius = useMemo(
+    () =>
+      radiusActive
+        ? rows.filter((r) => r.distanceKm == null || r.distanceKm > radiusKm).length
+        : 0,
+    [rows, radiusActive, radiusKm],
+  );
+
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return rows.filter((r) => {
       if (cat && r.category !== cat) return false;
+      if (radiusActive) {
+        if (r.distanceKm == null || r.distanceKm > radiusKm) return false;
+      }
       if (!needle) return true;
       return (
         r.name.toLowerCase().includes(needle) ||
@@ -140,7 +154,7 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
         r.business.name.toLowerCase().includes(needle)
       );
     });
-  }, [rows, q, cat]);
+  }, [rows, q, cat, radiusActive, radiusKm]);
 
   const itemScore = (r: Row): number => {
     const inf = Number.POSITIVE_INFINITY;
@@ -224,23 +238,48 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
       </div>
 
       {sort === "distance" && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs">
-          <Navigation className="h-3.5 w-3.5" />
-          {geo ? (
-            <span className="text-muted-foreground">
-              Sorted from your location. Sellers without a map pin appear last.
-            </span>
-          ) : geoLoading ? (
-            <span className="text-muted-foreground">Getting your location…</span>
-          ) : (
-            <>
+        <div className="space-y-3 rounded-lg border border-border bg-muted/40 p-3 text-xs">
+          <div className="flex flex-wrap items-center gap-2">
+            <Navigation className="h-3.5 w-3.5" />
+            {geo ? (
               <span className="text-muted-foreground">
-                {geoErr ? `Location blocked: ${geoErr}` : "Allow location to sort by distance."}
+                Sorted from your location. Sellers without a map pin are excluded.
               </span>
-              <Button size="sm" variant="outline" onClick={requestLocation}>
-                Use my location
-              </Button>
-            </>
+            ) : geoLoading ? (
+              <span className="text-muted-foreground">Getting your location…</span>
+            ) : (
+              <>
+                <span className="text-muted-foreground">
+                  {geoErr ? `Location blocked: ${geoErr}` : "Allow location to sort by distance."}
+                </span>
+                <Button size="sm" variant="outline" onClick={requestLocation}>
+                  Use my location
+                </Button>
+              </>
+            )}
+          </div>
+          {geo && (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:min-w-[16rem]">
+                <span className="text-muted-foreground">Within</span>
+                <span className="font-medium tabular-nums">
+                  {radiusKm < 1 ? `${Math.round(radiusKm * 1000)} m` : `${radiusKm} km`}
+                </span>
+              </div>
+              <Slider
+                className="flex-1"
+                min={0.5}
+                max={50}
+                step={0.5}
+                value={[radiusKm]}
+                onValueChange={(v) => setRadiusKm(v[0] ?? radiusKm)}
+              />
+              {hiddenByRadius > 0 && (
+                <span className="text-muted-foreground">
+                  {hiddenByRadius} hidden
+                </span>
+              )}
+            </div>
           )}
         </div>
       )}
