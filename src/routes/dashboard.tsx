@@ -111,13 +111,49 @@ function Dashboard() {
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
               </div>
               <div>
-                <Label>Type</Label>
-                <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
+                <Label>Primary type</Label>
+                <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as BizType })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {TYPES.map((t) => <SelectItem key={t} value={t}>{t.replace("_", " ")}</SelectItem>)}
+                    {TYPES.map((t) => <SelectItem key={t} value={t}>{TYPE_LABEL[t]}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="md:col-span-2">
+                <Label>Additional categories <span className="text-xs text-muted-foreground">— pick all that apply (e.g. restaurant + store + gas station)</span></Label>
+                {form.additional_types.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {form.additional_types.map((t) => (
+                      <Badge key={t} variant="secondary" className="gap-1">
+                        {TYPE_LABEL[t]}
+                        <button type="button" onClick={() => setForm({ ...form, additional_types: form.additional_types.filter((x) => x !== t) })} className="hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-2 grid max-h-56 grid-cols-2 gap-1.5 overflow-auto rounded-md border border-border p-3 md:grid-cols-3">
+                  {TYPES.filter((t) => t !== form.type).map((t) => {
+                    const checked = form.additional_types.includes(t);
+                    return (
+                      <label key={t} className="flex cursor-pointer items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(c) => {
+                            setForm({
+                              ...form,
+                              additional_types: c
+                                ? [...form.additional_types, t]
+                                : form.additional_types.filter((x) => x !== t),
+                            });
+                          }}
+                        />
+                        {TYPE_LABEL[t]}
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
               <div className="md:col-span-2">
                 <Label>Description</Label>
