@@ -357,36 +357,33 @@ const SCHEMA = {
     website: { type: ["string", "null"] },
     hours: { type: ["string", "null"] },
     type: { type: "string", enum: BUSINESS_TYPES as unknown as string[] },
-    additional_types: { type: "array", items: { type: "string", enum: BUSINESS_TYPES as unknown as string[] }, maxItems: 8 },
-    custom_types: { type: "array", items: { type: "string", maxLength: 40 }, maxItems: 12 },
+    additional_types: { type: "array", items: { type: "string" } },
+    custom_types: { type: "array", items: { type: "string" } },
     tags: {
       type: "array",
-      maxItems: 40,
       items: {
         type: "object",
         additionalProperties: false,
         required: ["slug", "label"],
-        properties: { slug: { type: "string", maxLength: 40 }, label: { type: "string", maxLength: 60 } },
+        properties: { slug: { type: "string" }, label: { type: "string" } },
       },
     },
     products: {
       type: "array",
-      maxItems: 30,
       items: {
         type: "object",
         additionalProperties: false,
         required: ["name", "price", "unit"],
         properties: {
-          name: { type: "string", maxLength: 120 },
+          name: { type: "string" },
           price: { type: ["number", "null"] },
-          unit: { type: ["string", "null"], maxLength: 20 },
+          unit: { type: ["string", "null"] },
         },
       },
     },
     services: {
       type: "array",
-      maxItems: 20,
-      items: { type: "string", maxLength: 80 },
+      items: { type: "string" },
     },
   },
 } as const;
