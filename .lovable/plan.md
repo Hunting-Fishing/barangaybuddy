@@ -1,44 +1,38 @@
-## Why both links failed
+## Goal
+Auto-import Philippine fuel station locations and pump prices from the Department of Energy (DOE), refreshed twice daily (5:00 AM and 6:00 PM Manila time), and surface them on `/fuel`.
 
-**Google link** — it's a *directions* URL (`/maps?...&daddr=5Q4J+X5W+Brgy,+Piddig,+Ilocos+Norte`), not a place URL. Our `extractPlaceQuery` doesn't know about `daddr=` or `destination=`, so it falls through and sends the entire 800-character URL to the Places `searchText` API, which returns nothing.
+## Data sources (legal, attributed)
+- **Stations**: DOE List of Filling/Retail Outlets (LFRO) — published dataset, public domain government data.
+- **Prices**: DOE Oil Industry Management Bureau (OIMB) "Prevailing Retail Pump Prices" tables (Metro Manila + regional). Updated daily by DOE.
+- Both will be fetched via the existing **Firecrawl** connector (DOE blocks plain fetch with Cloudflare; Firecrawl handles it) with clear "Source: DOE" attribution shown on `/fuel`.
 
-**Facebook link** — `facebook.com/profile.php?id=…` rendered through Firecrawl hits the JS login wall and returns under 50 characters of markdown, which trips our "no readable content" guard. This is a well-known Facebook quirk.
+## What gets built
 
-## Fixes
+### 1. Database (migration)
+- New `fuel_stations_doe` table (or extend `businesses` with `imported_from='doe_lfro'` rows of `type='fuel_station'`). Plan uses `businesses` to keep one source of truth — adds a unique index on `(imported_from, import_source_id)` for idempotent upserts.
+- New `fuel_price_snapshots` table for the official DOE prevailing price per `(brand, fuel_type, region, snapshot_date)` — kept separate from the crowdsourced `fuel_prices` table so user reports stay distinct from official figures.
+- New `fuel_import_runs` table (run timestamp, source, status, rows_imported, error) for observability.
 
-### 1. Smarter Google URL parsing (`src/lib/imports.server.ts` → `extractPlaceQuery`)
+### 2. Server logic
+- `src/lib/fuel-import.server.ts` — Firecrawl calls + parsers for the DOE LFRO list and OIMB price tables, plus an upsert routine using `supabaseAdmin`.
+- `src/routes/api/public/hooks/fuel-sync.ts` — TanStack public server route. Validates an `apikey` header (Supabase anon key), then runs the import. Returns counts + errors.
 
-Recognize these patterns in order:
-- `place_id` / `cid` query param → use as place ID (already works)
-- `/place/{name}` path → already works
-- `/maps/dir/.../{destination}` path segment (Google directions short form)
-- `daddr=` or `destination=` query param (Google directions long form) → use that as text query
-- `q=` / `query=` (already works)
-- Plus Code in the URL (e.g. `5Q4J+X5W Brgy, Piddig, Ilocos Norte`) → pass straight to `searchText`
-- Fall back to the URL only if nothing else matched, AND truncate it to a reasonable length so the Places API doesn't choke
+### 3. Scheduling
+- `pg_cron` + `pg_net` jobs:
+  - `fuel-sync-morning` at `0 21 * * *` UTC (= 5:00 AM PHT)
+  - `fuel-sync-evening` at `0 10 * * *` UTC (= 6:00 PM PHT)
+- Both POST to `/api/public/hooks/fuel-sync` on the stable preview/published URL.
 
-### 2. Reliable Facebook fetch (`fetchScrape` for Facebook)
+### 4. UI on `/fuel`
+- New "Today's official DOE prices" section above the crowd-reported list (brand × fuel-type grid for the user's region).
+- Station picker in "Report a price" already exists; once DOE stations land, the dropdown is populated nationwide.
+- "Last synced" timestamp + small "Data: DOE" attribution badge.
 
-When the source is `facebook`:
-- Rewrite the URL host to `mbasic.facebook.com` (mobile-basic, no JS, no login redirect for public pages). `profile.php?id=…` works there as-is.
-- Bump `waitFor` to ~3000ms and turn off `onlyMainContent` for FB so the page header / About text isn't stripped.
-- If the rewrite still returns under 50 chars of markdown, retry once against `m.facebook.com`.
+## Open question (one)
+DOE publishes per-brand "common posted prices" plus an Excel of week-on-week changes. The Excel is richer (per-station prices in NCR) but is a download, not a webpage. **Default plan = scrape the webpage tables (faster, twice-daily fresh).** Say the word if you want me to also pull the weekly NCR per-station Excel.
 
-### 3. Better error UX (`previewImport` in `src/lib/imports.functions.ts`)
-
-Today when all sources fail we throw one generic line. Change it to report **per-link reasons** so the user can see "Google: directions link, please paste a place link" vs "Facebook: page is private or login-walled". This makes the next attempt obvious instead of guesswork.
-
-### 4. Hint on the Google input row (`src/components/business-import-dialog.tsx`)
-
-Add a one-line helper under the Google input: *"Paste the place link, not a directions link — open the business on Google Maps and tap Share."* No other UI changes.
-
-## What I won't touch
-
-- The Gemini extraction prompt, schema, catalog growth, claim flow, or any other source (IG / X / TikTok / LinkedIn / YT / Yelp / website) — they're unrelated to this failure.
-- No database migration. No new dependencies.
-
-## Verify
-
-After the change I'll re-run the user's exact two URLs via `invoke-server-function` against the `previewImport` endpoint and confirm:
-- The Google directions URL either resolves to the right place (Piddig, Ilocos Norte) or returns a clear "this is a directions link" error.
-- The Facebook profile URL returns ≥50 chars of markdown and feeds Gemini successfully.
+## Technical notes
+- Times stored in UTC; cron uses UTC; UI renders PHT.
+- Firecrawl key (`FIRECRAWL_API_KEY`) already in secrets — no new keys needed.
+- Idempotent upserts so re-runs don't duplicate stations.
+- Stations imported with `is_claimed=false`, `owner_id=null`, so local owners can later claim them.
