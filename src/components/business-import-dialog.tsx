@@ -253,7 +253,8 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
                 })}
               </div>
               <p className="text-xs text-muted-foreground">
-                For Google, paste the <strong>place share link</strong> (open the business on Google Maps → Share), not a directions link.
+                <strong>Google:</strong> works with Maps share links, <code>g.page/…</code>, Business Profile, or <code>*.business.site</code> URLs — not directions links.
+                <br /><strong>Facebook:</strong> we also read the About / Contact tabs to pull address, phone, and hours.
                 Yelp and any other site go in the Website / Yelp row.
               </p>
             </div>
