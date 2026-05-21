@@ -27,6 +27,27 @@ function getHost(url: string) {
   }
 }
 
+function socialFallbackText(url: string): string | null {
+  const host = getHost(url);
+  try {
+    const u = new URL(url);
+    const path = decodeURIComponent(u.pathname).replace(/^\/+|\/+$/g, "");
+    if (host.includes("facebook.com")) {
+      const profileId = u.searchParams.get("id");
+      const slug = path.split("/").filter(Boolean).find((part) => part !== "profile.php" && part !== "p" && !part.includes("php"));
+      const name = (slug ?? "").replace(/-\d+$/, "").replace(/[-_]+/g, " ").trim();
+      if (name || profileId) return `Facebook public business link. Name from URL: ${name || "unknown"}. Facebook page id: ${profileId ?? "unknown"}. URL: ${url}`;
+    }
+    if (host.includes("instagram.com") || host === "x.com" || host.includes("twitter.com") || host.includes("tiktok.com")) {
+      const handle = path.split("/").filter(Boolean)[0]?.replace(/^@/, "");
+      if (handle) return `${host} public profile link. Handle: ${handle}. URL: ${url}`;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export type ExtractedBusiness = {
   name: string;
   description: string | null;
@@ -112,6 +133,8 @@ export async function fetchScrape(url: string): Promise<{ markdown: string; raw:
       lastErr = e instanceof Error ? e.message : String(e);
     }
   }
+  const fallback = socialFallbackText(url);
+  if (fallback) return { markdown: fallback, raw: { fallback: true, url } };
   throw new Error(lastErr || `Could not read ${url}`);
 }
 
