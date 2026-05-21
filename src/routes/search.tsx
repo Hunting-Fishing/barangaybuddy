@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -8,16 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { Search, X, SlidersHorizontal } from "lucide-react";
+import { Search, X, SlidersHorizontal, Loader2 } from "lucide-react";
 import { BUSINESS_TYPES, BUSINESS_TYPE_LABEL, type BusinessType } from "@/lib/business-types";
 import { FEATURE_TAG_GROUPS, tagLabel } from "@/lib/business-tags";
 
@@ -36,7 +27,7 @@ export const Route = createFileRoute("/search")({
 
 function SearchPage() {
   const searchParams = Route.useSearch();
-  const { q: urlQ, types: urlTypes, tags: urlTags, page } = searchParams;
+  const { q: urlQ, types: urlTypes, tags: urlTags, page: urlPage } = searchParams;
   const navigate = useNavigate({ from: "/search" });
 
   const [q, setQ] = useState(urlQ);
@@ -44,8 +35,9 @@ function SearchPage() {
   const [tags, setTags] = useState<string[]>(urlTags);
   const [tagQ, setTagQ] = useState("");
   const [results, setResults] = useState<any[]>([]);
-  const [totalCount, setTotalCount] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
   // Sync URL changes (back/forward) into local state
@@ -53,30 +45,34 @@ function SearchPage() {
   useEffect(() => { setTypes(urlTypes as BusinessType[]); }, [urlTypes]);
   useEffect(() => { setTags(urlTags); }, [urlTags]);
 
-  // Sync URL <- state (debounced); reset page to 1 on filter change
+  // Sync URL <- filter state (debounced); reset page to 1 on filter change
   useEffect(() => {
     const t = setTimeout(() => {
       navigate({ search: { ...searchParams, q, types, tags, page: 1 }, replace: true });
     }, 200);
     return () => clearTimeout(t);
-  }, [q, types, tags, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, types, tags]);
 
-  // Fetch
-  useEffect(() => {
-    const hasFilter = q.trim().length > 0 || types.length > 0 || tags.length > 0;
-    if (!hasFilter) { setResults([]); setTotalCount(0); return; }
+  const hasFilter = q.trim().length > 0 || types.length > 0 || tags.length > 0;
 
-    setLoading(true);
-    const t = setTimeout(async () => {
-      const offset = (page - 1) * RESULTS_PER_PAGE;
+  // Build a stable filter signature so the fetch effect knows when filters truly changed
+  const filterKey = useMemo(
+    () => JSON.stringify({ q: q.trim(), types: [...types].sort(), tags: [...tags].sort() }),
+    [q, types, tags],
+  );
+
+  const buildQuery = useCallback(
+    (from: number, to: number) => {
       let query = supabase
         .from("businesses")
         .select(
           "id, name, slug, type, additional_types, custom_types, tags, description, cover_image_url, barangays(name, cities_municipalities(name))",
-          { count: "exact" }
+          { count: "exact" },
         )
         .eq("is_published", true)
-        .range(offset, offset + RESULTS_PER_PAGE - 1);
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       if (q.trim()) {
         const safe = q.trim().replace(/[%,()]/g, " ");
@@ -90,15 +86,61 @@ function SearchPage() {
       if (tags.length > 0) {
         query = query.overlaps("tags", tags);
       }
+      return query;
+    },
+    [q, types, tags],
+  );
 
-      const { data, count, error } = await query;
+  // Initial / filter-change fetch: load pages 1..urlPage (supports refresh restoring scroll position of loaded items)
+  useEffect(() => {
+    if (!hasFilter) {
+      setResults([]);
+      setTotalCount(0);
+      return;
+    }
+    setLoading(true);
+    const handle = setTimeout(async () => {
+      const to = urlPage * RESULTS_PER_PAGE - 1;
+      const { data, count, error } = await buildQuery(0, to);
       if (error) console.error(error);
       setResults(data ?? []);
       setTotalCount(count ?? 0);
       setLoading(false);
     }, 250);
-    return () => clearTimeout(t);
-  }, [q, types, tags, page]);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey]);
+
+  const canLoadMore = !loading && !loadingMore && results.length < totalCount;
+
+  const loadMore = useCallback(async () => {
+    if (!canLoadMore) return;
+    setLoadingMore(true);
+    const nextPage = Math.floor(results.length / RESULTS_PER_PAGE) + 1;
+    const from = (nextPage - 1) * RESULTS_PER_PAGE;
+    const to = from + RESULTS_PER_PAGE - 1;
+    const { data, count, error } = await buildQuery(from, to);
+    if (error) console.error(error);
+    setResults((prev) => [...prev, ...(data ?? [])]);
+    if (typeof count === "number") setTotalCount(count);
+    setLoadingMore(false);
+    navigate({ search: { ...searchParams, q, types, tags, page: nextPage }, replace: true });
+  }, [canLoadMore, results.length, buildQuery, navigate, searchParams, q, types, tags]);
+
+  // Infinite scroll sentinel
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) loadMore();
+      },
+      { rootMargin: "400px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [loadMore]);
 
   const filteredTagGroups = useMemo(() => {
     const needle = tagQ.trim().toLowerCase();
@@ -110,45 +152,9 @@ function SearchPage() {
   }, [tagQ]);
 
   const activeCount = types.length + tags.length;
-  const hasAnyFilter = q.trim().length > 0 || activeCount > 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / RESULTS_PER_PAGE));
-  const startItem = totalCount === 0 ? 0 : (page - 1) * RESULTS_PER_PAGE + 1;
-  const endItem = Math.min(page * RESULTS_PER_PAGE, totalCount);
+  const hasAnyFilter = hasFilter;
 
   function clearAll() { setQ(""); setTypes([]); setTags([]); }
-
-  function goToPage(n: number) {
-    if (n < 1 || n > totalPages) return;
-    navigate({ search: { ...searchParams, page: n } });
-  }
-
-  function renderPageNumbers() {
-    const pages: (number | "ellipsis")[] = [];
-    if (totalPages <= 5) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else {
-      if (page <= 3) {
-        pages.push(1, 2, 3, "ellipsis", totalPages);
-      } else if (page >= totalPages - 2) {
-        pages.push(1, "ellipsis", totalPages - 2, totalPages - 1, totalPages);
-      } else {
-        pages.push(1, "ellipsis", page, "ellipsis", totalPages);
-      }
-    }
-    return pages.map((p, idx) =>
-      p === "ellipsis" ? (
-        <PaginationItem key={`el-${idx}`}>
-          <PaginationEllipsis />
-        </PaginationItem>
-      ) : (
-        <PaginationItem key={p}>
-          <PaginationLink isActive={page === p} onClick={() => goToPage(p)}>
-            {p}
-          </PaginationLink>
-        </PaginationItem>
-      )
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -179,7 +185,6 @@ function SearchPage() {
           )}
         </div>
 
-        {/* Active filter chips */}
         {(types.length > 0 || tags.length > 0) && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {types.map((t) => (
@@ -265,9 +270,9 @@ function SearchPage() {
               <p className="text-muted-foreground">No matches. Try removing a filter.</p>
             )}
 
-            {!loading && totalCount > 1 && (
+            {!loading && totalCount > 0 && (
               <p className="mb-3 text-sm text-muted-foreground">
-                Showing {startItem}–{endItem} of {totalCount} results
+                Showing {results.length} of {totalCount} results
               </p>
             )}
 
@@ -307,29 +312,18 @@ function SearchPage() {
               })}
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-8 flex flex-col items-center gap-3">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() => goToPage(page - 1)}
-                        className={page <= 1 ? "pointer-events-none opacity-50" : ""}
-                      />
-                    </PaginationItem>
-                    {renderPageNumbers()}
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() => goToPage(page + 1)}
-                        className={page >= totalPages ? "pointer-events-none opacity-50" : ""}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-                <p className="text-xs text-muted-foreground">
-                  Page {page} of {totalPages}
-                </p>
+            {/* Infinite scroll sentinel + status */}
+            {hasAnyFilter && results.length > 0 && (
+              <div ref={sentinelRef} className="mt-8 flex justify-center py-6">
+                {loadingMore ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Loading more…
+                  </div>
+                ) : results.length >= totalCount ? (
+                  <p className="text-xs text-muted-foreground">You’ve reached the end.</p>
+                ) : (
+                  <Button variant="outline" size="sm" onClick={loadMore}>Load more</Button>
+                )}
               </div>
             )}
           </section>
