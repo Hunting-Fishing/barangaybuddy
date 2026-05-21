@@ -19,6 +19,14 @@ export type Source =
   | "youtube"
   | "website";
 
+function getHost(url: string) {
+  try {
+    return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
 export type ExtractedBusiness = {
   name: string;
   description: string | null;
@@ -41,7 +49,7 @@ export type ExtractedBusiness = {
 export function detectSource(url: string): Source | null {
   try {
     const u = new URL(url);
-    const host = u.hostname.toLowerCase().replace(/^www\./, "");
+    const host = getHost(url);
     if (host.includes("google.") || host === "goo.gl" || host === "maps.app.goo.gl" || host === "share.google") return "google";
     if (host.includes("facebook.") || host === "fb.com" || host === "m.facebook.com" || host === "fb.me") return "facebook";
     if (host === "instagram.com" || host.endsWith(".instagram.com")) return "instagram";
