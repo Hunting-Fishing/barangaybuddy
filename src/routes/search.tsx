@@ -124,8 +124,8 @@ function SearchPage() {
     setResults((prev) => [...prev, ...(data ?? [])]);
     if (typeof count === "number") setTotalCount(count);
     setLoadingMore(false);
-    navigate({ search: (prev) => ({ ...prev, page: nextPage }), replace: true });
-  }, [canLoadMore, results.length, buildQuery, navigate]);
+    navigate({ search: { ...searchParams, q, types, tags, page: nextPage }, replace: true });
+  }, [canLoadMore, results.length, buildQuery, navigate, searchParams, q, types, tags]);
 
   // Infinite scroll sentinel
   const sentinelRef = useRef<HTMLDivElement | null>(null);
