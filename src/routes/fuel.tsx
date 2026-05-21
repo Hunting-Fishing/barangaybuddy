@@ -51,6 +51,29 @@ function FuelPage() {
   const [doePrices, setDoePrices] = useState<any[]>([]);
   const [doeRegion, setDoeRegion] = useState<string>("NCR");
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function refreshNow() {
+    setRefreshing(true);
+    try {
+      const res = await fetch("/api/public/hooks/fuel-sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+        },
+        body: "{}",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+      toast.success(`Synced ${json.prices ?? 0} price rows from DOE`);
+      await loadDoe(doeRegion);
+    } catch (e) {
+      toast.error(`Refresh failed: ${(e as Error).message}`);
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   // Add-station dialog state
   const [addOpen, setAddOpen] = useState(false);
@@ -383,16 +406,21 @@ function FuelPage() {
                     {lastSync && <> · Last sync {new Date(lastSync).toLocaleString()}</>}
                   </p>
                 </div>
-                <Select value={doeRegion} onValueChange={setDoeRegion}>
-                  <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NCR">Metro Manila</SelectItem>
-                    <SelectItem value="LUZ-N">North Luzon</SelectItem>
-                    <SelectItem value="LUZ-S">South Luzon</SelectItem>
-                    <SelectItem value="VIS">Visayas</SelectItem>
-                    <SelectItem value="MIN">Mindanao</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={refreshNow} disabled={refreshing}>
+                    {refreshing ? "Refreshing…" : "Refresh now"}
+                  </Button>
+                  <Select value={doeRegion} onValueChange={setDoeRegion}>
+                    <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NCR">Metro Manila</SelectItem>
+                      <SelectItem value="LUZ-N">North Luzon</SelectItem>
+                      <SelectItem value="LUZ-S">South Luzon</SelectItem>
+                      <SelectItem value="VIS">Visayas</SelectItem>
+                      <SelectItem value="MIN">Mindanao</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               {doePrices.length === 0 ? (
                 <Card className="mt-4 p-4 text-sm text-muted-foreground">
