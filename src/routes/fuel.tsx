@@ -96,10 +96,31 @@ function FuelPage() {
     setStations(data ?? []);
   }
 
+  async function loadDoe(region: string) {
+    const { data: snaps } = await supabase
+      .from("fuel_price_snapshots")
+      .select("brand, fuel_type, price, snapshot_date, fetched_at")
+      .eq("region_code", region)
+      .order("snapshot_date", { ascending: false })
+      .limit(200);
+    setDoePrices(snaps ?? []);
+    const { data: run } = await supabase
+      .from("fuel_import_runs")
+      .select("finished_at")
+      .eq("status", "completed")
+      .order("finished_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setLastSync(run?.finished_at ?? null);
+  }
+
   useEffect(() => {
     load();
     loadStations();
   }, [user?.id]);
+
+  useEffect(() => { loadDoe(doeRegion); }, [doeRegion]);
+
 
   useEffect(() => {
     if (brgyQuery.length < 2) { setBrgyResults([]); return; }
