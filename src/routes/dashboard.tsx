@@ -16,7 +16,9 @@ import { Plus, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { FeatureTagsPicker } from "@/components/feature-tags-picker";
+import { BusinessImportDialog } from "@/components/business-import-dialog";
 import { sanitizeCustomLabel, dedupeCaseInsensitive, tagLabel } from "@/lib/business-tags";
+
 
 
 export const Route = createFileRoute("/dashboard")({
