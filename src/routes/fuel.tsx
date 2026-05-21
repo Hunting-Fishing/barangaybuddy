@@ -266,7 +266,7 @@ function FuelPage() {
               <Dialog open={addOpen} onOpenChange={setAddOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" variant="outline" type="button">
-                    <Plus className="mr-1 h-4 w-4" /> Add station
+                    <Plus className="mr-1 h-4 w-4" /> Register a missing station
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-lg">
