@@ -406,16 +406,21 @@ function FuelPage() {
                     {lastSync && <> · Last sync {new Date(lastSync).toLocaleString()}</>}
                   </p>
                 </div>
-                <Select value={doeRegion} onValueChange={setDoeRegion}>
-                  <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NCR">Metro Manila</SelectItem>
-                    <SelectItem value="LUZ-N">North Luzon</SelectItem>
-                    <SelectItem value="LUZ-S">South Luzon</SelectItem>
-                    <SelectItem value="VIS">Visayas</SelectItem>
-                    <SelectItem value="MIN">Mindanao</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={refreshNow} disabled={refreshing}>
+                    {refreshing ? "Refreshing…" : "Refresh now"}
+                  </Button>
+                  <Select value={doeRegion} onValueChange={setDoeRegion}>
+                    <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NCR">Metro Manila</SelectItem>
+                      <SelectItem value="LUZ-N">North Luzon</SelectItem>
+                      <SelectItem value="LUZ-S">South Luzon</SelectItem>
+                      <SelectItem value="VIS">Visayas</SelectItem>
+                      <SelectItem value="MIN">Mindanao</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               {doePrices.length === 0 ? (
                 <Card className="mt-4 p-4 text-sm text-muted-foreground">
