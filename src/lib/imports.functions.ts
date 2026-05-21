@@ -64,7 +64,7 @@ export const previewImport = createServerFn({ method: "POST" })
         if (dup) {
           await supabaseAdmin
             .from("business_imports")
-            .update({ status: "failed", error: "duplicate", extracted: extracted as unknown as Record<string, unknown> })
+            .update({ status: "failed", error: "duplicate", extracted: extracted as unknown as never })
             .eq("id", importId);
           return {
             ok: false as const,
@@ -85,8 +85,8 @@ export const previewImport = createServerFn({ method: "POST" })
         .from("business_imports")
         .update({
           status: "completed",
-          raw_payload: payload as Record<string, unknown>,
-          extracted: { ...extracted, barangay_code: barangayCode } as unknown as Record<string, unknown>,
+          raw_payload: payload as never,
+          extracted: { ...extracted, barangay_code: barangayCode } as unknown as never,
           source_external_id: extracted.source_external_id,
         })
         .eq("id", importId);
