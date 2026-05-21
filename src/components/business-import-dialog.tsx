@@ -72,10 +72,21 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
 
   async function onPreview(e: React.FormEvent) {
     e.preventDefault();
-    if (!url.trim()) return;
+    const urlList = urls
+      .split(/[\s,]+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    if (urlList.length === 0) {
+      toast.error("Paste at least one link.");
+      return;
+    }
+    if (urlList.length > 6) {
+      toast.error("Up to 6 links at a time, please.");
+      return;
+    }
     setStep("loading");
     try {
-      const res = await preview({ data: { url: url.trim(), hint: hint.trim() || undefined } });
+      const res = await preview({ data: { urls: urlList, hint: hint.trim() || undefined } });
       if (!res.ok) {
         toast.error(res.error);
         if ("duplicateSlug" in res && res.duplicateSlug) {
