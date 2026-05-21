@@ -9,7 +9,15 @@ const GMAPS_GATEWAY = "https://connector-gateway.lovable.dev/google_maps";
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const FIRECRAWL_API = "https://api.firecrawl.dev/v2";
 
-export type Source = "google" | "facebook";
+export type Source =
+  | "google"
+  | "facebook"
+  | "instagram"
+  | "twitter"
+  | "tiktok"
+  | "linkedin"
+  | "youtube"
+  | "website";
 
 export type ExtractedBusiness = {
   name: string;
@@ -33,13 +41,41 @@ export type ExtractedBusiness = {
 export function detectSource(url: string): Source | null {
   try {
     const u = new URL(url);
-    const host = u.hostname.toLowerCase();
-    if (host.includes("google.") || host === "goo.gl" || host === "maps.app.goo.gl") return "google";
+    const host = u.hostname.toLowerCase().replace(/^www\./, "");
+    if (host.includes("google.") || host === "goo.gl" || host === "maps.app.goo.gl" || host === "share.google") return "google";
     if (host.includes("facebook.") || host === "fb.com" || host === "m.facebook.com" || host === "fb.me") return "facebook";
-    return null;
+    if (host === "instagram.com" || host.endsWith(".instagram.com")) return "instagram";
+    if (host === "twitter.com" || host === "x.com" || host === "mobile.twitter.com") return "twitter";
+    if (host === "tiktok.com" || host.endsWith(".tiktok.com") || host === "vm.tiktok.com") return "tiktok";
+    if (host === "linkedin.com" || host.endsWith(".linkedin.com") || host === "lnkd.in") return "linkedin";
+    if (host === "youtube.com" || host.endsWith(".youtube.com") || host === "youtu.be") return "youtube";
+    // Fall back to generic website scrape for any other valid URL
+    return "website";
   } catch {
     return null;
   }
+}
+
+// ───────── Generic Firecrawl scrape (used for FB / IG / X / TikTok / LinkedIn / YT / websites) ─────────
+
+export async function fetchScrape(url: string): Promise<{ markdown: string; raw: unknown }> {
+  const key = process.env.FIRECRAWL_API_KEY;
+  if (!key) throw new Error("Firecrawl connector is not linked");
+  const res = await fetch(`${FIRECRAWL_API}/scrape`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url,
+      formats: ["markdown"],
+      onlyMainContent: true,
+      waitFor: 1500,
+    }),
+  });
+  if (!res.ok) throw new Error(`Firecrawl error [${res.status}] for ${url}: ${await res.text()}`);
+  const json = (await res.json()) as { data?: { markdown?: string; metadata?: unknown } };
+  const md = json?.data?.markdown ?? "";
+  if (!md || md.length < 50) throw new Error(`The page at ${url} returned no readable content`);
+  return { markdown: md, raw: json?.data ?? json };
 }
 
 // ───────── Google Places fetcher ─────────
