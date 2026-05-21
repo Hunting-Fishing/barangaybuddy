@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Fuel, ThumbsUp, ThumbsDown, Plus } from "lucide-react";
+import { FuelMap } from "@/components/fuel-map";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -253,15 +254,19 @@ function FuelPage() {
             <p className="text-muted-foreground">Live fuel prices, crowdsourced from the community.</p>
           </div>
         </div>
+        <div className="mt-8">
+          <FuelMap />
+        </div>
 
         <div className="mt-10 grid gap-8 lg:grid-cols-3">
           <Card className="p-6 lg:col-span-1">
+
             <div className="flex items-center justify-between gap-2">
               <h2 className="font-display text-xl font-bold">Post a price</h2>
               <Dialog open={addOpen} onOpenChange={setAddOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm" variant="outline" type="button">
-                    <Plus className="mr-1 h-4 w-4" /> Add station
+                    <Plus className="mr-1 h-4 w-4" /> Register a missing station
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-lg">
