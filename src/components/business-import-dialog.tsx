@@ -28,7 +28,7 @@ import {
 
 type PlatformKey = "google" | "facebook" | "instagram" | "twitter" | "tiktok" | "linkedin" | "youtube" | "yelp" | "website";
 const PLATFORMS: { key: PlatformKey; label: string; icon: React.ComponentType<{ className?: string }>; placeholder: string; color: string }[] = [
-  { key: "google",    label: "Google Maps", icon: GoogleIcon, placeholder: "https://maps.app.goo.gl/…",     color: "text-[#4285F4]" },
+  { key: "google",    label: "Google (Maps / Business)", icon: GoogleIcon, placeholder: "Maps share link, g.page/…, or business.site URL", color: "text-[#4285F4]" },
   { key: "facebook",  label: "Facebook",    icon: Facebook,   placeholder: "https://facebook.com/your-page", color: "text-[#1877F2]" },
   { key: "instagram", label: "Instagram",   icon: Instagram,  placeholder: "https://instagram.com/handle",   color: "text-[#E4405F]" },
   { key: "twitter",   label: "X / Twitter", icon: Twitter,    placeholder: "https://x.com/handle",           color: "text-foreground" },
