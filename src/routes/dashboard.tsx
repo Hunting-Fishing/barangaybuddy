@@ -16,7 +16,9 @@ import { Plus, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { FeatureTagsPicker } from "@/components/feature-tags-picker";
+import { BusinessImportDialog } from "@/components/business-import-dialog";
 import { sanitizeCustomLabel, dedupeCaseInsensitive, tagLabel } from "@/lib/business-tags";
+
 
 
 export const Route = createFileRoute("/dashboard")({
@@ -111,8 +113,14 @@ function Dashboard() {
             <h1 className="font-display text-4xl font-bold">Your businesses</h1>
             <p className="mt-1 text-muted-foreground">Manage everything you've listed.</p>
           </div>
-          <Button onClick={() => setShowForm(!showForm)} className="gap-2"><Plus className="h-4 w-4" /> New business</Button>
+          <div className="flex gap-2">
+            <BusinessImportDialog />
+            <Button onClick={() => setShowForm(!showForm)} className="gap-2"><Plus className="h-4 w-4" /> New business</Button>
+          </div>
         </div>
+
+
+
 
         {showForm && (
           <Card className="mt-6 p-6">
