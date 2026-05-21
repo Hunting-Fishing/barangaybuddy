@@ -19,6 +19,57 @@ export type Source =
   | "youtube"
   | "website";
 
+function getHost(url: string) {
+  try {
+    return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+function titleFromSlug(slug: string) {
+  return slug.replace(/-\d+$/, "").replace(/[-_]+/g, " ").trim();
+}
+
+async function socialFallbackText(url: string): Promise<string | null> {
+  const host = getHost(url);
+  try {
+    const u = new URL(url);
+    const path = decodeURIComponent(u.pathname).replace(/^\/+|\/+$/g, "");
+    if (host.includes("facebook.com")) {
+      const profileId = u.searchParams.get("id");
+      let slug = path.split("/").filter(Boolean).find((part) => part !== "profile.php" && part !== "p" && !part.includes("php"));
+      try {
+        const res = await fetch(url, {
+          redirect: "follow",
+          headers: {
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
+            "Accept-Language": "en-US,en;q=0.9",
+          },
+        });
+        const finalUrl = new URL(res.url || url);
+        const next = finalUrl.searchParams.get("next");
+        const resolved = next ? new URL(next) : finalUrl;
+        slug = decodeURIComponent(resolved.pathname)
+          .split("/")
+          .filter(Boolean)
+          .find((part) => part !== "profile.php" && part !== "p" && part !== "login.php" && !part.includes("php")) ?? slug;
+      } catch {
+        // Keep the original URL-derived fallback.
+      }
+      const name = titleFromSlug(slug ?? "");
+      if (name || profileId) return `Facebook public business link. Name from URL: ${name || "unknown"}. Facebook page id: ${profileId ?? "unknown"}. URL: ${url}`;
+    }
+    if (host.includes("instagram.com") || host === "x.com" || host.includes("twitter.com") || host.includes("tiktok.com")) {
+      const handle = path.split("/").filter(Boolean)[0]?.replace(/^@/, "");
+      if (handle) return `${host} public profile link. Handle: ${handle}. URL: ${url}`;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export type ExtractedBusiness = {
   name: string;
   description: string | null;
@@ -41,7 +92,7 @@ export type ExtractedBusiness = {
 export function detectSource(url: string): Source | null {
   try {
     const u = new URL(url);
-    const host = u.hostname.toLowerCase().replace(/^www\./, "");
+    const host = getHost(url);
     if (host.includes("google.") || host === "goo.gl" || host === "maps.app.goo.gl" || host === "share.google") return "google";
     if (host.includes("facebook.") || host === "fb.com" || host === "m.facebook.com" || host === "fb.me") return "facebook";
     if (host === "instagram.com" || host.endsWith(".instagram.com")) return "instagram";
@@ -104,6 +155,8 @@ export async function fetchScrape(url: string): Promise<{ markdown: string; raw:
       lastErr = e instanceof Error ? e.message : String(e);
     }
   }
+  const fallback = await socialFallbackText(url);
+  if (fallback) return { markdown: fallback, raw: { fallback: true, url } };
   throw new Error(lastErr || `Could not read ${url}`);
 }
 
