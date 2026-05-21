@@ -172,14 +172,19 @@ const CommitInput = z.object({
     products: z
       .array(
         z.object({
-          name: z.string().trim().min(1).max(120),
+          name: z.string().trim().max(120),
           price: z.number().nullable(),
           unit: z.string().max(20).nullable(),
         }),
       )
       .max(30)
-      .default([]),
-    services: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
+      .default([])
+      .transform((arr) => arr.filter((p) => p.name.length > 0)),
+    services: z
+      .array(z.string().trim().max(80))
+      .max(20)
+      .default([])
+      .transform((arr) => arr.filter((s) => s.length > 0)),
   }),
 });
 
