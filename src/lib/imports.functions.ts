@@ -119,6 +119,14 @@ export const previewImport = createServerFn({ method: "POST" })
         lng: extracted.longitude,
       });
 
+      // Grow the public catalog as soon as AI extraction succeeds — even if the
+      // user never publishes, every new tag / custom type still helps the site.
+      try {
+        await persistCatalogGrowth(extracted);
+      } catch {
+        // non-fatal: never block the import on catalog growth
+      }
+
       await supabaseAdmin
         .from("business_imports")
         .update({
