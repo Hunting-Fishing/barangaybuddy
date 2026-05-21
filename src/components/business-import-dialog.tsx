@@ -209,14 +209,20 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
         {step === "input" && (
           <form onSubmit={onPreview} className="grid gap-3">
             <div>
-              <Label className="flex items-center gap-1.5"><LinkIcon className="h-3.5 w-3.5" /> Link</Label>
-              <Input
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://maps.app.goo.gl/... or https://facebook.com/your-page"
+              <Label className="flex items-center gap-1.5">
+                <LinkIcon className="h-3.5 w-3.5" /> Links <span className="text-xs font-normal text-muted-foreground">— paste one per line, up to 6</span>
+              </Label>
+              <Textarea
+                value={urls}
+                onChange={(e) => setUrls(e.target.value)}
+                placeholder={"https://maps.app.goo.gl/...\nhttps://facebook.com/your-page\nhttps://instagram.com/your-handle\nhttps://x.com/your-handle\nhttps://tiktok.com/@your-handle"}
+                rows={5}
                 required
                 autoFocus
               />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Supports Google Maps, Facebook, Instagram, X/Twitter, TikTok, LinkedIn, YouTube, and most websites. AI merges everything into one listing.
+              </p>
             </div>
             <div>
               <Label>Hint (optional)</Label>
