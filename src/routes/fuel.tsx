@@ -254,9 +254,13 @@ function FuelPage() {
             <p className="text-muted-foreground">Live fuel prices, crowdsourced from the community.</p>
           </div>
         </div>
+        <div className="mt-8">
+          <FuelMap />
+        </div>
 
         <div className="mt-10 grid gap-8 lg:grid-cols-3">
           <Card className="p-6 lg:col-span-1">
+
             <div className="flex items-center justify-between gap-2">
               <h2 className="font-display text-xl font-bold">Post a price</h2>
               <Dialog open={addOpen} onOpenChange={setAddOpen}>
