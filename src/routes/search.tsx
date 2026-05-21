@@ -35,7 +35,8 @@ export const Route = createFileRoute("/search")({
 });
 
 function SearchPage() {
-  const { q: urlQ, types: urlTypes, tags: urlTags, page } = Route.useSearch();
+  const searchParams = Route.useSearch();
+  const { q: urlQ, types: urlTypes, tags: urlTags, page } = searchParams;
   const navigate = useNavigate({ from: "/search" });
 
   const [q, setQ] = useState(urlQ);
