@@ -327,18 +327,8 @@ export async function persistCatalogGrowth(extracted: ExtractedBusiness): Promis
         uniqTagRows.map((t) => ({ slug: t.slug, label: t.label, usage_count: 1, source: "gemini" })),
         { onConflict: "slug", ignoreDuplicates: true },
       );
-    // bump usage_count (simple +1 per import)
-    await Promise.all(
-      uniqTagRows.map((t) =>
-        supabaseAdmin.rpc as never extends never
-          ? supabaseAdmin
-              .from("tag_catalog")
-              .update({ usage_count: (undefined as unknown) as number })
-              .eq("slug", t.slug)
-          : Promise.resolve(),
-      ),
-    ).catch(() => {});
   }
+
 
   // custom types
   const customRows = extracted.custom_types
