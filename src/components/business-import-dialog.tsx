@@ -21,7 +21,23 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FeatureTagsPicker } from "@/components/feature-tags-picker";
 import { BUSINESS_TYPES, BUSINESS_TYPE_LABEL, type BusinessType } from "@/lib/business-types";
 import { toast } from "sonner";
-import { Sparkles, Loader2, Link as LinkIcon, MapPin } from "lucide-react";
+import {
+  Sparkles, Loader2, MapPin,
+  MapPin as GoogleIcon, Facebook, Instagram, Twitter, Music2, Linkedin, Youtube, Star, Globe,
+} from "lucide-react";
+
+type PlatformKey = "google" | "facebook" | "instagram" | "twitter" | "tiktok" | "linkedin" | "youtube" | "yelp" | "website";
+const PLATFORMS: { key: PlatformKey; label: string; icon: React.ComponentType<{ className?: string }>; placeholder: string; color: string }[] = [
+  { key: "google",    label: "Google Maps", icon: GoogleIcon, placeholder: "https://maps.app.goo.gl/…",     color: "text-[#4285F4]" },
+  { key: "facebook",  label: "Facebook",    icon: Facebook,   placeholder: "https://facebook.com/your-page", color: "text-[#1877F2]" },
+  { key: "instagram", label: "Instagram",   icon: Instagram,  placeholder: "https://instagram.com/handle",   color: "text-[#E4405F]" },
+  { key: "twitter",   label: "X / Twitter", icon: Twitter,    placeholder: "https://x.com/handle",           color: "text-foreground" },
+  { key: "tiktok",    label: "TikTok",      icon: Music2,     placeholder: "https://tiktok.com/@handle",     color: "text-foreground" },
+  { key: "linkedin",  label: "LinkedIn",    icon: Linkedin,   placeholder: "https://linkedin.com/company/…", color: "text-[#0A66C2]" },
+  { key: "youtube",   label: "YouTube",     icon: Youtube,    placeholder: "https://youtube.com/@channel",   color: "text-[#FF0000]" },
+  { key: "yelp",      label: "Yelp",        icon: Star,       placeholder: "https://yelp.com/biz/your-business", color: "text-[#D32323]" },
+  { key: "website",   label: "Website",     icon: Globe,      placeholder: "https://your-business.com",      color: "text-muted-foreground" },
+];
 import { previewImport, commitImport, commitImportAsMine } from "@/lib/imports.functions";
 
 type Extracted = {
@@ -50,7 +66,9 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
 
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"input" | "loading" | "review">("input");
-  const [urls, setUrls] = useState("");
+  const [links, setLinks] = useState<Record<PlatformKey, string>>(
+    () => Object.fromEntries(PLATFORMS.map((p) => [p.key, ""])) as Record<PlatformKey, string>,
+  );
   const [hint, setHint] = useState("");
   const [importId, setImportId] = useState<string | null>(null);
   const [data, setData] = useState<Extracted | null>(null);
@@ -61,7 +79,7 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
 
   function reset() {
     setStep("input");
-    setUrls("");
+    setLinks(Object.fromEntries(PLATFORMS.map((p) => [p.key, ""])) as Record<PlatformKey, string>);
     setHint("");
     setImportId(null);
     setData(null);
@@ -72,8 +90,7 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
 
   async function onPreview(e: React.FormEvent) {
     e.preventDefault();
-    const urlList = urls
-      .split(/[\s,]+/)
+    const urlList = Object.values(links)
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
     if (urlList.length === 0) {
@@ -202,26 +219,35 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> Smart business import</DialogTitle>
           <DialogDescription>
-            Paste a Google Maps or Facebook Page link. AI fills in the details — you review and publish.
+            Paste any links you have — one per platform. AI reads them all and merges into one listing.
           </DialogDescription>
         </DialogHeader>
 
         {step === "input" && (
           <form onSubmit={onPreview} className="grid gap-3">
-            <div>
-              <Label className="flex items-center gap-1.5">
-                <LinkIcon className="h-3.5 w-3.5" /> Links <span className="text-xs font-normal text-muted-foreground">— paste one per line, up to 6</span>
-              </Label>
-              <Textarea
-                value={urls}
-                onChange={(e) => setUrls(e.target.value)}
-                placeholder={"https://maps.app.goo.gl/...\nhttps://facebook.com/your-page\nhttps://instagram.com/your-handle\nhttps://x.com/your-handle\nhttps://tiktok.com/@your-handle"}
-                rows={5}
-                required
-                autoFocus
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Supports Google Maps, Facebook, Instagram, X/Twitter, TikTok, LinkedIn, YouTube, and most websites. AI merges everything into one listing.
+            <div className="grid gap-2">
+              <Label>Business links <span className="text-xs font-normal text-muted-foreground">— fill any you have (max 6)</span></Label>
+              <div className="grid gap-2">
+                {PLATFORMS.map((p) => {
+                  const Icon = p.icon;
+                  return (
+                    <div key={p.key} className="flex items-center gap-2">
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-secondary/40 ${p.color}`} title={p.label}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <Input
+                        type="url"
+                        value={links[p.key]}
+                        onChange={(e) => setLinks({ ...links, [p.key]: e.target.value })}
+                        placeholder={p.placeholder}
+                        aria-label={p.label}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Yelp and any other site go in the Website / Yelp row. AI handles the rest.
               </p>
             </div>
             <div>
