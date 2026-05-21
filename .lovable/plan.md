@@ -1,63 +1,90 @@
 ## Goal
 
-Let owners (1) add custom business types when the preset list doesn't fit (e.g. Bar, Pub, Billiards hall) and (2) tag their place with a large, PH-focused catalog of features (amenities, services, payments, dining modes, etc.).
+Let anyone paste a Google Maps or Facebook Page URL and turn it into a draft business listing in seconds. Gemini reads the source, fills in name, location, categories, products and feature tags, and any brand-new tags/types are added to the global catalog so the directory keeps getting richer.
 
-## Changes
+## How a user will experience it
 
-### 1. Custom "Other" types (free text)
+1. New "Import a business" button on the homepage and dashboard, available logged-out and logged-in.
+2. Modal asks for a Google Maps link **or** a Facebook page link, plus an optional note ("they sell halo-halo and lechon").
+3. Progress states: *Fetching → Reading the page → Matching to a barangay → Saving draft*.
+4. Result screen shows the parsed business with every field editable: name, type, additional types, custom types, tags, description, barangay, address, lat/lng, phone, hours, website, cover photo.
+5. Submitter clicks **Publish as unclaimed** → listing goes live with a "Claim this business" badge. Logged-in users can also choose **Publish as mine** which sets `owner_id` to their user id.
+6. Owner claim flow (Phase 2): on any unclaimed business page, a "Claim this listing" button starts Google Business Profile OAuth; if Google confirms they manage the place, we transfer `owner_id` to them.
 
-The `businesses.type` column is a Postgres enum, so free text can't go there. Plan:
+## Sources
 
-- Keep `type` (primary) and `additional_types` as enum-only.
-- Add a new column `custom_types text[] not null default '{}'` on `businesses` for user-typed labels (e.g. "Bar", "Pub", "Billiards hall").
-- In the dashboard form, add an "Other (type your own)" input with an "Add" button below the additional-categories grid. Entries appear as removable chips alongside the preset additional types.
-- Validation: trim, dedupe (case-insensitive), max 30 chars each, max 10 entries, allow letters/numbers/spaces/&/-/'.
-- On display (cards, listings), merge `type` + `additional_types` (labeled) + `custom_types` (raw) when showing categories.
+- **Google**: Google Places API (New) `places:searchText` + `places/v1/places/{id}` through the existing Google Maps connector. Pulls displayName, formattedAddress, location, types, primaryType, regularOpeningHours, internationalPhoneNumber, websiteUri, editorialSummary, photos, reviews snippets.
+- **Facebook**: Firecrawl `scrape` (markdown + screenshot + branding) on the public page URL. Gemini reads the markdown to extract structured fields.
+- **GBP OAuth (Phase 2)**: deferred until claim flow is built; not in this plan's first cut.
 
-### 2. Feature tags (massive PH-focused catalog)
+## Smart extraction with Gemini
 
-The `businesses.tags text[]` column already exists. Plan:
+A single server function calls Lovable AI (`google/gemini-3-flash-preview`) with structured output. It receives the raw payload from Google or Firecrawl plus the project's current `BUSINESS_TYPES` catalog and feature tag groups, and returns:
 
-- Define a curated `FEATURE_TAGS` catalog in `src/lib/business-tags.ts`, grouped by category, with stable slug + label. Proposed groups:
+- `name`, `description`, `address`, `latitude`, `longitude`, `phone`, `email`, `website`, `hours`
+- `type` (one of existing BUSINESS_TYPES)
+- `additional_types` (subset of BUSINESS_TYPES)
+- `custom_types` (free text — e.g. "bar", "pub", "sari-sari store")
+- `tags` (slug list — reuses known feature tags, may invent new slugs)
+- `products` (optional list for the listings table — name, price hint, unit)
+- `confidence` per field, so the review UI can flag low-confidence ones
 
-  - **Dining & service**: Dine-in, Take-out, Delivery, Drive-thru, Curbside pickup, Catering, Reservations, Walk-ins, Counter service, Table service, Buffet, Self-service, 24-hour
-  - **Drinks & bar**: Full bar, Beer, Wine, Cocktails, Local spirits (Tanduay/Red Horse), Inumang Pinoy, Pulutan, Happy hour, BYOB
-  - **Entertainment**: Billiards/Pool, Darts, Videoke/Karaoke, Live band, DJ, Acoustic nights, Beerpong, Board games, Arcade, Gaming PCs, Sports on TV, Cockfighting (sabong) viewing, Boxing/MMA nights
-  - **Amenities**: Public restroom, Air-conditioned, Electric fan only, Free WiFi, Charging outlets, Parking, Motorcycle parking, Bike parking, Covered parking, Valet, CCTV, Smoking area, Non-smoking, Outdoor seating, Al fresco, Rooftop, Garden, Beachfront, Riverside
-  - **Stay**: Overnight stay, Day-use rooms, Hourly rooms, Camping, Cottages, Cabanas
-  - **Accessibility & family**: Wheelchair accessible, PWD ramp, Senior-friendly, Kid-friendly, High chairs, Play area, Pet-friendly, Breastfeeding area, Baby changing
-  - **Payments**: Cash, GCash, Maya, Bank transfer, Credit/Debit card, COD, Installment, Suki/Lista (credit)
-  - **Goods & services specific**: LPG refill, Water refill, Load/E-load, Padala/Remittance, Bills payment, Pera Padala, Printing/Xerox, Lamination, Internet café, ATM, ATM cash-in
-  - **Fresh/market**: Live seafood, Fresh catch daily, Organic, Locally sourced, Halal, Vegetarian options, Vegan options
-  - **Hours**: Open 24/7, Open early (before 6am), Open late (after 10pm), Sunday open, Holiday open
-  - **Language/local**: Tagalog, English, Bisaya, Ilocano, Hiligaynon spoken
+After extraction, the server:
+- Snaps each new tag/custom type to canonical slug (`lower, hyphenated, dedup`) and tries to match it against existing tags first.
+- For genuinely new slugs, inserts into a new `tag_catalog` table with `usage_count = 1` and `source = 'gemini'` (auto-grows the global catalog).
+- For new custom types, inserts into a new `custom_type_catalog` table the same way.
+- Resolves barangay by reverse-geocoding the lat/lng against `cities_municipalities` + `barangays` (nearest by name match + admin area from Google). If no confident match, leaves `barangay_code` blank and asks the submitter to pick.
 
-  (Final catalog finalized in implementation; ~100+ tags total.)
+## Database changes
 
-- Form UI under "Features & amenities":
-  - Search input filtering tags by label
-  - Collapsible group sections with Checkbox grid (2–3 cols)
-  - Selected tags shown as removable chips above the picker
-  - "Add custom tag" input for anything not in the catalog (same validation as custom types; stored mixed into `tags` array)
-  - Limit ~50 tags per business
+Migration adds:
+- `tag_catalog (slug PK, label, usage_count, source, first_seen_at)` — RLS: public read, no public write; writes only via server function using service role.
+- `custom_type_catalog (slug PK, label, usage_count, source, first_seen_at)` — same RLS shape.
+- `business_imports (id, source enum 'google'|'facebook', source_url, source_external_id, raw_payload jsonb, extracted jsonb, status enum 'pending'|'completed'|'failed', error, created_by nullable uuid, created_business_id nullable uuid, created_at)` — audit log; RLS: insert by anyone, select own + admins.
+- `businesses` gets `is_claimed boolean default true`, `imported_from text`, `import_source_id text`. Existing rows stay claimed. New unclaimed listings have `owner_id` set to a dedicated `unclaimed-listings` service user so existing RLS keeps working without policy changes.
+- A unique index `(imported_from, import_source_id)` prevents duplicate imports of the same Google place / FB page.
 
-- Validation in `create`: `tags: z.array(z.string().trim().min(1).max(40)).max(50)`.
+## Server functions (TanStack `createServerFn`, no edge functions)
 
-### 3. Files touched
+`src/lib/imports.functions.ts`:
+- `previewImport({ url, hint? })` — public (no auth required). Detects Google vs Facebook, fetches the source, runs Gemini, returns extracted payload + `importId`. Rate-limited per IP (10/hour).
+- `commitImport({ importId, overrides, publish: 'unclaimed' | 'mine' })` — creates the business row, listings rows, bumps catalog counts, links to `business_imports`. `publish: 'mine'` requires auth.
+- `claimBusiness({ businessId, googleVerificationToken })` — Phase 2 stub; returns "coming soon" for now.
 
-- **Migration** — add `custom_types text[] not null default '{}'` to `businesses` (tags column already exists). GIN index on `custom_types`.
-- **New** `src/lib/business-tags.ts` — `FEATURE_TAG_GROUPS`, `TAG_LABEL`, `slugifyCustom()`, helpers.
-- **Edit** `src/routes/dashboard.tsx` — extend form state with `custom_types: string[]` and `tags: string[]`; add the Other-type input and the FeatureTagsPicker subcomponent; update Zod schema and insert payload.
-- **New** `src/components/feature-tags-picker.tsx` — reusable picker (search + grouped checkboxes + chips + custom add).
-- **Edit** `src/routes/dashboard.business.$id.tsx` — same picker + custom-types editor on the edit form (so existing businesses can update).
-- **Edit** display surfaces that show categories — `barangay-listings-feed.tsx`, `business.$slug.tsx`, business cards on `dashboard.tsx` — to render `custom_types` chips and (where appropriate) top feature tags.
+`src/lib/imports.server.ts` holds the Google/Firecrawl fetchers, the Gemini prompt, slug normalization, and the barangay matcher. All secrets read inside handlers via `process.env`.
 
-### 4. Out of scope (this turn)
+## UI
 
-- Filtering listings by tags on the barangay/search pages (can be a follow-up).
-- Translating tag labels.
-- Per-tag icons.
+- New route `src/routes/import.tsx` — public landing for the importer with the URL input, a sample/demo link, and the review form.
+- New component `BusinessImportDialog` mounted on `src/routes/index.tsx` (CTA in hero) and `src/routes/dashboard.tsx` (next to "Add a business").
+- Review form reuses `FeatureTagsPicker` and the existing categories control from the dashboard so the look stays consistent.
+- Unclaimed badge on `src/routes/business.$slug.tsx` with a "Claim this listing" button (Phase 2 hooks up; for now it opens a "we'll email you" form that records intent in a `claim_requests` table — minor add to the same migration).
 
-## Open question
+## Secrets / connectors
 
-The catalog above is large but opinionated. Want me to proceed with the full list as drafted, or trim/expand any group before I build it?
+- Google Places: already covered by the existing Google Maps connector — no new secret.
+- Facebook scraping: needs the Firecrawl connector. I'll prompt for it during build via `standard_connectors--connect` (connector_id `firecrawl`).
+- Gemini: uses `LOVABLE_API_KEY` (already set).
+
+## Safety / quality guardrails
+
+- Block import if the parsed business already exists (by `imported_from + import_source_id`, or by name + lat/lng within 50m).
+- Rate-limit `previewImport` per IP using a small in-memory map plus a `business_imports` insert audit.
+- Gemini is told to never invent contact details — if a field isn't in the source, return null.
+- Tag/type auto-promotion has a cap: a brand-new slug only becomes searchable in the public filter once `usage_count >= 3` (the search route and feature picker will read from `tag_catalog`). Below that threshold the tag still attaches to the business but doesn't pollute the global picker — a light-touch version of moderation without blocking growth.
+- All Gemini outputs are validated with Zod before writing to the DB.
+
+## Out of scope for this plan (call out so we agree)
+
+- Google Business Profile OAuth claim flow — scaffolded as a stub, full build is Phase 2.
+- Bulk admin importer — not built; the per-URL flow is already "anyone can submit", so seeding can happen the same way.
+- Photo import (Google place photos / FB cover) — first version only stores the URL of the first photo as `cover_image_url`; no re-hosting in storage yet.
+
+## Technical details
+
+- Stack: TanStack Start `createServerFn`, no Supabase Edge Functions.
+- Gemini call: `streamText` not needed — use `generateText` + `Output.object` with a Zod schema for the extracted business.
+- Google Places call goes through the gateway URL `https://connector-gateway.lovable.dev/google_maps/places/v1/...` with `X-Goog-FieldMask` to limit response size.
+- Facebook scrape uses Firecrawl SDK `firecrawl.scrape(url, { formats: ['markdown', 'screenshot'] })` server-side only.
+- New tables get `touch_updated_at` trigger and GIN indexes where relevant (`businesses.tags`, `tag_catalog.label trgm` for future fuzzy search).
+- All new RLS policies follow the existing project pattern (public read on catalogs, owner-or-admin writes on imports).
