@@ -117,6 +117,9 @@ function Dashboard() {
             <BusinessImportDialog />
             <Button onClick={() => setShowForm(!showForm)} className="gap-2"><Plus className="h-4 w-4" /> New business</Button>
           </div>
+        </div>
+
+
 
 
         {showForm && (
