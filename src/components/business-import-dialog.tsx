@@ -370,6 +370,70 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
               </div>
 
               <div className="md:col-span-2">
+                <Label>Products <span className="text-xs text-muted-foreground">— AI pulled these from the source; edit or remove anything wrong</span></Label>
+                <div className="mt-2 grid gap-2">
+                  {data.products.map((p, i) => (
+                    <div key={i} className="grid grid-cols-12 gap-2">
+                      <Input
+                        className="col-span-7"
+                        value={p.name}
+                        placeholder="Item name"
+                        onChange={(e) => {
+                          const next = [...data.products];
+                          next[i] = { ...next[i], name: e.target.value };
+                          setData({ ...data, products: next });
+                        }}
+                      />
+                      <Input
+                        className="col-span-3"
+                        type="number"
+                        value={p.price ?? ""}
+                        placeholder="Price"
+                        onChange={(e) => {
+                          const next = [...data.products];
+                          next[i] = { ...next[i], price: e.target.value === "" ? null : Number(e.target.value) };
+                          setData({ ...data, products: next });
+                        }}
+                      />
+                      <Input
+                        className="col-span-2"
+                        value={p.unit ?? ""}
+                        placeholder="Unit"
+                        onChange={(e) => {
+                          const next = [...data.products];
+                          next[i] = { ...next[i], unit: e.target.value || null };
+                          setData({ ...data, products: next });
+                        }}
+                      />
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setData({ ...data, products: [...data.products, { name: "", price: null, unit: null }] })}
+                  >
+                    + Add product
+                  </Button>
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <Label>Services <span className="text-xs text-muted-foreground">— one per line</span></Label>
+                <Textarea
+                  rows={3}
+                  value={data.services.join("\n")}
+                  onChange={(e) =>
+                    setData({
+                      ...data,
+                      services: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
+                    })
+                  }
+                  placeholder="e.g. Haircut&#10;Catering&#10;Motorcycle repair"
+                />
+              </div>
+
+              <div className="md:col-span-2">
                 <Label>Description</Label>
                 <Textarea
                   value={data.description ?? ""}
