@@ -123,48 +123,64 @@ export async function fetchScrape(url: string): Promise<{ markdown: string; raw:
   const key = process.env.FIRECRAWL_API_KEY;
   if (!key) throw new Error("Firecrawl connector is not linked");
 
-  // Facebook login-walls aggressively on www/m. Use mbasic.facebook.com (no JS, no login wall for public pages).
   const host = (() => { try { return new URL(url).hostname; } catch { return ""; } })();
   const isFacebook = /(^|\.)facebook\.com$|^fb\.(com|me)$/i.test(host);
-  const candidates = isFacebook
-    ? [
-        url.replace(/:\/\/(www\.|m\.|web\.)?facebook\.com/i, "://mbasic.facebook.com"),
-        url.replace(/:\/\/(www\.|mbasic\.|web\.)?facebook\.com/i, "://m.facebook.com"),
-        url,
-      ]
-    : [url];
 
+  async function scrapeOne(target: string): Promise<string> {
+    const res = await fetch(`${FIRECRAWL_API}/scrape`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: target,
+        formats: ["markdown"],
+        onlyMainContent: !isFacebook,
+        waitFor: isFacebook ? 3500 : 1500,
+      }),
+    });
+    if (!res.ok) throw new Error(`Firecrawl [${res.status}] for ${target}: ${await res.text()}`);
+    const json = (await res.json()) as {
+      data?: { markdown?: string };
+      markdown?: string;
+    };
+    return json?.data?.markdown ?? json?.markdown ?? "";
+  }
+
+  // For Facebook, also try About / Contact mbasic pages — these hold address, phone, hours, description.
+  function facebookVariants(input: string): string[] {
+    const base = input.replace(/:\/\/(www\.|m\.|web\.|mbasic\.)?facebook\.com/i, "://mbasic.facebook.com");
+    const clean = base.replace(/\/+$/, "");
+    return [
+      clean,
+      `${clean}/about`,
+      `${clean}/about_contact_and_basic_info`,
+      input.replace(/:\/\/(www\.|mbasic\.|web\.)?facebook\.com/i, "://m.facebook.com"),
+      input,
+    ];
+  }
+
+  const candidates = isFacebook ? facebookVariants(url) : [url];
+  const chunks: string[] = [];
   let lastErr = "";
   for (const target of candidates) {
     try {
-      const res = await fetch(`${FIRECRAWL_API}/scrape`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: target,
-          formats: ["markdown"],
-          onlyMainContent: !isFacebook,
-          waitFor: isFacebook ? 3000 : 1500,
-        }),
-      });
-      if (!res.ok) {
-        lastErr = `Firecrawl error [${res.status}] for ${target}: ${await res.text()}`;
-        continue;
-      }
-      const json = (await res.json()) as {
-        data?: { markdown?: string; metadata?: unknown };
-        markdown?: string;
-        metadata?: unknown;
-      };
-      const md = json?.data?.markdown ?? json?.markdown ?? "";
+      const md = await scrapeOne(target);
       if (md && md.length >= 50) {
-        return { markdown: md, raw: json?.data ?? json };
+        chunks.push(`--- from ${target} ---\n${md}`);
+        // For non-Facebook, one good page is enough.
+        if (!isFacebook) break;
+      } else {
+        lastErr = `No readable content at ${target}`;
       }
-      lastErr = `The page at ${target} returned no readable content (possibly private or login-walled)`;
     } catch (e) {
       lastErr = e instanceof Error ? e.message : String(e);
     }
   }
+
+  if (chunks.length > 0) {
+    const combined = chunks.join("\n\n");
+    return { markdown: combined, raw: { combined, sources: candidates } };
+  }
+
   const fallback = await socialFallbackText(url);
   if (fallback) return { markdown: fallback, raw: { fallback: true, url } };
   throw new Error(lastErr || `Could not read ${url}`);
