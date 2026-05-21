@@ -76,6 +76,7 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
   const [brgyResults, setBrgyResults] = useState<{ code: string; name: string; cities_municipalities: { name: string } | null }[]>([]);
   const [brgyLabel, setBrgyLabel] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [importError, setImportError] = useState("");
 
   function reset() {
     setStep("input");
@@ -86,10 +87,12 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
     setBrgySearch("");
     setBrgyResults([]);
     setBrgyLabel("");
+    setImportError("");
   }
 
   async function onPreview(e: React.FormEvent) {
     e.preventDefault();
+    setImportError("");
     const urlList = Object.values(links)
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
@@ -106,6 +109,7 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
       const res = await preview({ data: { urls: urlList, hint: hint.trim() || undefined } });
       if (!res.ok) {
         toast.error(res.error);
+        setImportError(res.error);
         if ("duplicateSlug" in res && res.duplicateSlug) {
           toast.info("Already on BarangayHub — opening it now.");
         }
@@ -142,7 +146,9 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
       }
       setStep("review");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Import failed");
+      const message = err instanceof Error ? err.message : "Import failed";
+      toast.error(message);
+      setImportError(message);
       setStep("input");
     }
   }
@@ -263,6 +269,11 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
             <Button type="submit" className="gap-2">
               <Sparkles className="h-4 w-4" /> Read with AI
             </Button>
+            {importError && (
+              <div className="whitespace-pre-wrap rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                {importError}
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
               Anyone can submit. Logged-out submissions become <strong>unclaimed listings</strong> the real owner can claim later.
             </p>
