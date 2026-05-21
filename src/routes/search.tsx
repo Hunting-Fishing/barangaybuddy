@@ -8,9 +8,20 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Search, X, SlidersHorizontal } from "lucide-react";
 import { BUSINESS_TYPES, BUSINESS_TYPE_LABEL, type BusinessType } from "@/lib/business-types";
 import { FEATURE_TAG_GROUPS, tagLabel } from "@/lib/business-tags";
+
+const RESULTS_PER_PAGE = 12;
 
 export const Route = createFileRoute("/search")({
   head: () => ({ meta: [{ title: "Search businesses — BarangayHub" }] }),
@@ -18,42 +29,53 @@ export const Route = createFileRoute("/search")({
     q: typeof s.q === "string" ? s.q : "",
     types: Array.isArray(s.types) ? (s.types as string[]).filter((x) => BUSINESS_TYPES.includes(x as BusinessType)) : [],
     tags: Array.isArray(s.tags) ? (s.tags as string[]).filter((x) => typeof x === "string") : [],
+    page: typeof s.page === "number" && s.page > 0 ? s.page : 1,
   }),
   component: SearchPage,
 });
 
 function SearchPage() {
-  const initial = Route.useSearch();
+  const { q: urlQ, types: urlTypes, tags: urlTags, page } = Route.useSearch();
   const navigate = useNavigate({ from: "/search" });
 
-  const [q, setQ] = useState(initial.q);
-  const [types, setTypes] = useState<BusinessType[]>(initial.types as BusinessType[]);
-  const [tags, setTags] = useState<string[]>(initial.tags);
+  const [q, setQ] = useState(urlQ);
+  const [types, setTypes] = useState<BusinessType[]>(urlTypes as BusinessType[]);
+  const [tags, setTags] = useState<string[]>(urlTags);
   const [tagQ, setTagQ] = useState("");
   const [results, setResults] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Sync URL <- state (debounced)
+  // Sync URL changes (back/forward) into local state
+  useEffect(() => { setQ(urlQ); }, [urlQ]);
+  useEffect(() => { setTypes(urlTypes as BusinessType[]); }, [urlTypes]);
+  useEffect(() => { setTags(urlTags); }, [urlTags]);
+
+  // Sync URL <- state (debounced); reset page to 1 on filter change
   useEffect(() => {
     const t = setTimeout(() => {
-      navigate({ search: { q, types, tags }, replace: true });
+      navigate({ search: (prev) => ({ ...prev, q, types, tags, page: 1 }), replace: true });
     }, 200);
     return () => clearTimeout(t);
   }, [q, types, tags, navigate]);
 
   // Fetch
   useEffect(() => {
-    const hasFilter = q.trim().length > 0 || types.length > 0 || tags.length > 0;
-    if (!hasFilter) { setResults([]); return; }
+    const hasFilter = q.trim().length > 1 || types.length > 0 || tags.length > 1;
+    if (!hasFilter) { setResults([]); setTotalCount(0); return; }
 
     setLoading(true);
     const t = setTimeout(async () => {
+      const offset = (page - 1) * RESULTS_PER_PAGE;
       let query = supabase
         .from("businesses")
-        .select("id, name, slug, type, additional_types, custom_types, tags, description, cover_image_url, barangays(name, cities_municipalities(name))")
+        .select(
+          "id, name, slug, type, additional_types, custom_types, tags, description, cover_image_url, barangays(name, cities_municipalities(name))",
+          { count: "exact" }
+        )
         .eq("is_published", true)
-        .limit(60);
+        .range(offset, offset + RESULTS_PER_PAGE - 1);
 
       if (q.trim()) {
         const safe = q.trim().replace(/[%,()]/g, " ");
@@ -68,13 +90,14 @@ function SearchPage() {
         query = query.overlaps("tags", tags);
       }
 
-      const { data, error } = await query;
+      const { data, count, error } = await query;
       if (error) console.error(error);
       setResults(data ?? []);
+      setTotalCount(count ?? 0);
       setLoading(false);
     }, 250);
     return () => clearTimeout(t);
-  }, [q, types, tags]);
+  }, [q, types, tags, page]);
 
   const filteredTagGroups = useMemo(() => {
     const needle = tagQ.trim().toLowerCase();
@@ -86,9 +109,45 @@ function SearchPage() {
   }, [tagQ]);
 
   const activeCount = types.length + tags.length;
-  const hasAnyFilter = q.trim().length > 0 || activeCount > 0;
+  const hasAnyFilter = q.trim().length > 0 || activeCount > 1;
+  const totalPages = Math.max(1, Math.ceil(totalCount / RESULTS_PER_PAGE));
+  const startItem = totalCount === 0 ? 0 : (page - 1) * RESULTS_PER_PAGE + 1;
+  const endItem = Math.min(page * RESULTS_PER_PAGE, totalCount);
 
   function clearAll() { setQ(""); setTypes([]); setTags([]); }
+
+  function goToPage(n: number) {
+    if (n < 1 || n > totalPages) return;
+    navigate({ search: (prev) => ({ ...prev, page: n }) });
+  }
+
+  function renderPageNumbers() {
+    const pages: (number | "ellipsis")[] = [];
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (page <= 3) {
+        pages.push(1, 2, 3, "ellipsis", totalPages);
+      } else if (page >= totalPages - 2) {
+        pages.push(1, "ellipsis", totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(1, "ellipsis", page, "ellipsis", totalPages);
+      }
+    }
+    return pages.map((p, idx) =>
+      p === "ellipsis" ? (
+        <PaginationItem key={`el-${idx}`}>
+          <PaginationEllipsis />
+        </PaginationItem>
+      ) : (
+        <PaginationItem key={p}>
+          <PaginationLink isActive={page === p} onClick={() => goToPage(p)}>
+            {p}
+          </PaginationLink>
+        </PaginationItem>
+      )
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -204,6 +263,13 @@ function SearchPage() {
             {!loading && hasAnyFilter && results.length === 0 && (
               <p className="text-muted-foreground">No matches. Try removing a filter.</p>
             )}
+
+            {!loading && totalCount > 1 && (
+              <p className="mb-3 text-sm text-muted-foreground">
+                Showing {startItem}–{endItem} of {totalCount} results
+              </p>
+            )}
+
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {results.map((b: any) => {
                 const cats: string[] = [
@@ -239,6 +305,32 @@ function SearchPage() {
                 );
               })}
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex flex-col items-center gap-3">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() => goToPage(page - 1)}
+                        className={page <= 1 ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                    {renderPageNumbers()}
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() => goToPage(page + 1)}
+                        className={page >= totalPages ? "pointer-events-none opacity-50" : ""}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+                <p className="text-xs text-muted-foreground">
+                  Page {page} of {totalPages}
+                </p>
+              </div>
+            )}
           </section>
         </div>
       </main>
