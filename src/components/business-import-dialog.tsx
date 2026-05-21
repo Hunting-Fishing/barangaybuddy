@@ -54,6 +54,8 @@ type Extracted = {
   additional_types: BusinessType[];
   custom_types: string[];
   tags: { slug: string; label: string }[];
+  products: { name: string; price: number | null; unit: string | null }[];
+  services: string[];
   barangay_code: string | null;
   cover_image_url: string | null;
 };
@@ -132,6 +134,8 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
         additional_types: e.additional_types.filter((t): t is BusinessType => (BUSINESS_TYPES as readonly string[]).includes(t)),
         custom_types: e.custom_types,
         tags: e.tags,
+        products: (e as { products?: { name: string; price: number | null; unit: string | null }[] }).products ?? [],
+        services: (e as { services?: string[] }).services ?? [],
         barangay_code: e.barangay_code,
         cover_image_url: e.cover_image_url,
       });
@@ -194,6 +198,8 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
         tags: data.tags.map((t) => t.slug),
         barangay_code: data.barangay_code,
         cover_image_url: data.cover_image_url,
+        products: data.products,
+        services: data.services,
       };
       const res =
         mode === "mine"
