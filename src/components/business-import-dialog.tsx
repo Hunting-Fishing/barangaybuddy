@@ -77,11 +77,20 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
 
   function reset() {
     setStep("input");
-    setUrls("");
+  const [links, setLinks] = useState<Record<PlatformKey, string>>(
+    () => Object.fromEntries(PLATFORMS.map((p) => [p.key, ""])) as Record<PlatformKey, string>,
+  );
+
+  function reset() {
+    setStep("input");
+    setLinks(Object.fromEntries(PLATFORMS.map((p) => [p.key, ""])) as Record<PlatformKey, string>);
     setHint("");
     setImportId(null);
     setData(null);
     setBrgySearch("");
+    setBrgyResults([]);
+    setBrgyLabel("");
+  }
     setBrgyResults([]);
     setBrgyLabel("");
   }
