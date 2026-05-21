@@ -119,7 +119,7 @@ function SearchPage() {
 
   function goToPage(n: number) {
     if (n < 1 || n > totalPages) return;
-    navigate({ search: (prev) => ({ ...prev, page: n }) });
+    navigate({ search: { ...searchParams, page: n } });
   }
 
   function renderPageNumbers() {
