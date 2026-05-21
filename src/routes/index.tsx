@@ -146,6 +146,32 @@ function Home() {
         </div>
       </section>
 
+      {/* IMPORT BUSINESS */}
+      <section className="container mx-auto px-4 py-8">
+        <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 transition-all hover:-translate-y-1 hover:shadow-elegant">
+          <CardContent className="p-6 md:p-10">
+            <div className="flex flex-col items-center gap-6 text-center md:flex-row md:text-left">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft">
+                <Link2 className="h-7 w-7" />
+              </div>
+              <div className="flex-1">
+                <h2 className="font-display text-xl font-bold md:text-2xl">Add a Business from a link</h2>
+                <p className="mt-1.5 max-w-2xl text-muted-foreground">
+                  Paste a Google Maps link such as{" "}
+                  <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium">https://share.google/YsB3YFMjiv2Vw08LQ</code>{" "}
+                  or a Facebook Business page link. Our AI extracts name, location, products and features automatically.
+                </p>
+              </div>
+              <Button size="lg" className="shrink-1 bg-sun text-sun-foreground hover:bg-sun/90 shadow-sun gap-2" asChild>
+                <Link to="/import">
+                  <Sparkles className="h-4 w-4" /> Import Business
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
       {/* FEATURED */}
       {featured.length > 0 && (
         <section className="container mx-auto px-4 py-12">
