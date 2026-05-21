@@ -113,8 +113,11 @@ function Dashboard() {
             <h1 className="font-display text-4xl font-bold">Your businesses</h1>
             <p className="mt-1 text-muted-foreground">Manage everything you've listed.</p>
           </div>
-          <Button onClick={() => setShowForm(!showForm)} className="gap-2"><Plus className="h-4 w-4" /> New business</Button>
-        </div>
+          <div className="flex gap-2">
+            <BusinessImportDialog />
+            <Button onClick={() => setShowForm(!showForm)} className="gap-2"><Plus className="h-4 w-4" /> New business</Button>
+          </div>
+
 
         {showForm && (
           <Card className="mt-6 p-6">
