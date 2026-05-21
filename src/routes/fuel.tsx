@@ -51,6 +51,29 @@ function FuelPage() {
   const [doePrices, setDoePrices] = useState<any[]>([]);
   const [doeRegion, setDoeRegion] = useState<string>("NCR");
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function refreshNow() {
+    setRefreshing(true);
+    try {
+      const res = await fetch("/api/public/hooks/fuel-sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+        },
+        body: "{}",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+      toast.success(`Synced ${json.prices ?? 0} price rows from DOE`);
+      await loadDoe(doeRegion);
+    } catch (e) {
+      toast.error(`Refresh failed: ${(e as Error).message}`);
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   // Add-station dialog state
   const [addOpen, setAddOpen] = useState(false);
