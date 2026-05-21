@@ -85,6 +85,7 @@ export type ExtractedBusiness = {
   custom_types: string[];
   tags: { slug: string; label: string }[];
   products: { name: string; price: number | null; unit: string | null }[];
+  services: string[];
   source_external_id: string | null;
   cover_image_url: string | null;
 };
@@ -318,18 +319,21 @@ const KNOWN_TAGS = FEATURE_TAG_GROUPS.flatMap((g) => g.tags.map((t) => t.slug));
 
 function extractionSystem() {
   return [
-    "You normalize a Philippine business listing scraped from Google or Facebook into a strict JSON schema.",
+    "You normalize a Philippine business listing scraped from Google, Facebook, Instagram, TikTok, Yelp, or a website into a strict JSON schema.",
+    "Your goal: extract as MUCH information as possible. Read every snippet carefully — menus, posts, captions, reviews, about sections, bios, hours, contact lines.",
     "Rules:",
     "- Never invent contact details, addresses, or coordinates that are not in the source.",
-    "- If a field is missing or unclear, return null (or [] for arrays).",
-    "- 'type' MUST be one of: " + BUSINESS_TYPES.join(", ") + ".",
-    "- 'additional_types' MUST be a subset of the same list (no duplicates of 'type').",
-    "- 'custom_types' is for things outside that list (e.g. 'bar', 'pub', 'billiard hall', 'kakanin').",
-    "- 'tags' are short feature slugs (kebab-case, e.g. 'billiards', 'free-wifi'). Prefer reusing these known slugs when they apply: " +
-      KNOWN_TAGS.slice(0, 80).join(", ") +
-      ". You MAY invent new ones if the source clearly mentions a feature with no good match — keep them short, kebab-case, English, ≤ 30 chars.",
-    "- Each tag has a human label too. For known slugs use a natural label.",
-    "- 'products' is optional: a few clearly-mentioned items only.",
+    "- If a field is missing or unclear, return null (or [] for arrays). Do NOT invent.",
+    "- 'type' MUST be one of: " + BUSINESS_TYPES.join(", ") + ". Pick the best fit.",
+    "- 'additional_types' MUST be a subset of the same list (no duplicates of 'type'). Include EVERY applicable secondary type — e.g. a restaurant that also sells groceries gets ['store'].",
+    "- 'custom_types' is for things outside that list (e.g. 'bar', 'pub', 'billiard hall', 'kakanin maker', 'lechon manok', 'meat shop', 'auto detailing'). Be specific and generous — these grow our catalog.",
+    "- 'tags' are short feature slugs (kebab-case, e.g. 'billiards', 'free-wifi', 'live-band'). Prefer reusing these known slugs when they apply: " +
+      KNOWN_TAGS.slice(0, 120).join(", ") +
+      ". You SHOULD invent new ones whenever the source mentions a feature, amenity, service, payment method, or cuisine that has no good match — kebab-case, English, ≤ 30 chars. Aim for 8-25 tags when the source supports it.",
+    "- Each tag has a human label too. For known slugs use a natural label. New tags get a clear short label.",
+    "- 'products' = items sold (menu dishes, goods, packages). Include name and price when shown. Aim for ALL clearly-mentioned items (up to 30).",
+    "- 'services' = services offered (e.g. 'haircut', 'wash & fold laundry', 'motorcycle repair', 'catering', 'tire change'). Up to 20.",
+    "- 'description' = 1-3 sentence summary in natural English, only from the source.",
   ].join("\n");
 }
 
@@ -337,20 +341,10 @@ const SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: [
-    "name",
-    "description",
-    "address",
-    "latitude",
-    "longitude",
-    "phone",
-    "email",
-    "website",
-    "hours",
-    "type",
-    "additional_types",
-    "custom_types",
-    "tags",
-    "products",
+    "name", "description", "address", "latitude", "longitude",
+    "phone", "email", "website", "hours",
+    "type", "additional_types", "custom_types",
+    "tags", "products", "services",
   ],
   properties: {
     name: { type: "string" },
@@ -364,10 +358,10 @@ const SCHEMA = {
     hours: { type: ["string", "null"] },
     type: { type: "string", enum: BUSINESS_TYPES as unknown as string[] },
     additional_types: { type: "array", items: { type: "string", enum: BUSINESS_TYPES as unknown as string[] }, maxItems: 8 },
-    custom_types: { type: "array", items: { type: "string", maxLength: 40 }, maxItems: 8 },
+    custom_types: { type: "array", items: { type: "string", maxLength: 40 }, maxItems: 12 },
     tags: {
       type: "array",
-      maxItems: 30,
+      maxItems: 40,
       items: {
         type: "object",
         additionalProperties: false,
@@ -377,7 +371,7 @@ const SCHEMA = {
     },
     products: {
       type: "array",
-      maxItems: 12,
+      maxItems: 30,
       items: {
         type: "object",
         additionalProperties: false,
@@ -388,6 +382,11 @@ const SCHEMA = {
           unit: { type: ["string", "null"], maxLength: 20 },
         },
       },
+    },
+    services: {
+      type: "array",
+      maxItems: 20,
+      items: { type: "string", maxLength: 80 },
     },
   },
 } as const;
