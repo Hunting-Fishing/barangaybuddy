@@ -91,7 +91,6 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
   async function onPreview(e: React.FormEvent) {
     e.preventDefault();
     const urlList = Object.values(links)
-      .split(/[\s,]+/)
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
     if (urlList.length === 0) {
