@@ -678,7 +678,15 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "consumer" | "admin"
-      business_import_source: "google" | "facebook"
+      business_import_source:
+        | "google"
+        | "facebook"
+        | "instagram"
+        | "twitter"
+        | "tiktok"
+        | "linkedin"
+        | "youtube"
+        | "website"
       business_import_status: "pending" | "completed" | "failed"
       business_type:
         | "store"
@@ -831,7 +839,16 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "consumer", "admin"],
-      business_import_source: ["google", "facebook"],
+      business_import_source: [
+        "google",
+        "facebook",
+        "instagram",
+        "twitter",
+        "tiktok",
+        "linkedin",
+        "youtube",
+        "website",
+      ],
       business_import_status: ["pending", "completed", "failed"],
       business_type: [
         "store",

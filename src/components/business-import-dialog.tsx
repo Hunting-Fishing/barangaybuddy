@@ -50,7 +50,7 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
 
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"input" | "loading" | "review">("input");
-  const [url, setUrl] = useState("");
+  const [urls, setUrls] = useState("");
   const [hint, setHint] = useState("");
   const [importId, setImportId] = useState<string | null>(null);
   const [data, setData] = useState<Extracted | null>(null);
@@ -61,7 +61,7 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
 
   function reset() {
     setStep("input");
-    setUrl("");
+    setUrls("");
     setHint("");
     setImportId(null);
     setData(null);
@@ -72,10 +72,21 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
 
   async function onPreview(e: React.FormEvent) {
     e.preventDefault();
-    if (!url.trim()) return;
+    const urlList = urls
+      .split(/[\s,]+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    if (urlList.length === 0) {
+      toast.error("Paste at least one link.");
+      return;
+    }
+    if (urlList.length > 6) {
+      toast.error("Up to 6 links at a time, please.");
+      return;
+    }
     setStep("loading");
     try {
-      const res = await preview({ data: { url: url.trim(), hint: hint.trim() || undefined } });
+      const res = await preview({ data: { urls: urlList, hint: hint.trim() || undefined } });
       if (!res.ok) {
         toast.error(res.error);
         if ("duplicateSlug" in res && res.duplicateSlug) {
@@ -198,14 +209,20 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
         {step === "input" && (
           <form onSubmit={onPreview} className="grid gap-3">
             <div>
-              <Label className="flex items-center gap-1.5"><LinkIcon className="h-3.5 w-3.5" /> Link</Label>
-              <Input
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://maps.app.goo.gl/... or https://facebook.com/your-page"
+              <Label className="flex items-center gap-1.5">
+                <LinkIcon className="h-3.5 w-3.5" /> Links <span className="text-xs font-normal text-muted-foreground">— paste one per line, up to 6</span>
+              </Label>
+              <Textarea
+                value={urls}
+                onChange={(e) => setUrls(e.target.value)}
+                placeholder={"https://maps.app.goo.gl/...\nhttps://facebook.com/your-page\nhttps://instagram.com/your-handle\nhttps://x.com/your-handle\nhttps://tiktok.com/@your-handle"}
+                rows={5}
                 required
                 autoFocus
               />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Supports Google Maps, Facebook, Instagram, X/Twitter, TikTok, LinkedIn, YouTube, and most websites. AI merges everything into one listing.
+              </p>
             </div>
             <div>
               <Label>Hint (optional)</Label>
