@@ -125,14 +125,23 @@ function extractPlaceQuery(url: string): { textQuery?: string; placeId?: string 
     const pid = u.searchParams.get("place_id") || u.searchParams.get("cid");
     if (pid) return { placeId: pid };
     // /place/{name}/@lat,lng or /place/{name}
-    const m = u.pathname.match(/\/place\/([^/]+)/);
+    const m = u.pathname.match(/\/place\/([^/@]+)/);
     if (m) return { textQuery: decodeURIComponent(m[1].replace(/\+/g, " ")) };
+    // /maps/dir/{origin}/{destination}
+    const dir = u.pathname.match(/\/maps\/dir\/[^/]*\/([^/@?]+)/);
+    if (dir) return { textQuery: decodeURIComponent(dir[1].replace(/\+/g, " ")) };
+    // Directions URLs: daddr / destination
+    const dest = u.searchParams.get("daddr") || u.searchParams.get("destination");
+    if (dest) return { textQuery: dest };
     // search?q=...
     const q = u.searchParams.get("q") || u.searchParams.get("query");
     if (q) return { textQuery: q };
-    return { textQuery: url };
+    // Plus Code in the URL anywhere (e.g. "5Q4J+X5W Brgy, Piddig, Ilocos Norte")
+    const plus = decodeURIComponent(url).match(/[2-9C-HJ-XR][2-9C-HJ-XR]{1,7}\+[2-9C-HJ-XR]{2,3}(?:[^&#]*)?/);
+    if (plus) return { textQuery: plus[0].trim() };
+    return { textQuery: url.slice(0, 200) };
   } catch {
-    return { textQuery: url };
+    return { textQuery: url.slice(0, 200) };
   }
 }
 
