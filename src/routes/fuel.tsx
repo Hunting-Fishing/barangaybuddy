@@ -472,7 +472,9 @@ function FuelPage() {
                 </Card>
               ))}
             </div>
+            </section>
           </div>
+
         </div>
       </main>
       <SiteFooter />
