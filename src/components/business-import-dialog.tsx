@@ -66,7 +66,9 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
 
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"input" | "loading" | "review">("input");
-  const [urls, setUrls] = useState("");
+  const [links, setLinks] = useState<Record<PlatformKey, string>>(
+    () => Object.fromEntries(PLATFORMS.map((p) => [p.key, ""])) as Record<PlatformKey, string>,
+  );
   const [hint, setHint] = useState("");
   const [importId, setImportId] = useState<string | null>(null);
   const [data, setData] = useState<Extracted | null>(null);
@@ -74,12 +76,6 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
   const [brgyResults, setBrgyResults] = useState<{ code: string; name: string; cities_municipalities: { name: string } | null }[]>([]);
   const [brgyLabel, setBrgyLabel] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  function reset() {
-    setStep("input");
-  const [links, setLinks] = useState<Record<PlatformKey, string>>(
-    () => Object.fromEntries(PLATFORMS.map((p) => [p.key, ""])) as Record<PlatformKey, string>,
-  );
 
   function reset() {
     setStep("input");
@@ -91,13 +87,10 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
     setBrgyResults([]);
     setBrgyLabel("");
   }
-    setBrgyResults([]);
-    setBrgyLabel("");
-  }
 
   async function onPreview(e: React.FormEvent) {
     e.preventDefault();
-    const urlList = urls
+    const urlList = Object.values(links)
       .split(/[\s,]+/)
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
