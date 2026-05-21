@@ -93,7 +93,17 @@ export function detectSource(url: string): Source | null {
   try {
     const u = new URL(url);
     const host = getHost(url);
-    if (host.includes("google.") || host === "goo.gl" || host === "maps.app.goo.gl" || host === "share.google") return "google";
+    // Google Maps + Google Business Profile (g.page, business.site, posts.gle, search.google)
+    if (
+      host.includes("google.") ||
+      host === "goo.gl" ||
+      host === "maps.app.goo.gl" ||
+      host === "share.google" ||
+      host === "g.page" ||
+      host.endsWith(".g.page") ||
+      host === "posts.gle" ||
+      host.endsWith(".business.site")
+    ) return "google";
     if (host.includes("facebook.") || host === "fb.com" || host === "m.facebook.com" || host === "fb.me") return "facebook";
     if (host === "instagram.com" || host.endsWith(".instagram.com")) return "instagram";
     if (host === "twitter.com" || host === "x.com" || host === "mobile.twitter.com") return "twitter";
