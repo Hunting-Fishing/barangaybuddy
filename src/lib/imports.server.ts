@@ -406,8 +406,9 @@ export async function geminiExtract(args: {
     `Source: ${args.source}`,
     `URL: ${args.url}`,
     args.hint ? `Operator hint: ${args.hint}` : "",
-    args.textHint ? `Key snippets:\n${args.textHint.slice(0, 2000)}` : "",
-    `Raw payload (truncated):\n${JSON.stringify(args.payload).slice(0, 8000)}`,
+    args.textHint ? `Key snippets:\n${args.textHint.slice(0, 14000)}` : "",
+    `Raw payload (truncated):\n${JSON.stringify(args.payload).slice(0, 6000)}`,
+
   ]
     .filter(Boolean)
     .join("\n\n");
