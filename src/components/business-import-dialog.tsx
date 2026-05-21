@@ -247,7 +247,8 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
                 })}
               </div>
               <p className="text-xs text-muted-foreground">
-                Yelp and any other site go in the Website / Yelp row. AI handles the rest.
+                For Google, paste the <strong>place share link</strong> (open the business on Google Maps → Share), not a directions link.
+                Yelp and any other site go in the Website / Yelp row.
               </p>
             </div>
             <div>

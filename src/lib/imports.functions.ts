@@ -71,8 +71,12 @@ export const previewImport = createServerFn({ method: "POST" })
 
       const okPayloads = payloads.filter((p) => p.payload !== null);
       if (okPayloads.length === 0) {
-        await supabaseAdmin.from("business_imports").update({ status: "failed", error: "All sources failed to fetch" }).eq("id", importId);
-        return { ok: false as const, error: "None of the links could be read. Please check them and try again." };
+        const details = payloads
+          .map((p) => `• ${p.source.toUpperCase()} (${p.url}): ${p.text.replace(/^\[Could not fetch [^:]+:\s*/, "").replace(/\]$/, "")}`)
+          .join("\n");
+        const friendly = `None of the links could be read:\n\n${details}\n\nTip: for Google, paste the place's share link (open the business on Google Maps → Share), not a directions link.`;
+        await supabaseAdmin.from("business_imports").update({ status: "failed", error: friendly }).eq("id", importId);
+        return { ok: false as const, error: friendly };
       }
 
       const combinedText = payloads

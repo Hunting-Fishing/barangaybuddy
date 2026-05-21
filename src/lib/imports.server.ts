@@ -61,21 +61,50 @@ export function detectSource(url: string): Source | null {
 export async function fetchScrape(url: string): Promise<{ markdown: string; raw: unknown }> {
   const key = process.env.FIRECRAWL_API_KEY;
   if (!key) throw new Error("Firecrawl connector is not linked");
-  const res = await fetch(`${FIRECRAWL_API}/scrape`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      url,
-      formats: ["markdown"],
-      onlyMainContent: true,
-      waitFor: 1500,
-    }),
-  });
-  if (!res.ok) throw new Error(`Firecrawl error [${res.status}] for ${url}: ${await res.text()}`);
-  const json = (await res.json()) as { data?: { markdown?: string; metadata?: unknown } };
-  const md = json?.data?.markdown ?? "";
-  if (!md || md.length < 50) throw new Error(`The page at ${url} returned no readable content`);
-  return { markdown: md, raw: json?.data ?? json };
+
+  // Facebook login-walls aggressively on www/m. Use mbasic.facebook.com (no JS, no login wall for public pages).
+  const host = (() => { try { return new URL(url).hostname; } catch { return ""; } })();
+  const isFacebook = /(^|\.)facebook\.com$|^fb\.(com|me)$/i.test(host);
+  const candidates = isFacebook
+    ? [
+        url.replace(/:\/\/(www\.|m\.|web\.)?facebook\.com/i, "://mbasic.facebook.com"),
+        url.replace(/:\/\/(www\.|mbasic\.|web\.)?facebook\.com/i, "://m.facebook.com"),
+        url,
+      ]
+    : [url];
+
+  let lastErr = "";
+  for (const target of candidates) {
+    try {
+      const res = await fetch(`${FIRECRAWL_API}/scrape`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: target,
+          formats: ["markdown"],
+          onlyMainContent: !isFacebook,
+          waitFor: isFacebook ? 3000 : 1500,
+        }),
+      });
+      if (!res.ok) {
+        lastErr = `Firecrawl error [${res.status}] for ${target}: ${await res.text()}`;
+        continue;
+      }
+      const json = (await res.json()) as {
+        data?: { markdown?: string; metadata?: unknown };
+        markdown?: string;
+        metadata?: unknown;
+      };
+      const md = json?.data?.markdown ?? json?.markdown ?? "";
+      if (md && md.length >= 50) {
+        return { markdown: md, raw: json?.data ?? json };
+      }
+      lastErr = `The page at ${target} returned no readable content (possibly private or login-walled)`;
+    } catch (e) {
+      lastErr = e instanceof Error ? e.message : String(e);
+    }
+  }
+  throw new Error(lastErr || `Could not read ${url}`);
 }
 
 // ───────── Google Places fetcher ─────────
@@ -96,14 +125,23 @@ function extractPlaceQuery(url: string): { textQuery?: string; placeId?: string 
     const pid = u.searchParams.get("place_id") || u.searchParams.get("cid");
     if (pid) return { placeId: pid };
     // /place/{name}/@lat,lng or /place/{name}
-    const m = u.pathname.match(/\/place\/([^/]+)/);
+    const m = u.pathname.match(/\/place\/([^/@]+)/);
     if (m) return { textQuery: decodeURIComponent(m[1].replace(/\+/g, " ")) };
+    // /maps/dir/{origin}/{destination}
+    const dir = u.pathname.match(/\/maps\/dir\/[^/]*\/([^/@?]+)/);
+    if (dir) return { textQuery: decodeURIComponent(dir[1].replace(/\+/g, " ")) };
+    // Directions URLs: daddr / destination
+    const dest = u.searchParams.get("daddr") || u.searchParams.get("destination");
+    if (dest) return { textQuery: dest };
     // search?q=...
     const q = u.searchParams.get("q") || u.searchParams.get("query");
     if (q) return { textQuery: q };
-    return { textQuery: url };
+    // Plus Code in the URL anywhere (e.g. "5Q4J+X5W Brgy, Piddig, Ilocos Norte")
+    const plus = decodeURIComponent(url).match(/[2-9C-HJ-XR][2-9C-HJ-XR]{1,7}\+[2-9C-HJ-XR]{2,3}(?:[^&#]*)?/);
+    if (plus) return { textQuery: plus[0].trim() };
+    return { textQuery: url.slice(0, 200) };
   } catch {
-    return { textQuery: url };
+    return { textQuery: url.slice(0, 200) };
   }
 }
 
