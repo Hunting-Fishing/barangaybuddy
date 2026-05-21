@@ -63,7 +63,7 @@ function SearchPage() {
 
   // Fetch
   useEffect(() => {
-    const hasFilter = q.trim().length > 1 || types.length > 0 || tags.length > 1;
+    const hasFilter = q.trim().length > 0 || types.length > 0 || tags.length > 0;
     if (!hasFilter) { setResults([]); setTotalCount(0); return; }
 
     setLoading(true);
