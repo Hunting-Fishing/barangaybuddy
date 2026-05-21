@@ -48,6 +48,9 @@ function FuelPage() {
   const [fuelType, setFuelType] = useState("gasoline_95");
   const [price, setPrice] = useState("");
   const [myVotes, setMyVotes] = useState<Record<string, 1 | -1>>({});
+  const [doePrices, setDoePrices] = useState<any[]>([]);
+  const [doeRegion, setDoeRegion] = useState<string>("NCR");
+  const [lastSync, setLastSync] = useState<string | null>(null);
 
   // Add-station dialog state
   const [addOpen, setAddOpen] = useState(false);
@@ -93,10 +96,31 @@ function FuelPage() {
     setStations(data ?? []);
   }
 
+  async function loadDoe(region: string) {
+    const { data: snaps } = await supabase
+      .from("fuel_price_snapshots")
+      .select("brand, fuel_type, price, snapshot_date, fetched_at")
+      .eq("region_code", region)
+      .order("snapshot_date", { ascending: false })
+      .limit(200);
+    setDoePrices(snaps ?? []);
+    const { data: run } = await supabase
+      .from("fuel_import_runs")
+      .select("finished_at")
+      .eq("status", "completed")
+      .order("finished_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setLastSync(run?.finished_at ?? null);
+  }
+
   useEffect(() => {
     load();
     loadStations();
   }, [user?.id]);
+
+  useEffect(() => { loadDoe(doeRegion); }, [doeRegion]);
+
 
   useEffect(() => {
     if (brgyQuery.length < 2) { setBrgyResults([]); return; }
@@ -349,8 +373,72 @@ function FuelPage() {
             </div>
           </Card>
 
-          <div className="lg:col-span-2">
-            <h2 className="font-display text-xl font-bold">Latest reports</h2>
+          <div className="lg:col-span-2 space-y-8">
+            <section>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <h2 className="font-display text-xl font-bold">Today's official DOE prices</h2>
+                  <p className="text-xs text-muted-foreground">
+                    Source: PH Department of Energy · Updated daily at 5:00 AM & 6:00 PM
+                    {lastSync && <> · Last sync {new Date(lastSync).toLocaleString()}</>}
+                  </p>
+                </div>
+                <Select value={doeRegion} onValueChange={setDoeRegion}>
+                  <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NCR">Metro Manila</SelectItem>
+                    <SelectItem value="LUZ-N">North Luzon</SelectItem>
+                    <SelectItem value="LUZ-S">South Luzon</SelectItem>
+                    <SelectItem value="VIS">Visayas</SelectItem>
+                    <SelectItem value="MIN">Mindanao</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {doePrices.length === 0 ? (
+                <Card className="mt-4 p-4 text-sm text-muted-foreground">
+                  No official prices synced yet. The next scheduled refresh will populate this list.
+                </Card>
+              ) : (
+                <Card className="mt-4 overflow-x-auto p-0">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2">Brand</th>
+                        {Object.entries(FUEL_LABELS).map(([k, v]) => (
+                          <th key={k} className="px-3 py-2 text-right">{v}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        // Pivot latest snapshot per brand
+                        const latestDate = doePrices[0]?.snapshot_date;
+                        const today = doePrices.filter((p) => p.snapshot_date === latestDate);
+                        const byBrand: Record<string, Record<string, number>> = {};
+                        today.forEach((p) => {
+                          byBrand[p.brand] ??= {};
+                          byBrand[p.brand][p.fuel_type] = Number(p.price);
+                        });
+                        return Object.entries(byBrand).map(([brand, fuels]) => (
+                          <tr key={brand} className="border-t">
+                            <td className="px-3 py-2 font-medium">{brand}</td>
+                            {Object.keys(FUEL_LABELS).map((k) => (
+                              <td key={k} className="px-3 py-2 text-right tabular-nums">
+                                {fuels[k] ? `₱${fuels[k].toFixed(2)}` : "—"}
+                              </td>
+                            ))}
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </Card>
+              )}
+            </section>
+
+            <section>
+            <h2 className="font-display text-xl font-bold">Latest community reports</h2>
+
             <div className="mt-4 space-y-3">
               {prices.length === 0 && <p className="text-sm text-muted-foreground">No prices reported yet. Be the first!</p>}
               {prices.map((p) => (
@@ -384,7 +472,9 @@ function FuelPage() {
                 </Card>
               ))}
             </div>
+            </section>
           </div>
+
         </div>
       </main>
       <SiteFooter />

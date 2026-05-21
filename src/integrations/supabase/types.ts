@@ -333,6 +333,75 @@ export type Database = {
           },
         ]
       }
+      fuel_import_runs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: string
+          prices_upserted: number
+          source: string
+          started_at: string
+          stations_upserted: number
+          status: string
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          prices_upserted?: number
+          source: string
+          started_at?: string
+          stations_upserted?: number
+          status: string
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          prices_upserted?: number
+          source?: string
+          started_at?: string
+          stations_upserted?: number
+          status?: string
+        }
+        Relationships: []
+      }
+      fuel_price_snapshots: {
+        Row: {
+          brand: string
+          fetched_at: string
+          fuel_type: string
+          id: string
+          price: number
+          region_code: string | null
+          region_name: string | null
+          snapshot_date: string
+          source: string
+        }
+        Insert: {
+          brand: string
+          fetched_at?: string
+          fuel_type: string
+          id?: string
+          price: number
+          region_code?: string | null
+          region_name?: string | null
+          snapshot_date: string
+          source?: string
+        }
+        Update: {
+          brand?: string
+          fetched_at?: string
+          fuel_type?: string
+          id?: string
+          price?: number
+          region_code?: string | null
+          region_name?: string | null
+          snapshot_date?: string
+          source?: string
+        }
+        Relationships: []
+      }
       fuel_price_votes: {
         Row: {
           created_at: string
