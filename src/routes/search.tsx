@@ -110,7 +110,7 @@ function SearchPage() {
   }, [tagQ]);
 
   const activeCount = types.length + tags.length;
-  const hasAnyFilter = q.trim().length > 0 || activeCount > 1;
+  const hasAnyFilter = q.trim().length > 0 || activeCount > 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / RESULTS_PER_PAGE));
   const startItem = totalCount === 0 ? 0 : (page - 1) * RESULTS_PER_PAGE + 1;
   const endItem = Math.min(page * RESULTS_PER_PAGE, totalCount);
