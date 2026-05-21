@@ -119,6 +119,14 @@ export const previewImport = createServerFn({ method: "POST" })
         lng: extracted.longitude,
       });
 
+      // Grow the public catalog as soon as AI extraction succeeds — even if the
+      // user never publishes, every new tag / custom type still helps the site.
+      try {
+        await persistCatalogGrowth(extracted);
+      } catch {
+        // non-fatal: never block the import on catalog growth
+      }
+
       await supabaseAdmin
         .from("business_imports")
         .update({
@@ -157,12 +165,38 @@ const CommitInput = z.object({
     hours: z.string().max(500).nullable(),
     type: z.enum(BUSINESS_TYPES),
     additional_types: z.array(z.enum(BUSINESS_TYPES)).max(8),
-    custom_types: z.array(z.string().min(2).max(40)).max(8),
+    custom_types: z.array(z.string().min(2).max(40)).max(12),
     tags: z.array(z.string().min(1).max(40)).max(40),
     barangay_code: z.string().min(1),
     cover_image_url: z.string().max(2000).nullable(),
+    products: z
+      .array(
+        z.object({
+          name: z.string().trim().min(1).max(120),
+          price: z.number().nullable(),
+          unit: z.string().max(20).nullable(),
+        }),
+      )
+      .max(30)
+      .default([]),
+    services: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
   }),
 });
+
+async function insertListingsFor(businessId: string, overrides: {
+  products: { name: string; price: number | null; unit: string | null }[];
+  services: string[];
+}) {
+  const rows: Array<{ business_id: string; name: string; price: number | null; unit: string | null; category: string | null }> = [];
+  for (const p of overrides.products) {
+    rows.push({ business_id: businessId, name: p.name, price: p.price, unit: p.unit, category: "product" });
+  }
+  for (const s of overrides.services) {
+    rows.push({ business_id: businessId, name: s, price: null, unit: null, category: "service" });
+  }
+  if (rows.length === 0) return;
+  await supabaseAdmin.from("listings").insert(rows);
+}
 
 export const commitImport = createServerFn({ method: "POST" })
   .inputValidator((input) => CommitInput.parse(input))
@@ -222,6 +256,7 @@ export const commitImport = createServerFn({ method: "POST" })
       tags: o.tags.map((s) => ({ slug: s, label: s })),
       custom_types: o.custom_types,
     } as ExtractedBusiness);
+    await insertListingsFor(biz.id as string, { products: o.products, services: o.services });
 
     await supabaseAdmin
       .from("business_imports")
@@ -279,6 +314,7 @@ export const commitImportAsMine = createServerFn({ method: "POST" })
       tags: o.tags.map((s) => ({ slug: s, label: s })),
       custom_types: o.custom_types,
     } as ExtractedBusiness);
+    await insertListingsFor(biz.id as string, { products: o.products, services: o.services });
 
     await supabaseAdmin
       .from("business_imports")

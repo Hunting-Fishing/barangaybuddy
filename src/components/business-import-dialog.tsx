@@ -54,6 +54,8 @@ type Extracted = {
   additional_types: BusinessType[];
   custom_types: string[];
   tags: { slug: string; label: string }[];
+  products: { name: string; price: number | null; unit: string | null }[];
+  services: string[];
   barangay_code: string | null;
   cover_image_url: string | null;
 };
@@ -132,6 +134,8 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
         additional_types: e.additional_types.filter((t): t is BusinessType => (BUSINESS_TYPES as readonly string[]).includes(t)),
         custom_types: e.custom_types,
         tags: e.tags,
+        products: (e as { products?: { name: string; price: number | null; unit: string | null }[] }).products ?? [],
+        services: (e as { services?: string[] }).services ?? [],
         barangay_code: e.barangay_code,
         cover_image_url: e.cover_image_url,
       });
@@ -194,6 +198,8 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
         tags: data.tags.map((t) => t.slug),
         barangay_code: data.barangay_code,
         cover_image_url: data.cover_image_url,
+        products: data.products,
+        services: data.services,
       };
       const res =
         mode === "mine"
@@ -361,6 +367,70 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
                     }
                   />
                 </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <Label>Products <span className="text-xs text-muted-foreground">— AI pulled these from the source; edit or remove anything wrong</span></Label>
+                <div className="mt-2 grid gap-2">
+                  {data.products.map((p, i) => (
+                    <div key={i} className="grid grid-cols-12 gap-2">
+                      <Input
+                        className="col-span-7"
+                        value={p.name}
+                        placeholder="Item name"
+                        onChange={(e) => {
+                          const next = [...data.products];
+                          next[i] = { ...next[i], name: e.target.value };
+                          setData({ ...data, products: next });
+                        }}
+                      />
+                      <Input
+                        className="col-span-3"
+                        type="number"
+                        value={p.price ?? ""}
+                        placeholder="Price"
+                        onChange={(e) => {
+                          const next = [...data.products];
+                          next[i] = { ...next[i], price: e.target.value === "" ? null : Number(e.target.value) };
+                          setData({ ...data, products: next });
+                        }}
+                      />
+                      <Input
+                        className="col-span-2"
+                        value={p.unit ?? ""}
+                        placeholder="Unit"
+                        onChange={(e) => {
+                          const next = [...data.products];
+                          next[i] = { ...next[i], unit: e.target.value || null };
+                          setData({ ...data, products: next });
+                        }}
+                      />
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setData({ ...data, products: [...data.products, { name: "", price: null, unit: null }] })}
+                  >
+                    + Add product
+                  </Button>
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <Label>Services <span className="text-xs text-muted-foreground">— one per line</span></Label>
+                <Textarea
+                  rows={3}
+                  value={data.services.join("\n")}
+                  onChange={(e) =>
+                    setData({
+                      ...data,
+                      services: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
+                    })
+                  }
+                  placeholder="e.g. Haircut&#10;Catering&#10;Motorcycle repair"
+                />
               </div>
 
               <div className="md:col-span-2">
