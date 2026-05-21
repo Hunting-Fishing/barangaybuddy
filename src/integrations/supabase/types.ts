@@ -43,6 +43,54 @@ export type Database = {
           },
         ]
       }
+      business_imports: {
+        Row: {
+          created_at: string
+          created_business_id: string | null
+          created_by: string | null
+          error: string | null
+          extracted: Json | null
+          id: string
+          ip_hash: string | null
+          raw_payload: Json | null
+          source: Database["public"]["Enums"]["business_import_source"]
+          source_external_id: string | null
+          source_url: string
+          status: Database["public"]["Enums"]["business_import_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_business_id?: string | null
+          created_by?: string | null
+          error?: string | null
+          extracted?: Json | null
+          id?: string
+          ip_hash?: string | null
+          raw_payload?: Json | null
+          source: Database["public"]["Enums"]["business_import_source"]
+          source_external_id?: string | null
+          source_url: string
+          status?: Database["public"]["Enums"]["business_import_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_business_id?: string | null
+          created_by?: string | null
+          error?: string | null
+          extracted?: Json | null
+          id?: string
+          ip_hash?: string | null
+          raw_payload?: Json | null
+          source?: Database["public"]["Enums"]["business_import_source"]
+          source_external_id?: string | null
+          source_url?: string
+          status?: Database["public"]["Enums"]["business_import_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       businesses: {
         Row: {
           additional_types: Database["public"]["Enums"]["business_type"][]
@@ -56,16 +104,20 @@ export type Database = {
           description: string | null
           hours: string | null
           id: string
+          import_source_id: string | null
+          imported_from: string | null
+          is_claimed: boolean
           is_published: boolean
           latitude: number | null
           logo_url: string | null
           longitude: number | null
           name: string
-          owner_id: string
+          owner_id: string | null
           slug: string
           tags: string[]
           type: Database["public"]["Enums"]["business_type"]
           updated_at: string
+          website: string | null
         }
         Insert: {
           additional_types?: Database["public"]["Enums"]["business_type"][]
@@ -79,16 +131,20 @@ export type Database = {
           description?: string | null
           hours?: string | null
           id?: string
+          import_source_id?: string | null
+          imported_from?: string | null
+          is_claimed?: boolean
           is_published?: boolean
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
           name: string
-          owner_id: string
+          owner_id?: string | null
           slug: string
           tags?: string[]
           type: Database["public"]["Enums"]["business_type"]
           updated_at?: string
+          website?: string | null
         }
         Update: {
           additional_types?: Database["public"]["Enums"]["business_type"][]
@@ -102,16 +158,20 @@ export type Database = {
           description?: string | null
           hours?: string | null
           id?: string
+          import_source_id?: string | null
+          imported_from?: string | null
+          is_claimed?: boolean
           is_published?: boolean
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
           name?: string
-          owner_id?: string
+          owner_id?: string | null
           slug?: string
           tags?: string[]
           type?: Database["public"]["Enums"]["business_type"]
           updated_at?: string
+          website?: string | null
         }
         Relationships: [
           {
@@ -158,6 +218,33 @@ export type Database = {
           },
         ]
       }
+      claim_requests: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          message: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           business_id: string
@@ -192,6 +279,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      custom_type_catalog: {
+        Row: {
+          first_seen_at: string
+          label: string
+          slug: string
+          source: string
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          first_seen_at?: string
+          label: string
+          slug: string
+          source?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          first_seen_at?: string
+          label?: string
+          slug?: string
+          source?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
       }
       favorites: {
         Row: {
@@ -501,6 +615,33 @@ export type Database = {
           },
         ]
       }
+      tag_catalog: {
+        Row: {
+          first_seen_at: string
+          label: string
+          slug: string
+          source: string
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          first_seen_at?: string
+          label: string
+          slug: string
+          source?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          first_seen_at?: string
+          label?: string
+          slug?: string
+          source?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -537,6 +678,8 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "consumer" | "admin"
+      business_import_source: "google" | "facebook"
+      business_import_status: "pending" | "completed" | "failed"
       business_type:
         | "store"
         | "service"
@@ -688,6 +831,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "consumer", "admin"],
+      business_import_source: ["google", "facebook"],
+      business_import_status: ["pending", "completed", "failed"],
       business_type: [
         "store",
         "service",
