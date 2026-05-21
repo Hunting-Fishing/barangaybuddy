@@ -50,7 +50,7 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
 
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"input" | "loading" | "review">("input");
-  const [url, setUrl] = useState("");
+  const [urls, setUrls] = useState("");
   const [hint, setHint] = useState("");
   const [importId, setImportId] = useState<string | null>(null);
   const [data, setData] = useState<Extracted | null>(null);
@@ -61,7 +61,7 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
 
   function reset() {
     setStep("input");
-    setUrl("");
+    setUrls("");
     setHint("");
     setImportId(null);
     setData(null);
