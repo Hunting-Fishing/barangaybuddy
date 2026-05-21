@@ -5,8 +5,8 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { Search, Store, UtensilsCrossed, Briefcase, Fuel, MapPin, ArrowRight } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Search, Store, UtensilsCrossed, Briefcase, Fuel, MapPin, ArrowRight, Link2, Sparkles } from "lucide-react";
 import heroImage from "@/assets/hero-barangay.jpg";
 
 export const Route = createFileRoute("/")({
