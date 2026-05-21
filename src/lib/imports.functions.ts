@@ -4,10 +4,11 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   type ExtractedBusiness,
+  type Source,
   buildBusinessSlug,
   detectSource,
-  fetchFacebook,
   fetchGoogle,
+  fetchScrape,
   geminiExtract,
   persistCatalogGrowth,
   resolveBarangay,
@@ -15,22 +16,29 @@ import {
 import { BUSINESS_TYPES } from "@/lib/business-types";
 
 const PreviewInput = z.object({
-  url: z.string().trim().url().max(2000),
+  urls: z.array(z.string().trim().url().max(2000)).min(1).max(6),
   hint: z.string().trim().max(500).optional(),
 });
 
 export const previewImport = createServerFn({ method: "POST" })
   .inputValidator((input) => PreviewInput.parse(input))
   .handler(async ({ data }) => {
-    const source = detectSource(data.url);
-    if (!source) {
-      return { ok: false as const, error: "URL must be a Google Maps or Facebook page link." };
-    }
+    // De-dupe URLs & classify each
+    const urls = Array.from(new Set(data.urls.map((u) => u.trim()).filter(Boolean)));
+    const classified = urls.map((u) => ({ url: u, source: detectSource(u) }));
+    const invalid = classified.find((c) => c.source === null);
+    if (invalid) return { ok: false as const, error: `Not a valid URL: ${invalid.url}` };
 
-    // Audit row first so we can record failures too
+    // Pick the "primary" source for dedupe/audit: google wins, else first non-website, else website
+    const primary =
+      classified.find((c) => c.source === "google") ??
+      classified.find((c) => c.source !== "website") ??
+      classified[0];
+    const primarySource = primary.source as Source;
+
     const { data: importRow, error: insertErr } = await supabaseAdmin
       .from("business_imports")
-      .insert({ source, source_url: data.url, status: "pending" })
+      .insert({ source: primarySource, source_url: primary.url, status: "pending" })
       .select("id")
       .single();
     if (insertErr || !importRow) {
@@ -39,26 +47,53 @@ export const previewImport = createServerFn({ method: "POST" })
     const importId = importRow.id as string;
 
     try {
-      let payload: unknown;
-      let textHint = "";
-      if (source === "google") {
-        const r = await fetchGoogle(data.url);
-        payload = r.place;
-        textHint = r.rawText;
-      } else {
-        const r = await fetchFacebook(data.url);
-        payload = r.raw;
-        textHint = r.markdown;
+      const payloads: Array<{ url: string; source: Source; payload: unknown; text: string }> = [];
+
+      for (const c of classified) {
+        try {
+          if (c.source === "google") {
+            const r = await fetchGoogle(c.url);
+            payloads.push({ url: c.url, source: "google", payload: r.place, text: r.rawText });
+          } else {
+            const r = await fetchScrape(c.url);
+            payloads.push({ url: c.url, source: c.source as Source, payload: r.raw, text: r.markdown });
+          }
+        } catch (e) {
+          // Skip individual failures but surface in the combined text
+          payloads.push({
+            url: c.url,
+            source: c.source as Source,
+            payload: null,
+            text: `[Could not fetch ${c.url}: ${e instanceof Error ? e.message : "unknown"}]`,
+          });
+        }
       }
 
-      const extracted = await geminiExtract({ source, url: data.url, hint: data.hint, payload, textHint });
+      const okPayloads = payloads.filter((p) => p.payload !== null);
+      if (okPayloads.length === 0) {
+        await supabaseAdmin.from("business_imports").update({ status: "failed", error: "All sources failed to fetch" }).eq("id", importId);
+        return { ok: false as const, error: "None of the links could be read. Please check them and try again." };
+      }
 
-      // Check for duplicates by source_external_id
+      const combinedText = payloads
+        .map((p) => `### ${p.source.toUpperCase()} — ${p.url}\n${p.text}`)
+        .join("\n\n");
+      const combinedPayload = payloads.map((p) => ({ source: p.source, url: p.url, payload: p.payload }));
+
+      const extracted = await geminiExtract({
+        source: primarySource,
+        url: primary.url,
+        hint: data.hint,
+        payload: combinedPayload,
+        textHint: combinedText,
+      });
+
+      // Duplicate check (only meaningful when we have a stable external id, currently from Google)
       if (extracted.source_external_id) {
         const { data: dup } = await supabaseAdmin
           .from("businesses")
           .select("id, slug, name")
-          .eq("imported_from", source)
+          .eq("imported_from", primarySource)
           .eq("import_source_id", extracted.source_external_id)
           .maybeSingle();
         if (dup) {
@@ -74,7 +109,6 @@ export const previewImport = createServerFn({ method: "POST" })
         }
       }
 
-      // Resolve barangay best-effort
       const barangayCode = await resolveBarangay({
         address: extracted.address,
         lat: extracted.latitude,
@@ -85,7 +119,7 @@ export const previewImport = createServerFn({ method: "POST" })
         .from("business_imports")
         .update({
           status: "completed",
-          raw_payload: payload as never,
+          raw_payload: combinedPayload as never,
           extracted: { ...extracted, barangay_code: barangayCode } as unknown as never,
           source_external_id: extracted.source_external_id,
         })
@@ -94,7 +128,7 @@ export const previewImport = createServerFn({ method: "POST" })
       return {
         ok: true as const,
         importId,
-        source,
+        source: primarySource,
         extracted: { ...extracted, barangay_code: barangayCode },
       };
     } catch (e) {
