@@ -256,6 +256,7 @@ export const commitImport = createServerFn({ method: "POST" })
       tags: o.tags.map((s) => ({ slug: s, label: s })),
       custom_types: o.custom_types,
     } as ExtractedBusiness);
+    await insertListingsFor(biz.id as string, { products: o.products, services: o.services });
 
     await supabaseAdmin
       .from("business_imports")
@@ -313,6 +314,7 @@ export const commitImportAsMine = createServerFn({ method: "POST" })
       tags: o.tags.map((s) => ({ slug: s, label: s })),
       custom_types: o.custom_types,
     } as ExtractedBusiness);
+    await insertListingsFor(biz.id as string, { products: o.products, services: o.services });
 
     await supabaseAdmin
       .from("business_imports")
