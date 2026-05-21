@@ -219,26 +219,35 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> Smart business import</DialogTitle>
           <DialogDescription>
-            Paste a Google Maps or Facebook Page link. AI fills in the details — you review and publish.
+            Paste any links you have — one per platform. AI reads them all and merges into one listing.
           </DialogDescription>
         </DialogHeader>
 
         {step === "input" && (
           <form onSubmit={onPreview} className="grid gap-3">
-            <div>
-              <Label className="flex items-center gap-1.5">
-                <LinkIcon className="h-3.5 w-3.5" /> Links <span className="text-xs font-normal text-muted-foreground">— paste one per line, up to 6</span>
-              </Label>
-              <Textarea
-                value={urls}
-                onChange={(e) => setUrls(e.target.value)}
-                placeholder={"https://maps.app.goo.gl/...\nhttps://facebook.com/your-page\nhttps://instagram.com/your-handle\nhttps://x.com/your-handle\nhttps://tiktok.com/@your-handle"}
-                rows={5}
-                required
-                autoFocus
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Supports Google Maps, Facebook, Instagram, X/Twitter, TikTok, LinkedIn, YouTube, and most websites. AI merges everything into one listing.
+            <div className="grid gap-2">
+              <Label>Business links <span className="text-xs font-normal text-muted-foreground">— fill any you have (max 6)</span></Label>
+              <div className="grid gap-2">
+                {PLATFORMS.map((p) => {
+                  const Icon = p.icon;
+                  return (
+                    <div key={p.key} className="flex items-center gap-2">
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-secondary/40 ${p.color}`} title={p.label}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <Input
+                        type="url"
+                        value={links[p.key]}
+                        onChange={(e) => setLinks({ ...links, [p.key]: e.target.value })}
+                        placeholder={p.placeholder}
+                        aria-label={p.label}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Yelp and any other site go in the Website / Yelp row. AI handles the rest.
               </p>
             </div>
             <div>
