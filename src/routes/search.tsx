@@ -48,7 +48,7 @@ function SearchPage() {
   // Sync URL <- filter state (debounced); reset page to 1 on filter change
   useEffect(() => {
     const t = setTimeout(() => {
-      navigate({ search: (prev) => ({ ...prev, q, types, tags, page: 1 }), replace: true });
+      navigate({ search: { ...searchParams, q, types, tags, page: 1 }, replace: true });
     }, 200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
