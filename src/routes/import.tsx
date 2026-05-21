@@ -22,22 +22,22 @@ function ImportPage() {
       <main className="container mx-auto max-w-3xl px-4 py-16">
         <h1 className="font-display text-4xl font-bold">Add a business in 10 seconds</h1>
         <p className="mt-3 text-muted-foreground">
-          Paste a Google Maps or Facebook Page link. Our AI reads the page and prefills the listing — name, location,
-          what they sell, features, hours. Review, tweak, publish. The catalog of tags and categories grows with every
-          import.
+          Paste one or more links — Google Maps, Facebook, Instagram, X/Twitter, TikTok, LinkedIn, YouTube, or any
+          website. Our AI reads every page and merges them into one listing — name, location, what they sell, features,
+          hours. Review, tweak, publish. The catalog of tags and categories grows with every import.
         </p>
         <div className="mt-8">
           <BusinessImportDialog
             trigger={
               <Button size="lg" className="gap-2">
-                <Sparkles className="h-5 w-5" /> Import from Google or Facebook
+                <Sparkles className="h-5 w-5" /> Import from a link
               </Button>
             }
           />
         </div>
         <div className="mt-12 grid gap-4 sm:grid-cols-3">
-          <Step n="1" title="Paste a link">Google Maps or Facebook Page. Add a one-line hint if useful.</Step>
-          <Step n="2" title="AI extracts">Name, type, products, features, contact details — all prefilled.</Step>
+          <Step n="1" title="Paste links">Google, Facebook, Instagram, X, TikTok, LinkedIn, YouTube, or any site — up to 6 at once.</Step>
+          <Step n="2" title="AI extracts">Name, type, products, features, contact details — merged and prefilled.</Step>
           <Step n="3" title="Publish">As unclaimed for anyone, or as yours if you sign in.</Step>
         </div>
       </main>
