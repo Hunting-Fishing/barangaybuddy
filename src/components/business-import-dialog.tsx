@@ -21,7 +21,23 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FeatureTagsPicker } from "@/components/feature-tags-picker";
 import { BUSINESS_TYPES, BUSINESS_TYPE_LABEL, type BusinessType } from "@/lib/business-types";
 import { toast } from "sonner";
-import { Sparkles, Loader2, Link as LinkIcon, MapPin } from "lucide-react";
+import {
+  Sparkles, Loader2, MapPin,
+  MapPin as GoogleIcon, Facebook, Instagram, Twitter, Music2, Linkedin, Youtube, Star, Globe,
+} from "lucide-react";
+
+type PlatformKey = "google" | "facebook" | "instagram" | "twitter" | "tiktok" | "linkedin" | "youtube" | "yelp" | "website";
+const PLATFORMS: { key: PlatformKey; label: string; icon: React.ComponentType<{ className?: string }>; placeholder: string; color: string }[] = [
+  { key: "google",    label: "Google Maps", icon: GoogleIcon, placeholder: "https://maps.app.goo.gl/…",     color: "text-[#4285F4]" },
+  { key: "facebook",  label: "Facebook",    icon: Facebook,   placeholder: "https://facebook.com/your-page", color: "text-[#1877F2]" },
+  { key: "instagram", label: "Instagram",   icon: Instagram,  placeholder: "https://instagram.com/handle",   color: "text-[#E4405F]" },
+  { key: "twitter",   label: "X / Twitter", icon: Twitter,    placeholder: "https://x.com/handle",           color: "text-foreground" },
+  { key: "tiktok",    label: "TikTok",      icon: Music2,     placeholder: "https://tiktok.com/@handle",     color: "text-foreground" },
+  { key: "linkedin",  label: "LinkedIn",    icon: Linkedin,   placeholder: "https://linkedin.com/company/…", color: "text-[#0A66C2]" },
+  { key: "youtube",   label: "YouTube",     icon: Youtube,    placeholder: "https://youtube.com/@channel",   color: "text-[#FF0000]" },
+  { key: "yelp",      label: "Yelp",        icon: Star,       placeholder: "https://yelp.com/biz/your-business", color: "text-[#D32323]" },
+  { key: "website",   label: "Website",     icon: Globe,      placeholder: "https://your-business.com",      color: "text-muted-foreground" },
+];
 import { previewImport, commitImport, commitImportAsMine } from "@/lib/imports.functions";
 
 type Extracted = {
