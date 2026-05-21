@@ -48,6 +48,9 @@ function FuelPage() {
   const [fuelType, setFuelType] = useState("gasoline_95");
   const [price, setPrice] = useState("");
   const [myVotes, setMyVotes] = useState<Record<string, 1 | -1>>({});
+  const [doePrices, setDoePrices] = useState<any[]>([]);
+  const [doeRegion, setDoeRegion] = useState<string>("NCR");
+  const [lastSync, setLastSync] = useState<string | null>(null);
 
   // Add-station dialog state
   const [addOpen, setAddOpen] = useState(false);
