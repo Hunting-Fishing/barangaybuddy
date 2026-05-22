@@ -186,11 +186,16 @@ async function fetchOverpass(): Promise<OsmElement[]> {
     try {
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": "FuelBuddyPH/1.0 (Lovable; +https://lovable.app) station-importer",
+          Accept: "application/json",
+        },
         body: "data=" + encodeURIComponent(OVERPASS_QUERY),
       });
       if (!res.ok) {
-        lastErr = new Error(`Overpass ${url} ${res.status}`);
+        const body = await res.text().catch(() => "");
+        lastErr = new Error(`Overpass ${url} ${res.status} ${body.slice(0, 120)}`);
         continue;
       }
       const json = (await res.json()) as { elements?: OsmElement[] };
@@ -201,6 +206,7 @@ async function fetchOverpass(): Promise<OsmElement[]> {
   }
   throw lastErr ?? new Error("All Overpass endpoints failed");
 }
+
 
 // barangay_code is NOT NULL on businesses; use a sentinel for OSM-imported rows.
 // There's no FK constraint, so this is safe. Local owners can refine on claim.
