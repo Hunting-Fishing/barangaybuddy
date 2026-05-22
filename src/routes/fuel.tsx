@@ -53,6 +53,7 @@ function FuelPage() {
   const [doeRegion, setDoeRegion] = useState<string>("NCR");
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshingStations, setRefreshingStations] = useState(false);
 
   async function refreshNow() {
     setRefreshing(true);
@@ -75,6 +76,30 @@ function FuelPage() {
       setRefreshing(false);
     }
   }
+
+  async function refreshStations() {
+    setRefreshingStations(true);
+    try {
+      const res = await fetch("/api/public/hooks/fuel-stations-sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+        },
+        body: "{}",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+      toast.success(`Imported ${json.upserted ?? 0} stations from OpenStreetMap`);
+      // Reload page-wide map data
+      setTimeout(() => window.location.reload(), 800);
+    } catch (e) {
+      toast.error(`Station sync failed: ${(e as Error).message}`);
+    } finally {
+      setRefreshingStations(false);
+    }
+  }
+
 
   // Add-station dialog state
   const [addOpen, setAddOpen] = useState(false);
