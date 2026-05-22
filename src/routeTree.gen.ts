@@ -28,6 +28,7 @@ import { Route as BusinessSlugRouteImport } from './routes/business.$slug'
 import { Route as DashboardBusinessIdRouteImport } from './routes/dashboard.business.$id'
 import { Route as BarangaysCityBarangayRouteImport } from './routes/barangays.$city.$barangay'
 import { Route as ApiPublicHooksFuelSyncRouteImport } from './routes/api/public/hooks/fuel-sync'
+import { Route as ApiPublicHooksFuelStationsSyncRouteImport } from './routes/api/public/hooks/fuel-stations-sync'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -124,6 +125,12 @@ const ApiPublicHooksFuelSyncRoute = ApiPublicHooksFuelSyncRouteImport.update({
   path: '/api/public/hooks/fuel-sync',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksFuelStationsSyncRoute =
+  ApiPublicHooksFuelStationsSyncRouteImport.update({
+    id: '/api/public/hooks/fuel-stations-sync',
+    path: '/api/public/hooks/fuel-stations-sync',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/regions/': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRoute
+  '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
 }
 export interface FileRoutesByTo {
@@ -165,6 +173,7 @@ export interface FileRoutesByTo {
   '/regions': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRoute
+  '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
 }
 export interface FileRoutesById {
@@ -187,6 +196,7 @@ export interface FileRoutesById {
   '/regions/': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRoute
+  '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
 }
 export interface FileRouteTypes {
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/regions/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
+    | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -231,6 +242,7 @@ export interface FileRouteTypes {
     | '/regions'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
+    | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
   id:
     | '__root__'
@@ -252,6 +264,7 @@ export interface FileRouteTypes {
     | '/regions/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
+    | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
   fileRoutesById: FileRoutesById
 }
@@ -272,6 +285,7 @@ export interface RootRouteChildren {
   BarangaysIndexRoute: typeof BarangaysIndexRoute
   RegionsIndexRoute: typeof RegionsIndexRoute
   BarangaysCityBarangayRoute: typeof BarangaysCityBarangayRoute
+  ApiPublicHooksFuelStationsSyncRoute: typeof ApiPublicHooksFuelStationsSyncRoute
   ApiPublicHooksFuelSyncRoute: typeof ApiPublicHooksFuelSyncRoute
 }
 
@@ -410,6 +424,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksFuelSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/fuel-stations-sync': {
+      id: '/api/public/hooks/fuel-stations-sync'
+      path: '/api/public/hooks/fuel-stations-sync'
+      fullPath: '/api/public/hooks/fuel-stations-sync'
+      preLoaderRoute: typeof ApiPublicHooksFuelStationsSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -454,8 +475,19 @@ const rootRouteChildren: RootRouteChildren = {
   BarangaysIndexRoute: BarangaysIndexRoute,
   RegionsIndexRoute: RegionsIndexRoute,
   BarangaysCityBarangayRoute: BarangaysCityBarangayRoute,
+  ApiPublicHooksFuelStationsSyncRoute: ApiPublicHooksFuelStationsSyncRoute,
   ApiPublicHooksFuelSyncRoute: ApiPublicHooksFuelSyncRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
