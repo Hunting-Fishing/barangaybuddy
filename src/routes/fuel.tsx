@@ -437,11 +437,15 @@ function FuelPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={refreshStations} disabled={refreshingStations}>
+                    {refreshingStations ? "Importing stations…" : "Refresh stations (OSM)"}
+                  </Button>
                   <Button size="sm" variant="outline" onClick={refreshNow} disabled={refreshing}>
-                    {refreshing ? "Refreshing…" : "Refresh now"}
+                    {refreshing ? "Refreshing…" : "Refresh prices now"}
                   </Button>
                   <Select value={doeRegion} onValueChange={setDoeRegion}>
                     <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+
                     <SelectContent>
                       <SelectItem value="NCR">Metro Manila</SelectItem>
                       <SelectItem value="LUZ-N">North Luzon</SelectItem>
