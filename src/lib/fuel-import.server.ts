@@ -135,3 +135,151 @@ export async function runFuelSync(): Promise<{ stations: number; prices: number;
 
 // Slug helper kept exported so tests can re-use (unused at runtime here).
 export const _internals = { slugify };
+
+// ---------------- OSM station import ----------------
+
+const OVERPASS_ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.openstreetmap.fr/api/interpreter",
+];
+
+const OVERPASS_QUERY = `[out:json][timeout:180];
+area["ISO3166-1"="PH"][admin_level=2]->.ph;
+(
+  node["amenity"="fuel"](area.ph);
+  way["amenity"="fuel"](area.ph);
+);
+out center tags;`;
+
+type OsmElement = {
+  type: "node" | "way" | "relation";
+  id: number;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+};
+
+function titleCase(s: string) {
+  return s
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function buildAddress(t: Record<string, string>): string | null {
+  if (t["addr:full"]) return t["addr:full"];
+  const parts = [
+    [t["addr:housenumber"], t["addr:street"]].filter(Boolean).join(" "),
+    t["addr:city"] || t["addr:town"] || t["addr:village"] || t["addr:municipality"],
+    t["addr:province"] || t["addr:state"],
+  ].filter(Boolean);
+  return parts.length ? parts.join(", ") : null;
+}
+
+async function fetchOverpass(): Promise<OsmElement[]> {
+  let lastErr: Error | null = null;
+  for (const url of OVERPASS_ENDPOINTS) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "data=" + encodeURIComponent(OVERPASS_QUERY),
+      });
+      if (!res.ok) {
+        lastErr = new Error(`Overpass ${url} ${res.status}`);
+        continue;
+      }
+      const json = (await res.json()) as { elements?: OsmElement[] };
+      return json.elements ?? [];
+    } catch (e) {
+      lastErr = e as Error;
+    }
+  }
+  throw lastErr ?? new Error("All Overpass endpoints failed");
+}
+
+// barangay_code is NOT NULL on businesses; use a sentinel for OSM-imported rows.
+// There's no FK constraint, so this is safe. Local owners can refine on claim.
+const OSM_BARANGAY_SENTINEL = "OSM-UNRESOLVED";
+
+export async function runStationSync(): Promise<{ upserted: number; total: number; errors: string[] }> {
+  const { data: runRow } = await supabaseAdmin
+    .from("fuel_import_runs")
+    .insert({ source: "osm", status: "running" })
+    .select("id")
+    .single();
+  const runId = runRow?.id;
+  const errors: string[] = [];
+  let upserted = 0;
+
+  try {
+    const elements = await fetchOverpass();
+    const seen = new Set<string>();
+    const rows = elements
+      .map((el) => {
+        const lat = el.lat ?? el.center?.lat;
+        const lon = el.lon ?? el.center?.lon;
+        const tags = el.tags ?? {};
+        if (typeof lat !== "number" || typeof lon !== "number") return null;
+        const brandRaw = tags.brand || tags.operator || "";
+        const brand = brandRaw ? titleCase(brandRaw) : "";
+        const name = tags.name || (brand ? `${brand} Station` : "Fuel station");
+        const importId = `osm:${el.type}:${el.id}`;
+        let slug = slugify(`${name}-${el.type}-${el.id}`);
+        if (seen.has(slug)) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+        seen.add(slug);
+        return {
+          name,
+          slug,
+          type: "fuel_station" as const,
+          barangay_code: OSM_BARANGAY_SENTINEL,
+          latitude: lat,
+          longitude: lon,
+          address: buildAddress(tags),
+          description: brand ? `Brand: ${brand}` : null,
+          is_published: true,
+          is_claimed: false,
+          owner_id: null,
+          imported_from: "osm",
+          import_source_id: importId,
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
+
+    const chunkSize = 500;
+    for (let i = 0; i < rows.length; i += chunkSize) {
+      const chunk = rows.slice(i, i + chunkSize);
+      const { error, count } = await supabaseAdmin
+        .from("businesses")
+        .upsert(chunk, { onConflict: "imported_from,import_source_id", count: "exact", ignoreDuplicates: false });
+      if (error) errors.push(`chunk ${i}: ${error.message}`);
+      else upserted += count ?? chunk.length;
+    }
+
+    if (runId) {
+      await supabaseAdmin
+        .from("fuel_import_runs")
+        .update({
+          status: errors.length && upserted === 0 ? "failed" : "completed",
+          stations_upserted: upserted,
+          error: errors.length ? errors.join("; ").slice(0, 2000) : null,
+          finished_at: new Date().toISOString(),
+        })
+        .eq("id", runId);
+    }
+    return { upserted, total: rows.length, errors };
+  } catch (e) {
+    const msg = (e as Error).message;
+    if (runId) {
+      await supabaseAdmin
+        .from("fuel_import_runs")
+        .update({ status: "failed", error: msg, finished_at: new Date().toISOString() })
+        .eq("id", runId);
+    }
+    throw e;
+  }
+}
