@@ -41,10 +41,30 @@ export function FuelMap() {
   const [q, setQ] = useState("");
   const [searching, setSearching] = useState(false);
 
+  async function loadAllStations() {
+    const pageSize = 1000;
+    const all: Station[] = [];
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await supabase
+        .from("businesses")
+        .select("id, slug, name, latitude, longitude, address")
+        .eq("type", "fuel_station")
+        .eq("is_published", true)
+        .not("latitude", "is", null)
+        .not("longitude", "is", null)
+        .range(from, from + pageSize - 1);
+      if (error) throw error;
+      const page = (data ?? []) as Station[];
+      all.push(...page);
+      if (page.length < pageSize) break;
+    }
+    return all;
+  }
+
   // Init map
   useEffect(() => {
     if (!ref.current || mapRef.current) return;
-    const map = L.map(ref.current, { scrollWheelZoom: true }).setView([12.8797, 121.774], 6);
+    const map = L.map(ref.current, { scrollWheelZoom: true, preferCanvas: true }).setView([12.8797, 121.774], 6);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
@@ -61,24 +81,18 @@ export function FuelMap() {
   // Load stations + latest prices
   useEffect(() => {
     (async () => {
-      const { data: s } = await supabase
-        .from("businesses")
-        .select("id, slug, name, latitude, longitude, address")
-        .eq("type", "fuel_station")
-        .eq("is_published", true)
-        .not("latitude", "is", null)
-        .not("longitude", "is", null)
-        .limit(5000);
-      const list = (s ?? []) as Station[];
+      const list = await loadAllStations();
       setStations(list);
       if (list.length) {
+        const stationIds = new Set(list.map((x) => x.id));
         const { data: prices } = await supabase
           .from("fuel_prices")
           .select("station_id, fuel_type, price, reported_at")
-          .in("station_id", list.map((x) => x.id))
-          .order("reported_at", { ascending: false });
+          .order("reported_at", { ascending: false })
+          .limit(5000);
         const map: Record<string, LatestPrice[]> = {};
         (prices ?? []).forEach((p: any) => {
+          if (!stationIds.has(p.station_id)) return;
           map[p.station_id] ??= [];
           // keep only latest per fuel_type
           if (!map[p.station_id].some((e) => e.fuel_type === p.fuel_type)) {
