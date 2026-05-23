@@ -161,6 +161,30 @@ function Dashboard() {
           </div>
         </div>
 
+        {isAdmin && (
+          <Card className="mt-6 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-display text-lg font-bold">Admin: Auto-import businesses (OSM)</h2>
+                <p className="text-sm text-muted-foreground">
+                  Pulls Philippine businesses from OpenStreetMap and adds them as <strong>unclaimed</strong> listings. Runs nightly; you can trigger it manually here.
+                </p>
+                {lastRun && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Last run: <span className="font-medium">{lastRun.status}</span>
+                    {" · "}{lastRun.businesses_upserted.toLocaleString()} upserted
+                    {" · "}{new Date(lastRun.started_at).toLocaleString()}
+                    {lastRun.error && <span className="text-destructive"> · {lastRun.error.slice(0, 100)}</span>}
+                  </p>
+                )}
+              </div>
+              <Button onClick={runOsmSync} disabled={syncingOsm}>
+                {syncingOsm ? "Importing…" : "Run sync now"}
+              </Button>
+            </div>
+          </Card>
+        )}
+
 
 
 
