@@ -1,54 +1,70 @@
-# Why the map is empty
 
-The database has 0 fuel stations with coordinates. The DOE sync we built only writes per-brand price snapshots (e.g. "Shell · Diesel · NCR · ₱65.20") to `fuel_price_snapshots`. It never wrote station rows to `businesses` — that step was left as a "future expansion" comment. The map queries `businesses WHERE type='fuel_station' AND latitude IS NOT NULL` and gets nothing.
+## Goal
+Auto-populate the barangay directory with Philippine businesses pulled from OpenStreetMap (OSM) via the free Overpass API. Runs nightly, publishes immediately as **unclaimed** so real owners can claim later — same pattern as the existing OSM fuel-station importer.
 
-# Fix: pull stations from OpenStreetMap
+## How it works
 
-OSM is the only legal, free, lat/lng-complete source for Philippine fuel stations. Overpass API returns the whole country in one query, ~6–10k stations, no API key, ODbL license with attribution.
+```text
+pg_cron (nightly 02:00 PHT)
+  └─► POST /api/public/hooks/business-osm-sync
+        └─► fetches OSM businesses by region (17 chunks)
+              └─► geocodes each to nearest barangay (lat/lng)
+                    └─► upserts into `businesses` (imported_from='osm')
+```
 
-## 1. Server importer — `src/lib/fuel-import.server.ts`
+### What we import from OSM
+OSM tags we'll map to your `business_type` enum:
+- `shop=*` → store / grocery / pharmacy / hardware / clothing …
+- `amenity=restaurant|cafe|fast_food|bar|bakery` → restaurant / cafe
+- `amenity=clinic|hospital|dentist|veterinary` → clinic / hospital
+- `amenity=bank|atm|pharmacy|post_office` → service
+- `office=*` → service
+- `tourism=hotel|guest_house|hostel` → hotel
+- anything unmapped → `other` with the OSM tag stored in `tags`
 
-Add `runStationSync()`:
+Per place we capture: name, lat/lng, address (street+number when present), phone, website, opening_hours, OSM id → `import_source_id`.
 
-- Query Overpass:
-  `[out:json][timeout:120]; area["ISO3166-1"="PH"]->.ph; (node["amenity"="fuel"](area.ph); way["amenity"="fuel"](area.ph);); out center tags;`
-- Map each element → `businesses` row:
-  - `name` = `tags.name` || `${brand} station` || "Unnamed station"
-  - `brand` = title-cased `tags.brand`
-  - `latitude` / `longitude` (use `center` for `way` elements)
-  - `address` = `tags["addr:full"]` or assembled from `addr:housenumber / street / city / province`
-  - `type='fuel_station'`, `is_published=true`, `owner_id=null`
-  - `imported_from='osm'`, `import_source_id='osm:<type>:<id>'`
-- Bulk upsert in chunks of 500 on the existing unique index `(imported_from, import_source_id)`.
-- Log to `fuel_import_runs` with `source='osm'`, counts, errors.
-- Fallback Overpass mirror on 429/5xx: `overpass.kumi.systems`.
+### Coverage strategy (avoids Overpass timeouts)
+Overpass cannot return all PH businesses in one query. We chunk by the 17 **regions** (already in your `regions` table). The nightly job loops through regions sequentially with a 30s gap between calls — gentle on the public Overpass server, fully done in ~15–20 minutes.
 
-## 2. Hook — `src/routes/api/public/hooks/fuel-stations-sync.ts`
+### Barangay geocoding
+For each OSM point we need a `barangay_code` (required column). Approach:
+1. Build a Postgres function `nearest_barangay(lat, lng) → barangay_code` that uses a centroid lookup against `barangays` (we'll seed centroids from existing `businesses` data + a one-time PSGC centroid backfill, or fall back to the existing `OSM-UNRESOLVED` sentinel for points we can't place).
+2. Simpler MVP fallback: use the existing `OSM-UNRESOLVED` sentinel barangay (already used by fuel-station importer) for v1, then refine later. **Recommend MVP first.**
 
-New `POST` route, same `apikey` header check as the price hook, calls `runStationSync()` and returns `{ ok, upserted, errors }`. Kept separate from price sync because it's heavier and only needs weekly cadence.
+### Dedupe & re-runs
+Reuse the existing unique index `businesses_import_source_unique (imported_from, import_source_id)`. Nightly upsert refreshes name/phone/hours without creating duplicates. Owner-claimed rows (`is_claimed=true`, `owner_id` set) are skipped on update — we only refresh unclaimed OSM rows.
 
-## 3. Cron — new migration
+### Where they show up
+- **Barangay directory** (`/barangays`, `/barangays/$city/$barangay`) — listed automatically because they have `is_published=true` and a `barangay_code`.
+- **Search** page — already queries `businesses`.
+- Each row shows an "Unclaimed — is this yours? Claim it" badge (reuses existing claim flow).
 
-Add weekly `pg_cron` job (Sundays 03:00 PHT = `0 19 * * 6` UTC) that POSTs to the new hook via `pg_net`, alongside the existing 5 AM / 6 PM price jobs.
+## Files
 
-## 4. UI — `src/routes/fuel.tsx`
+**New**
+- `src/lib/business-osm-import.server.ts` — Overpass fetcher, tag→type mapper, upserter (mirrors `fuel-import.server.ts`)
+- `src/routes/api/public/hooks/business-osm-sync.ts` — cron endpoint, loops regions, writes a row to `business_import_runs` for observability
+- Migration: `business_import_runs` table (mirrors `fuel_import_runs`) for status/error tracking
+- Migration: add `is_claimed` filter index + small "Unclaimed" badge component for cards
 
-- Add a "Refresh stations from OSM" button next to the existing "Refresh now" prices button. Shows toast with upserted count.
-- Add a small `Stations: © OpenStreetMap contributors (ODbL)` attribution line under the map.
+**Edited**
+- `src/components/barangay-listings-feed.tsx` — show "Unclaimed" pill on OSM-imported rows
+- `src/routes/dashboard.tsx` — add an admin-only "Run business OSM sync now" button + last-run status (so you don't have to wait for cron)
 
-## 5. First run
+**Cron**
+- pg_cron job `business-osm-sync-nightly` at `0 18 * * *` UTC (02:00 PHT) posting to the new endpoint with the project's anon key.
 
-Call the new hook once right after the migration deploys so pins appear immediately — don't wait until Sunday.
+## Limitations to know
 
-## Technical notes
+- **OSM coverage is patchy outside Metro Manila, Cebu, Davao**. Expect ~30–80k businesses nationwide (vs. millions in reality). Rural barangays will still be sparse — that's an OSM data limitation, not a code one.
+- **No photos, no ratings** — OSM doesn't have them. Cards will use a placeholder image.
+- Hours/phone present on only ~20–40% of OSM rows.
+- First nightly run will insert tens of thousands of rows; subsequent runs are mostly no-op upserts.
 
-- `out center` gives a centroid for polygon-mapped stations (`way` elements) so every result has coordinates.
-- Brand normalization (title-case) keeps "shell" / "Shell" / "SHELL" as one brand and lines up with the brand strings already in `fuel_price_snapshots`, enabling a later popup enhancement: when a station has no community price, show its brand's DOE regional price as a fallback.
-- Idempotent: weekly re-runs upsert by `(imported_from, import_source_id)`, so renamed/moved stations update in place without duplicates.
-- No new secrets. Overpass is keyless.
+## What I will NOT do
+- No Facebook scraping (against ToS, blocked by FB).
+- No Google Places (you chose free/OSM).
+- No moderation queue (you chose publish-immediately).
 
-## Out of scope (say the word if you want it)
-
-- Showing DOE brand+region price in the popup when no community price exists.
-- Deduping OSM stations against user-submitted stations by proximity (same lat/lng within 50 m + same brand).
-- Importing the DOE LFRO list as a secondary source (no coords, would need geocoding — much slower, lower quality).
+Approve and I'll build it.

@@ -51,6 +51,48 @@ function Dashboard() {
   const [form, setForm] = useState<{ name: string; type: BizType; additional_types: BizType[]; custom_types: string[]; tags: string[]; description: string; barangay_search: string; barangay_code: string; barangay_label: string }>({ name: "", type: "store", additional_types: [], custom_types: [], tags: [], description: "", barangay_search: "", barangay_code: "", barangay_label: "" });
   const [customTypeInput, setCustomTypeInput] = useState("");
   const [brgyResults, setBrgyResults] = useState<any[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [syncingOsm, setSyncingOsm] = useState(false);
+  const [lastRun, setLastRun] = useState<{ status: string; businesses_upserted: number; started_at: string; error: string | null } | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle()
+      .then(({ data }) => setIsAdmin(!!data));
+  }, [user]);
+
+  async function loadLastRun() {
+    const { data } = await supabase
+      .from("business_import_runs")
+      .select("status, businesses_upserted, started_at, error")
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setLastRun(data);
+  }
+  useEffect(() => { if (isAdmin) loadLastRun(); }, [isAdmin]);
+
+  async function runOsmSync() {
+    setSyncingOsm(true);
+    try {
+      const res = await fetch("/api/public/hooks/business-osm-sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+        },
+        body: "{}",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+      toast.success(`Imported ${json.upserted ?? 0} businesses from OpenStreetMap`);
+      await loadLastRun();
+    } catch (e) {
+      toast.error(`Sync failed: ${(e as Error).message}`);
+    } finally {
+      setSyncingOsm(false);
+    }
+  }
 
 
   useEffect(() => {
@@ -118,6 +160,30 @@ function Dashboard() {
             <Button onClick={() => setShowForm(!showForm)} className="gap-2"><Plus className="h-4 w-4" /> New business</Button>
           </div>
         </div>
+
+        {isAdmin && (
+          <Card className="mt-6 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-display text-lg font-bold">Admin: Auto-import businesses (OSM)</h2>
+                <p className="text-sm text-muted-foreground">
+                  Pulls Philippine businesses from OpenStreetMap and adds them as <strong>unclaimed</strong> listings. Runs nightly; you can trigger it manually here.
+                </p>
+                {lastRun && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Last run: <span className="font-medium">{lastRun.status}</span>
+                    {" · "}{lastRun.businesses_upserted.toLocaleString()} upserted
+                    {" · "}{new Date(lastRun.started_at).toLocaleString()}
+                    {lastRun.error && <span className="text-destructive"> · {lastRun.error.slice(0, 100)}</span>}
+                  </p>
+                )}
+              </div>
+              <Button onClick={runOsmSync} disabled={syncingOsm}>
+                {syncingOsm ? "Importing…" : "Run sync now"}
+              </Button>
+            </div>
+          </Card>
+        )}
 
 
 

@@ -43,6 +43,39 @@ export type Database = {
           },
         ]
       }
+      business_import_runs: {
+        Row: {
+          businesses_upserted: number
+          error: string | null
+          finished_at: string | null
+          id: string
+          source: string
+          started_at: string
+          status: string
+          total_fetched: number
+        }
+        Insert: {
+          businesses_upserted?: number
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          source: string
+          started_at?: string
+          status: string
+          total_fetched?: number
+        }
+        Update: {
+          businesses_upserted?: number
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          source?: string
+          started_at?: string
+          status?: string
+          total_fetched?: number
+        }
+        Relationships: []
+      }
       business_imports: {
         Row: {
           created_at: string
