@@ -219,7 +219,8 @@ export async function runBusinessOsmSync(): Promise<{
       const chunk = allRows.slice(i, i + chunkSize);
       const { error, count } = await supabaseAdmin
         .from("businesses")
-        .upsert(chunk, {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .upsert(chunk as any, {
           onConflict: "imported_from,import_source_id",
           count: "exact",
           ignoreDuplicates: false,
