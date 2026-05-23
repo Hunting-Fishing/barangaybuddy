@@ -29,6 +29,7 @@ import { Route as DashboardBusinessIdRouteImport } from './routes/dashboard.busi
 import { Route as BarangaysCityBarangayRouteImport } from './routes/barangays.$city.$barangay'
 import { Route as ApiPublicHooksFuelSyncRouteImport } from './routes/api/public/hooks/fuel-sync'
 import { Route as ApiPublicHooksFuelStationsSyncRouteImport } from './routes/api/public/hooks/fuel-stations-sync'
+import { Route as ApiPublicHooksBusinessOsmSyncRouteImport } from './routes/api/public/hooks/business-osm-sync'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -131,6 +132,12 @@ const ApiPublicHooksFuelStationsSyncRoute =
     path: '/api/public/hooks/fuel-stations-sync',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksBusinessOsmSyncRoute =
+  ApiPublicHooksBusinessOsmSyncRouteImport.update({
+    id: '/api/public/hooks/business-osm-sync',
+    path: '/api/public/hooks/business-osm-sync',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/regions/': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRoute
+  '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
 }
@@ -173,6 +181,7 @@ export interface FileRoutesByTo {
   '/regions': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRoute
+  '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
 }
@@ -196,6 +205,7 @@ export interface FileRoutesById {
   '/regions/': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRoute
+  '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
 }
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/regions/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
+    | '/api/public/hooks/business-osm-sync'
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
   fileRoutesByTo: FileRoutesByTo
@@ -242,6 +253,7 @@ export interface FileRouteTypes {
     | '/regions'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
+    | '/api/public/hooks/business-osm-sync'
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
   id:
@@ -264,6 +276,7 @@ export interface FileRouteTypes {
     | '/regions/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
+    | '/api/public/hooks/business-osm-sync'
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
   fileRoutesById: FileRoutesById
@@ -285,6 +298,7 @@ export interface RootRouteChildren {
   BarangaysIndexRoute: typeof BarangaysIndexRoute
   RegionsIndexRoute: typeof RegionsIndexRoute
   BarangaysCityBarangayRoute: typeof BarangaysCityBarangayRoute
+  ApiPublicHooksBusinessOsmSyncRoute: typeof ApiPublicHooksBusinessOsmSyncRoute
   ApiPublicHooksFuelStationsSyncRoute: typeof ApiPublicHooksFuelStationsSyncRoute
   ApiPublicHooksFuelSyncRoute: typeof ApiPublicHooksFuelSyncRoute
 }
@@ -431,6 +445,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksFuelStationsSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/business-osm-sync': {
+      id: '/api/public/hooks/business-osm-sync'
+      path: '/api/public/hooks/business-osm-sync'
+      fullPath: '/api/public/hooks/business-osm-sync'
+      preLoaderRoute: typeof ApiPublicHooksBusinessOsmSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -475,9 +496,20 @@ const rootRouteChildren: RootRouteChildren = {
   BarangaysIndexRoute: BarangaysIndexRoute,
   RegionsIndexRoute: RegionsIndexRoute,
   BarangaysCityBarangayRoute: BarangaysCityBarangayRoute,
+  ApiPublicHooksBusinessOsmSyncRoute: ApiPublicHooksBusinessOsmSyncRoute,
   ApiPublicHooksFuelStationsSyncRoute: ApiPublicHooksFuelStationsSyncRoute,
   ApiPublicHooksFuelSyncRoute: ApiPublicHooksFuelSyncRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
