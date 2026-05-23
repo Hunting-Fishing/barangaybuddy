@@ -51,6 +51,48 @@ function Dashboard() {
   const [form, setForm] = useState<{ name: string; type: BizType; additional_types: BizType[]; custom_types: string[]; tags: string[]; description: string; barangay_search: string; barangay_code: string; barangay_label: string }>({ name: "", type: "store", additional_types: [], custom_types: [], tags: [], description: "", barangay_search: "", barangay_code: "", barangay_label: "" });
   const [customTypeInput, setCustomTypeInput] = useState("");
   const [brgyResults, setBrgyResults] = useState<any[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [syncingOsm, setSyncingOsm] = useState(false);
+  const [lastRun, setLastRun] = useState<{ status: string; businesses_upserted: number; started_at: string; error: string | null } | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle()
+      .then(({ data }) => setIsAdmin(!!data));
+  }, [user]);
+
+  async function loadLastRun() {
+    const { data } = await supabase
+      .from("business_import_runs")
+      .select("status, businesses_upserted, started_at, error")
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setLastRun(data);
+  }
+  useEffect(() => { if (isAdmin) loadLastRun(); }, [isAdmin]);
+
+  async function runOsmSync() {
+    setSyncingOsm(true);
+    try {
+      const res = await fetch("/api/public/hooks/business-osm-sync", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+        },
+        body: "{}",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+      toast.success(`Imported ${json.upserted ?? 0} businesses from OpenStreetMap`);
+      await loadLastRun();
+    } catch (e) {
+      toast.error(`Sync failed: ${(e as Error).message}`);
+    } finally {
+      setSyncingOsm(false);
+    }
+  }
 
 
   useEffect(() => {
