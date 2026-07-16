@@ -24,11 +24,34 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Search as SearchIcon, X, MapPin } from "lucide-react";
 
+const TAKE_OPTIONS = [25, 50, 75, 100] as const;
+type TakeAmount = (typeof TAKE_OPTIONS)[number];
+
+const optionalString = z.preprocess(
+  (value) => (typeof value === "string" && value.length > 0 ? value : undefined),
+  z.string().optional(),
+);
+
+const letterSchema = z.preprocess((value) => {
+  if (typeof value !== "string") return undefined;
+  const upper = value.toUpperCase();
+  return /^[A-Z]$/.test(upper) ? upper : undefined;
+}, z.string().regex(/^[A-Z]$/).optional());
+
+const takeSchema = z.preprocess((value) => {
+  const parsed = Number(value);
+  return TAKE_OPTIONS.includes(parsed as TakeAmount) ? parsed : undefined;
+}, z.union([z.literal(25), z.literal(50), z.literal(75), z.literal(100)]).optional());
+
 const searchSchema = z.object({
-  q: z.string().optional(),
-  region: z.string().optional(),
-  province: z.string().optional(),
+  q: optionalString,
+  region: optionalString,
+  province: optionalString,
+  letter: letterSchema,
+  take: takeSchema,
 });
+
+type BarangaySearch = z.infer<typeof searchSchema>;
 
 type Region = { code: string; slug: string; name: string };
 type Province = { code: string; slug: string; name: string; region_code: string };
@@ -66,28 +89,44 @@ type BrgyResult = {
   region_name: string;
 };
 
-const PAGE_SIZE = 60;
+type BrgyQueryResult = {
+  rows: BrgyResult[];
+  total: number;
+};
+
+const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 function BarangaysIndex() {
-  const { q, region, province } = Route.useSearch();
+  const { q, region, province, letter, take } = Route.useSearch();
   const navigate = useNavigate({ from: "/barangays" });
+  const selectedTake: TakeAmount = take ?? 25;
 
   // Local debounced query so URL doesn't update on every keystroke
   const [draft, setDraft] = useState(q ?? "");
+  const [visibleCount, setVisibleCount] = useState<TakeAmount | number>(selectedTake);
+
   useEffect(() => setDraft(q ?? ""), [q]);
+
   useEffect(() => {
     const id = window.setTimeout(() => {
       if ((draft || undefined) === q) return;
       navigate({
-        search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, q: draft || undefined }),
+        search: (prev: BarangaySearch) => ({
+          ...prev,
+          q: draft || undefined,
+        }),
         replace: true,
       });
     }, 250);
     return () => window.clearTimeout(id);
   }, [draft, q, navigate]);
 
+  useEffect(() => {
+    setVisibleCount(selectedTake);
+  }, [selectedTake, q, region, province, letter]);
+
   // Regions + provinces (static-ish data, cache long)
-  const { data: regions = [] } = useQuery({
+  const { data: regions = [], isLoading: regionsLoading } = useQuery({
     queryKey: ["regions-list"],
     queryFn: async (): Promise<Region[]> => {
       const { data, error } = await supabase
@@ -100,7 +139,7 @@ function BarangaysIndex() {
     staleTime: 60 * 60 * 1000,
   });
 
-  const { data: provinces = [] } = useQuery({
+  const { data: provinces = [], isLoading: provincesLoading } = useQuery({
     queryKey: ["provinces-list"],
     queryFn: async (): Promise<Province[]> => {
       const { data, error } = await supabase
@@ -130,15 +169,28 @@ function BarangaysIndex() {
     [provinces, selectedRegion],
   );
 
-  // Results query — runs whenever filters change.
+  const filtersReady =
+    !regionsLoading &&
+    !provincesLoading &&
+    (!region || !!selectedRegion) &&
+    (!province || !!selectedProvince);
+
+  // Results query — runs whenever filters or visible amount change.
   const queryStr = (q ?? "").trim();
-  const enabled = queryStr.length >= 2 || !!province || !!region;
 
   const { data: results, isFetching } = useQuery({
-    queryKey: ["barangay-search", queryStr, region ?? null, province ?? null],
-    enabled,
+    queryKey: [
+      "barangay-search",
+      queryStr,
+      region ?? null,
+      province ?? null,
+      letter ?? null,
+      visibleCount,
+    ],
+    enabled: filtersReady,
     staleTime: 30 * 1000,
-    queryFn: async (): Promise<BrgyResult[]> => {
+    placeholderData: (previousData) => previousData,
+    queryFn: async (): Promise<BrgyQueryResult> => {
       // Narrow the city_code universe by region/province filters first.
       let cityCodes: string[] | null = null;
       if (selectedProvince) {
@@ -148,32 +200,34 @@ function BarangaysIndex() {
           .eq("province_code", selectedProvince.code);
         if (e1) throw new Error(e1.message);
         cityCodes = (cs ?? []).map((c) => c.code);
-        if (cityCodes.length === 0) return [];
+        if (cityCodes.length === 0) return { rows: [], total: 0 };
       } else if (selectedRegion) {
         const provCodes = provinces
           .filter((p) => p.region_code === selectedRegion.code)
           .map((p) => p.code);
-        if (provCodes.length === 0) return [];
+        if (provCodes.length === 0) return { rows: [], total: 0 };
         const { data: cs, error: e1 } = await supabase
           .from("cities_municipalities")
           .select("code")
           .in("province_code", provCodes);
         if (e1) throw new Error(e1.message);
         cityCodes = (cs ?? []).map((c) => c.code);
-        if (cityCodes.length === 0) return [];
+        if (cityCodes.length === 0) return { rows: [], total: 0 };
       }
 
       let bq = supabase
         .from("barangays")
-        .select("code,slug,name,city_code")
+        .select("code,slug,name,city_code", { count: "exact" })
         .order("name")
-        .limit(PAGE_SIZE);
+        .range(0, Math.max(visibleCount - 1, 0));
+
+      if (letter) bq = bq.ilike("name", `${letter}%`);
       if (queryStr.length >= 2) bq = bq.ilike("name", `%${queryStr}%`);
       if (cityCodes) bq = bq.in("city_code", cityCodes);
 
-      const { data: brgys, error } = await bq;
+      const { data: brgys, count, error } = await bq;
       if (error) throw new Error(error.message);
-      if (!brgys || brgys.length === 0) return [];
+      if (!brgys || brgys.length === 0) return { rows: [], total: count ?? 0 };
 
       // Hydrate city + province + region names client-side.
       const cityCodesNeeded = [...new Set(brgys.map((b) => b.city_code))];
@@ -191,28 +245,35 @@ function BarangaysIndex() {
       );
       const regionMap = new Map(regions.map((r) => [r.code, r]));
 
-      return brgys.map((b) => {
-        const city = cityMap.get(b.city_code);
-        const prov = city ? provMap.get(city.province_code) : undefined;
-        const reg = prov ? regionMap.get(prov.region_code) : undefined;
-        return {
-          code: b.code,
-          slug: b.slug,
-          name: b.name,
-          city_code: b.city_code,
-          city_name: city?.name ?? "",
-          city_slug: city?.slug ?? "",
-          province_name: prov?.name ?? "",
-          province_slug: prov?.slug ?? "",
-          region_name: reg?.name ?? "",
-        };
-      });
+      return {
+        total: count ?? brgys.length,
+        rows: brgys.map((b) => {
+          const city = cityMap.get(b.city_code);
+          const prov = city ? provMap.get(city.province_code) : undefined;
+          const reg = prov ? regionMap.get(prov.region_code) : undefined;
+          return {
+            code: b.code,
+            slug: b.slug,
+            name: b.name,
+            city_code: b.city_code,
+            city_name: city?.name ?? "",
+            city_slug: city?.slug ?? "",
+            province_name: prov?.name ?? "",
+            province_slug: prov?.slug ?? "",
+            region_name: reg?.name ?? "",
+          };
+        }),
+      };
     },
   });
 
-  const setSearch = (next: Partial<{ q?: string; region?: string; province?: string }>) =>
+  const rows = results?.rows ?? [];
+  const total = results?.total ?? 0;
+  const canLoadMore = rows.length < total;
+
+  const setSearch = (next: Partial<BarangaySearch>) =>
     navigate({
-      search: (prev: z.infer<typeof searchSchema>) => ({ ...prev, ...next }),
+      search: (prev: BarangaySearch) => ({ ...prev, ...next }),
       replace: true,
     });
 
@@ -238,107 +299,180 @@ function BarangaysIndex() {
           Barangay directory
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Search 42,042 barangays across the Philippines. Filter by region or province to narrow down.
+          Search 42,042 barangays across the Philippines. Browse by first letter, then narrow by region, province, or name.
         </p>
 
         {/* Filters */}
-        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_220px_220px_auto]">
-          <div className="relative">
-            <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search barangay name (min 2 chars)…"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              className="pl-9 pr-9"
-              aria-label="Search barangays"
-            />
-            {draft ? (
+        <Card className="mt-8 space-y-6 p-4 md:p-6">
+          <div>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="font-display text-lg font-bold">Browse A–Z</h2>
+                <p className="text-xs text-muted-foreground">
+                  Pick the first letter of the barangay name.
+                </p>
+              </div>
+              {(q || region || province || letter) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraft("");
+                    navigate({ search: { take: selectedTake }, replace: true });
+                  }}
+                  className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  Reset filters
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
               <button
                 type="button"
-                onClick={() => setDraft("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
-                aria-label="Clear search"
+                onClick={() => setSearch({ letter: undefined })}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  !letter
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}
               >
-                <X className="h-4 w-4" />
+                All
               </button>
-            ) : null}
+              {LETTERS.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setSearch({ letter: l })}
+                  className={`min-w-8 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                    letter === l
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <Select
-            value={region ?? "all"}
-            onValueChange={(v) =>
-              setSearch({
-                region: v === "all" ? undefined : v,
-                // clear province when region changes
-                province: undefined,
-              })
-            }
-          >
-            <SelectTrigger aria-label="Filter by region">
-              <SelectValue placeholder="All regions" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All regions</SelectItem>
-              {regions.map((r) => (
-                <SelectItem key={r.code} value={r.slug}>
-                  {r.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr_180px]">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">Region</label>
+              <Select
+                value={region ?? "all"}
+                onValueChange={(v) =>
+                  setSearch({
+                    region: v === "all" ? undefined : v,
+                    // clear province when region changes
+                    province: undefined,
+                  })
+                }
+              >
+                <SelectTrigger aria-label="Filter by region">
+                  <SelectValue placeholder="All regions" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All regions</SelectItem>
+                  {regions.map((r) => (
+                    <SelectItem key={r.code} value={r.slug}>
+                      {r.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <Select
-            value={province ?? "all"}
-            onValueChange={(v) => setSearch({ province: v === "all" ? undefined : v })}
-          >
-            <SelectTrigger aria-label="Filter by province">
-              <SelectValue placeholder="All provinces" />
-            </SelectTrigger>
-            <SelectContent className="max-h-80">
-              <SelectItem value="all">All provinces</SelectItem>
-              {filteredProvinces.map((p) => (
-                <SelectItem key={p.code} value={p.slug}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">Province</label>
+              <Select
+                value={province ?? "all"}
+                onValueChange={(v) =>
+                  setSearch({ province: v === "all" ? undefined : v })
+                }
+              >
+                <SelectTrigger aria-label="Filter by province">
+                  <SelectValue placeholder="All provinces" />
+                </SelectTrigger>
+                <SelectContent className="max-h-80">
+                  <SelectItem value="all">All provinces</SelectItem>
+                  {filteredProvinces.map((p) => (
+                    <SelectItem key={p.code} value={p.slug}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {(q || region || province) && (
-            <button
-              type="button"
-              onClick={() => {
-                setDraft("");
-                navigate({ search: {}, replace: true });
-              }}
-              className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              Reset filters
-            </button>
-          )}
-        </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium">Show amount</label>
+              <Select
+                value={String(selectedTake)}
+                onValueChange={(v) => setSearch({ take: Number(v) as TakeAmount })}
+              >
+                <SelectTrigger aria-label="Choose result amount">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TAKE_OPTIONS.map((amount) => (
+                    <SelectItem key={amount} value={String(amount)}>
+                      0–{amount}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="lg:col-span-3">
+              <label className="mb-1.5 block text-sm font-medium">Search barangay name</label>
+              <div className="relative">
+                <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Type barangay name (min 2 chars)…"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  className="pl-9 pr-9"
+                  aria-label="Search barangays"
+                />
+                {draft ? (
+                  <button
+                    type="button"
+                    onClick={() => setDraft("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Region and province filters are above the name search to make browsing easier.
+              </p>
+            </div>
+          </div>
+        </Card>
 
         {/* Results */}
         <div className="mt-8">
-          {!enabled ? (
-            <Card className="p-8 text-center text-sm text-muted-foreground">
-              Type at least 2 characters or pick a region/province to start browsing barangays.
-            </Card>
-          ) : isFetching && !results ? (
-            <p className="text-sm text-muted-foreground">Searching…</p>
-          ) : results && results.length === 0 ? (
+          {!filtersReady || (isFetching && !results) ? (
+            <p className="text-sm text-muted-foreground">Loading barangays…</p>
+          ) : rows.length === 0 ? (
             <Card className="p-8 text-center text-sm text-muted-foreground">
               No barangays match your filters.
             </Card>
-          ) : results ? (
+          ) : (
             <>
-              <p className="mb-4 text-sm text-muted-foreground">
-                Showing {results.length} {results.length === PAGE_SIZE ? "of many " : ""}barangays
-                {results.length === PAGE_SIZE ? " — refine your search to see more." : "."}
-              </p>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm text-muted-foreground">
+                  Showing {rows.length.toLocaleString()} of {total.toLocaleString()} barangays
+                  {letter ? ` starting with “${letter}”` : ""}.
+                </p>
+                {isFetching && (
+                  <p className="text-xs text-muted-foreground">Updating…</p>
+                )}
+              </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {results.map((b) => (
+                {rows.map((b) => (
                   <Link
                     key={b.code}
                     to="/barangays/$city/$barangay"
@@ -366,8 +500,25 @@ function BarangaysIndex() {
                   </Link>
                 ))}
               </div>
+
+              <div className="mt-8 flex justify-center">
+                {canLoadMore ? (
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount((count) => count + selectedTake)}
+                    disabled={isFetching}
+                    className="rounded-md border border-border px-5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isFetching ? "Loading…" : "Load more"}
+                  </button>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    You’ve reached the end of this list.
+                  </p>
+                )}
+              </div>
             </>
-          ) : null}
+          )}
         </div>
       </main>
       <SiteFooter />
