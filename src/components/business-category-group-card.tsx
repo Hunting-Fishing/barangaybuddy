@@ -3,7 +3,6 @@ import {
   Car,
   Hammer,
   HeartPulse,
-  Scissors,
   ShoppingBasket,
   Sprout,
   Store,
