@@ -35,27 +35,29 @@ const HOTSPOTS: Hotspot[] = [
 export function PhRegionMap({ selected }: { selected?: string }) {
   return (
     <div className="relative mx-auto w-full max-w-2xl">
-      <div className="relative aspect-[1200/1280] overflow-hidden rounded-2xl border border-border bg-secondary/30 shadow-elegant">
+      <div className="relative aspect-[1200/1280] overflow-hidden rounded-2xl border border-border bg-white shadow-elegant">
         <img
           src={mapImg}
           alt="Map of the Philippines showing all 17 regions"
           className="absolute inset-0 h-full w-full object-contain"
           loading="lazy"
+          style={{
+            filter: "brightness(1.1) contrast(1.18) saturate(1.08)",
+          }}
         />
         {HOTSPOTS.map((h) => {
           const isActive = selected === h.slug;
           return (
             <Link
               key={h.slug}
-              to="/regions"
-              search={{ region: h.slug }}
-              hash={h.slug}
-              aria-label={h.name}
+              to="/regions/$region"
+              params={{ region: h.slug }}
+              aria-label={`Open ${h.name}`}
               aria-current={isActive ? "true" : undefined}
-              title={h.name}
+              title={`Open ${h.name}`}
               className={cn(
                 "group absolute flex h-14 w-24 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md ring-offset-background transition-all hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                isActive && "bg-primary/30 ring-2 ring-primary scale-110"
+                isActive && "scale-110 bg-primary/30 ring-2 ring-primary",
               )}
               style={{ left: `${h.x}%`, top: `${h.y}%` }}
             >
@@ -65,7 +67,7 @@ export function PhRegionMap({ selected }: { selected?: string }) {
         })}
       </div>
       <p className="mt-3 text-center text-xs text-muted-foreground">
-        Tap a region label on the map to highlight and jump to its details below.
+        Tap a region label on the map to open that region page, or scroll down to select one manually.
       </p>
     </div>
   );

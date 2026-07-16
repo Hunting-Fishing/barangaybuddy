@@ -14,21 +14,50 @@ const FUEL_LABELS: Record<string, string> = {
   diesel: "Diesel",
 };
 
+type StationSource = "barangayhub" | "osm";
+
 type Station = {
   id: string;
-  slug: string;
+  slug: string | null;
   name: string;
   latitude: number;
   longitude: number;
   address: string | null;
+  source: StationSource;
+  osmUrl?: string;
 };
 
 type LatestPrice = { fuel_type: string; price: number; reported_at: string };
 
+type OsmElement = {
+  type: "node" | "way" | "relation";
+  id: number;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+};
+
 function esc(s: string) {
   return s.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!),
+    ({ "&": "&", "<": "<", ">": ">", '"': "&quot;", "'": "&#39;" }[c]!),
   );
+}
+
+function buildOsmAddress(tags: Record<string, string>) {
+  if (tags["addr:full"]) return tags["addr:full"];
+
+  const parts = [
+    [tags["addr:housenumber"], tags["addr:street"]].filter(Boolean).join(" "),
+    tags["addr:barangay"] || tags["addr:suburb"] || tags["addr:village"],
+    tags["addr:city"] || tags["addr:town"] || tags["addr:municipality"],
+  ].filter(Boolean);
+
+  return parts.length ? parts.join(", ") : null;
+}
+
+function normalizeName(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 export function FuelMap() {
@@ -37,9 +66,11 @@ export function FuelMap() {
   const layerRef = useRef<L.LayerGroup | null>(null);
   const meRef = useRef<L.CircleMarker | null>(null);
   const [stations, setStations] = useState<Station[]>([]);
+  const [osmStations, setOsmStations] = useState<Station[]>([]);
   const [pricesByStation, setPricesByStation] = useState<Record<string, LatestPrice[]>>({});
   const [q, setQ] = useState("");
   const [searching, setSearching] = useState(false);
+  const [loadingOsmNearby, setLoadingOsmNearby] = useState(false);
 
   async function loadAllStations() {
     const pageSize = 1000;
@@ -54,11 +85,97 @@ export function FuelMap() {
         .not("longitude", "is", null)
         .range(from, from + pageSize - 1);
       if (error) throw error;
-      const page = (data ?? []) as Station[];
+      const page = (data ?? []).map((station) => ({
+        id: station.id,
+        slug: station.slug,
+        name: station.name,
+        latitude: Number(station.latitude),
+        longitude: Number(station.longitude),
+        address: station.address,
+        source: "barangayhub" as const,
+      }));
       all.push(...page);
       if (page.length < pageSize) break;
     }
     return all;
+  }
+
+  async function loadNearbyOsmStations(latitude: number, longitude: number) {
+    setLoadingOsmNearby(true);
+    try {
+      const query = `[out:json][timeout:25];
+(
+  node["amenity"="fuel"](around:15000,${latitude},${longitude});
+  way["amenity"="fuel"](around:15000,${latitude},${longitude});
+);
+out center tags;`;
+
+      const res = await fetch("https://overpass-api.de/api/interpreter", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Accept: "application/json",
+        },
+        body: "data=" + encodeURIComponent(query),
+      });
+
+      if (!res.ok) {
+        throw new Error(`OpenStreetMap nearby search failed (${res.status})`);
+      }
+
+      const json = (await res.json()) as { elements?: OsmElement[] };
+      const dbNames = new Set(stations.map((station) => normalizeName(station.name)));
+
+      const nearby = (json.elements ?? [])
+        .map((element): Station | null => {
+          const lat = element.lat ?? element.center?.lat;
+          const lon = element.lon ?? element.center?.lon;
+          if (typeof lat !== "number" || typeof lon !== "number") return null;
+
+          const tags = element.tags ?? {};
+          const name =
+            tags.name ||
+            tags.brand ||
+            tags.operator ||
+            "Fuel station";
+
+          return {
+            id: `osm:${element.type}:${element.id}`,
+            slug: null,
+            name,
+            latitude: lat,
+            longitude: lon,
+            address: buildOsmAddress(tags),
+            source: "osm",
+            osmUrl: `https://www.openstreetmap.org/${element.type}/${element.id}`,
+          };
+        })
+        .filter((station): station is Station => station !== null)
+        .filter((station) => {
+          const name = normalizeName(station.name);
+          if (!dbNames.has(name)) return true;
+
+          return !stations.some(
+            (existing) =>
+              normalizeName(existing.name) === name &&
+              Math.abs(existing.latitude - station.latitude) < 0.0005 &&
+              Math.abs(existing.longitude - station.longitude) < 0.0005,
+          );
+        })
+        .slice(0, 100);
+
+      setOsmStations(nearby);
+
+      if (nearby.length > 0) {
+        toast.success(`Loaded ${nearby.length} nearby OpenStreetMap fuel stations.`);
+      } else {
+        toast.info("No extra nearby OpenStreetMap fuel stations found.");
+      }
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setLoadingOsmNearby(false);
+    }
   }
 
   // Init map
@@ -104,41 +221,58 @@ export function FuelMap() {
     })();
   }, []);
 
+  const allStations = useMemo(
+    () => [...stations, ...osmStations],
+    [stations, osmStations],
+  );
+
   // Render markers
   useEffect(() => {
     const map = mapRef.current;
     const layer = layerRef.current;
     if (!map || !layer) return;
     layer.clearLayers();
-    stations.forEach((st) => {
+
+    allStations.forEach((st) => {
       const latest = pricesByStation[st.id] ?? [];
-      const priceHtml = latest.length
-        ? `<div style="margin-top:6px;display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:12px">
+      const isOsm = st.source === "osm";
+      const priceHtml = isOsm
+        ? `<div style="margin-top:6px;font-size:12px;color:#64748b">Nearby OpenStreetMap station. Register it in Fuel Buddy to report prices.</div>`
+        : latest.length
+          ? `<div style="margin-top:6px;display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:12px">
             ${latest
               .map(
                 (p) => `<span style="color:#64748b">${FUEL_LABELS[p.fuel_type] ?? p.fuel_type}</span><strong style="text-align:right">₱${p.price.toFixed(2)}</strong>`,
               )
               .join("")}
           </div>`
-        : `<div style="margin-top:6px;font-size:12px;color:#94a3b8">No prices reported yet</div>`;
+          : `<div style="margin-top:6px;font-size:12px;color:#94a3b8">No prices reported yet</div>`;
+
+      const linkHtml = st.slug
+        ? `<a style="display:inline-block;margin-top:8px" href="/business/${encodeURIComponent(st.slug)}">View / report price →</a>`
+        : st.osmUrl
+          ? `<a style="display:inline-block;margin-top:8px" href="${esc(st.osmUrl)}" target="_blank" rel="noreferrer">View on OpenStreetMap →</a>`
+          : "";
+
       L.circleMarker([st.latitude, st.longitude], {
-        radius: 9,
+        radius: isOsm ? 8 : 9,
         color: "#ffffff",
         weight: 2,
-        fillColor: "#16a34a",
+        fillColor: isOsm ? "#f59e0b" : "#16a34a",
         fillOpacity: 1,
       })
         .bindPopup(
           `<div style="font-family:inherit;min-width:180px">
             <strong>${esc(st.name)}</strong>
             ${st.address ? `<div style="color:#64748b;font-size:12px;margin-top:2px">${esc(st.address)}</div>` : ""}
+            <div style="margin-top:4px;font-size:11px;color:${isOsm ? "#b45309" : "#15803d"}">${isOsm ? "OpenStreetMap nearby result" : "BarangayHub station"}</div>
             ${priceHtml}
-            <a style="display:inline-block;margin-top:8px" href="/business/${encodeURIComponent(st.slug)}">View / report price →</a>
+            ${linkHtml}
           </div>`,
         )
         .addTo(layer);
     });
-  }, [stations, pricesByStation]);
+  }, [allStations, pricesByStation]);
 
   function locateMe() {
     if (!navigator.geolocation) return toast.error("Geolocation not supported.");
@@ -158,6 +292,8 @@ export function FuelMap() {
         })
           .bindPopup("You are here")
           .addTo(map);
+
+        void loadNearbyOsmStations(latitude, longitude);
       },
       (err) => toast.error(err.message || "Could not get your location."),
       { enableHighAccuracy: true, timeout: 10000 },
@@ -178,6 +314,7 @@ export function FuelMap() {
       if (!json.length) return toast.error("No place found in the Philippines.");
       const { lat, lon } = json[0];
       mapRef.current?.setView([Number(lat), Number(lon)], 13);
+      await loadNearbyOsmStations(Number(lat), Number(lon));
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -203,21 +340,21 @@ export function FuelMap() {
               className="pl-8"
             />
           </div>
-          <Button type="submit" size="sm" disabled={searching}>
-            {searching ? "Searching…" : "Search"}
+          <Button type="submit" size="sm" disabled={searching || loadingOsmNearby}>
+            {searching || loadingOsmNearby ? "Searching…" : "Search"}
           </Button>
         </form>
-        <Button type="button" size="sm" variant="outline" onClick={locateMe}>
-          <Locate className="mr-1 h-4 w-4" /> Use my location
+        <Button type="button" size="sm" variant="outline" onClick={locateMe} disabled={loadingOsmNearby}>
+          <Locate className="mr-1 h-4 w-4" /> {loadingOsmNearby ? "Loading nearby…" : "Use my location"}
         </Button>
       </div>
       <div className="overflow-hidden rounded-xl border border-border">
         <div ref={ref} className="h-[460px] w-full" />
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-card px-4 py-2 text-xs text-muted-foreground">
           <span>
-            {stations.length} stations on the map · {withPrice} with community prices
+            {stations.length} BarangayHub stations · {osmStations.length} nearby OSM stations · {withPrice} with community prices
           </span>
-          <span>Tap a pin to see the latest reported prices.</span>
+          <span>Green = BarangayHub station · Orange = nearby OpenStreetMap station.</span>
         </div>
       </div>
     </div>
