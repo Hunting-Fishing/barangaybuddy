@@ -1,8 +1,9 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { MapPin, Menu, Search, Fuel, LayoutDashboard, MessageSquare, LogOut, Home } from "lucide-react";
-import { useState } from "react";
+import { MapPin, Menu, Search, Fuel, LayoutDashboard, MessageSquare, LogOut, Home, Store } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,10 +12,46 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+type OwnedBusiness = {
+  id: string;
+  name: string;
+};
+
 export function SiteHeader() {
   const { user, isOwner, signOut } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [ownedBusinesses, setOwnedBusinesses] = useState<OwnedBusiness[]>([]);
+
+  useEffect(() => {
+    if (!user) {
+      setOwnedBusinesses([]);
+      return;
+    }
+
+    supabase
+      .from("businesses")
+      .select("id, name")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(2)
+      .then(({ data }) => setOwnedBusinesses((data ?? []) as OwnedBusiness[]));
+  }, [user]);
+
+  const hasBusiness = ownedBusinesses.length > 0;
+  const businessMenuLabel =
+    ownedBusinesses.length === 1 ? "My business" : "My businesses";
+
+  const openMyBusiness = () => {
+    const business = ownedBusinesses[0];
+
+    if (ownedBusinesses.length === 1 && business) {
+      navigate({ to: "/dashboard/business/$id", params: { id: business.id } });
+      return;
+    }
+
+    navigate({ to: "/dashboard" });
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
@@ -55,10 +92,21 @@ export function SiteHeader() {
                   <span className="hidden sm:inline">{user.email?.split("@")[0]}</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-64">
                 {isOwner && (
                   <DropdownMenuItem onClick={() => navigate({ to: "/dashboard" })}>
                     <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
+                  </DropdownMenuItem>
+                )}
+                {hasBusiness && (
+                  <DropdownMenuItem onClick={openMyBusiness}>
+                    <Store className="mr-2 h-4 w-4" />
+                    <span className="min-w-0 flex-1 truncate">
+                      {businessMenuLabel}
+                      {ownedBusinesses.length === 1 && ownedBusinesses[0]?.name
+                        ? `: ${ownedBusinesses[0].name}`
+                        : ""}
+                    </span>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={() => navigate({ to: "/messages" })}>
