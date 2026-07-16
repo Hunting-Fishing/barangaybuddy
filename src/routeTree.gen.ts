@@ -18,7 +18,7 @@ import { Route as ImportRouteImport } from './routes/import'
 import { Route as FuelRouteImport } from './routes/fuel'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AddBusinessRouteImport } from './routes/add-business'
-import { Route as BusinessSlugRouteImport } from './routes/$businessSlug'
+import { Route as MiniSiteSlugRouteImport } from './routes/$miniSiteSlug'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RegionsIndexRouteImport } from './routes/regions.index'
 import { Route as BarangaysIndexRouteImport } from './routes/barangays.index'
@@ -80,9 +80,9 @@ const AddBusinessRoute = AddBusinessRouteImport.update({
   path: '/add-business',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BusinessSlugRoute = BusinessSlugRouteImport.update({
-  id: '/$businessSlug',
-  path: '/$businessSlug',
+const MiniSiteSlugRoute = MiniSiteSlugRouteImport.update({
+  id: '/$miniSiteSlug',
+  path: '/$miniSiteSlug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -166,7 +166,7 @@ const ApiPublicHooksBusinessOsmSyncRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/$businessSlug': typeof BusinessSlugRoute
+  '/$miniSiteSlug': typeof MiniSiteSlugRoute
   '/add-business': typeof AddBusinessRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/fuel': typeof FuelRoute
@@ -193,7 +193,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/$businessSlug': typeof BusinessSlugRoute
+  '/$miniSiteSlug': typeof MiniSiteSlugRoute
   '/add-business': typeof AddBusinessRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/fuel': typeof FuelRoute
@@ -221,7 +221,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/$businessSlug': typeof BusinessSlugRoute
+  '/$miniSiteSlug': typeof MiniSiteSlugRoute
   '/add-business': typeof AddBusinessRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/fuel': typeof FuelRoute
@@ -250,7 +250,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/$businessSlug'
+    | '/$miniSiteSlug'
     | '/add-business'
     | '/dashboard'
     | '/fuel'
@@ -277,7 +277,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/$businessSlug'
+    | '/$miniSiteSlug'
     | '/add-business'
     | '/dashboard'
     | '/fuel'
@@ -304,7 +304,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/$businessSlug'
+    | '/$miniSiteSlug'
     | '/add-business'
     | '/dashboard'
     | '/fuel'
@@ -332,7 +332,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  BusinessSlugRoute: typeof BusinessSlugRoute
+  MiniSiteSlugRoute: typeof MiniSiteSlugRoute
   AddBusinessRoute: typeof AddBusinessRoute
   DashboardRoute: typeof DashboardRouteWithChildren
   FuelRoute: typeof FuelRoute
@@ -420,11 +420,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AddBusinessRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/$businessSlug': {
-      id: '/$businessSlug'
-      path: '/$businessSlug'
-      fullPath: '/$businessSlug'
-      preLoaderRoute: typeof BusinessSlugRouteImport
+    '/$miniSiteSlug': {
+      id: '/$miniSiteSlug'
+      path: '/$miniSiteSlug'
+      fullPath: '/$miniSiteSlug'
+      preLoaderRoute: typeof MiniSiteSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -572,7 +572,7 @@ const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  BusinessSlugRoute: BusinessSlugRoute,
+  MiniSiteSlugRoute: MiniSiteSlugRoute,
   AddBusinessRoute: AddBusinessRoute,
   DashboardRoute: DashboardRouteWithChildren,
   FuelRoute: FuelRoute,

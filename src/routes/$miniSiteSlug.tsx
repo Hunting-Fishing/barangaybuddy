@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/$businessSlug")({
+export const Route = createFileRoute("/$miniSiteSlug")({
   component: BusinessSlugSitePage,
 });
 
 function BusinessSlugSitePage() {
-  const { businessSlug } = Route.useParams();
+  const { miniSiteSlug } = Route.useParams();
   const [loading, setLoading] = useState(true);
   const [business, setBusiness] = useState<any>(null);
   const [listings, setListings] = useState<any[]>([]);
@@ -21,7 +21,7 @@ function BusinessSlugSitePage() {
       const { data: businessRow } = await supabase
         .from("businesses")
         .select("*, barangays(name, cities_municipalities(name, provinces(name)))")
-        .eq("slug", businessSlug)
+        .eq("slug", miniSiteSlug)
         .eq("is_published", true)
         .maybeSingle();
 
@@ -48,7 +48,7 @@ function BusinessSlugSitePage() {
     }
 
     void load();
-  }, [businessSlug]);
+  }, [miniSiteSlug]);
 
   if (loading) {
     return (
