@@ -12,36 +12,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Plus, X } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
+import { Plus } from "lucide-react";
 import { FeatureTagsPicker } from "@/components/feature-tags-picker";
 import { BusinessImportDialog } from "@/components/business-import-dialog";
-import { sanitizeCustomLabel, dedupeCaseInsensitive, tagLabel } from "@/lib/business-tags";
-
-
+import { BusinessCategoryPicker } from "@/components/business-category-picker";
+import { dedupeCaseInsensitive, tagLabel } from "@/lib/business-tags";
+import {
+  BUSINESS_TYPES,
+  BUSINESS_TYPE_LABEL,
+  type BusinessType,
+} from "@/lib/business-types";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Owner Dashboard — BarangayHub" }] }),
   component: Dashboard,
 });
 
-const TYPES = [
-  "store", "sari_sari", "service", "restaurant", "food_vendor", "ambulant_vendor",
-  "market_vendor", "wet_market", "dry_goods", "bakery", "farmer", "fisher",
-  "livestock", "agri_supply", "fuel_station", "pharmacy", "hardware",
-  "repair_shop", "salon", "laundry", "transport",
-] as const;
-type BizType = typeof TYPES[number];
-const TYPE_LABEL: Record<BizType, string> = {
-  store: "Store", sari_sari: "Sari-sari store", service: "Service",
-  restaurant: "Restaurant", food_vendor: "Food vendor", ambulant_vendor: "Ambulant vendor",
-  market_vendor: "Market vendor", wet_market: "Wet market", dry_goods: "Dry goods",
-  bakery: "Bakery", farmer: "Farmer", fisher: "Fisher", livestock: "Livestock",
-  agri_supply: "Agri supply", fuel_station: "Fuel station", pharmacy: "Pharmacy",
-  hardware: "Hardware", repair_shop: "Repair shop", salon: "Salon",
-  laundry: "Laundry", transport: "Transport",
-};
+const TYPES = BUSINESS_TYPES;
+type BizType = BusinessType;
+const TYPE_LABEL = BUSINESS_TYPE_LABEL;
 
 function Dashboard() {
   const { user, loading } = useAuth();
@@ -49,7 +38,6 @@ function Dashboard() {
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<{ name: string; type: BizType; additional_types: BizType[]; custom_types: string[]; tags: string[]; description: string; barangay_search: string; barangay_code: string; barangay_label: string }>({ name: "", type: "store", additional_types: [], custom_types: [], tags: [], description: "", barangay_search: "", barangay_code: "", barangay_label: "" });
-  const [customTypeInput, setCustomTypeInput] = useState("");
   const [brgyResults, setBrgyResults] = useState<any[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [syncingOsm, setSyncingOsm] = useState(false);
@@ -94,7 +82,6 @@ function Dashboard() {
     }
   }
 
-
   useEffect(() => {
     if (!loading && !user) nav({ to: "/login" });
   }, [user, loading, nav]);
@@ -126,7 +113,7 @@ function Dashboard() {
       name: z.string().trim().min(2).max(120),
       type: z.enum(TYPES),
       additional_types: z.array(z.enum(TYPES)).max(10),
-      custom_types: z.array(z.string().trim().min(2).max(30)).max(10),
+      custom_types: z.array(z.string().trim().min(2).max(40)).max(20),
       tags: z.array(z.string().trim().min(1).max(40)).max(50),
       description: z.string().max(2000).optional(),
       barangay_code: z.string().min(1, "Choose a barangay"),
@@ -141,10 +128,8 @@ function Dashboard() {
     toast.success("Business created!");
     setShowForm(false);
     setForm({ name: "", type: "store", additional_types: [], custom_types: [], tags: [], description: "", barangay_search: "", barangay_code: "", barangay_label: "" });
-    setCustomTypeInput("");
     load();
   }
-
 
   return (
     <div className="min-h-screen bg-background">
@@ -185,106 +170,44 @@ function Dashboard() {
           </Card>
         )}
 
-
-
-
         {showForm && (
           <Card className="mt-6 p-6">
-            <form onSubmit={create} className="grid gap-4 md:grid-cols-2">
+            <form onSubmit={create} className="grid gap-5 md:grid-cols-2">
               <div>
                 <Label>Business name</Label>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
               </div>
               <div>
                 <Label>Primary type</Label>
-                <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v as BizType })}>
+                <Select
+                  value={form.type}
+                  onValueChange={(v) => {
+                    const nextType = v as BizType;
+                    setForm({
+                      ...form,
+                      type: nextType,
+                      additional_types: form.additional_types.filter((type) => type !== nextType),
+                    });
+                  }}
+                >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {TYPES.map((t) => <SelectItem key={t} value={t}>{TYPE_LABEL[t]}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="md:col-span-2">
-                <Label>Additional categories <span className="text-xs text-muted-foreground">— pick all that apply (e.g. restaurant + store + gas station)</span></Label>
-                {form.additional_types.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {form.additional_types.map((t) => (
-                      <Badge key={t} variant="secondary" className="gap-1">
-                        {TYPE_LABEL[t]}
-                        <button type="button" onClick={() => setForm({ ...form, additional_types: form.additional_types.filter((x) => x !== t) })} className="hover:text-destructive">
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-                <div className="mt-2 grid max-h-56 grid-cols-2 gap-1.5 overflow-auto rounded-md border border-border p-3 md:grid-cols-3">
-                  {TYPES.filter((t) => t !== form.type).map((t) => {
-                    const checked = form.additional_types.includes(t);
-                    return (
-                      <label key={t} className="flex cursor-pointer items-center gap-2 text-sm">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={(c) => {
-                            setForm({
-                              ...form,
-                              additional_types: c
-                                ? [...form.additional_types, t]
-                                : form.additional_types.filter((x) => x !== t),
-                            });
-                          }}
-                        />
-                        {TYPE_LABEL[t]}
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
 
-              <div className="md:col-span-2">
-                <Label>Other categories <span className="text-xs text-muted-foreground">— type anything not listed above (e.g. Bar, Pub, Billiards hall)</span></Label>
-                {form.custom_types.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {form.custom_types.map((c) => (
-                      <Badge key={c} className="gap-1">
-                        {c}
-                        <button type="button" onClick={() => setForm({ ...form, custom_types: form.custom_types.filter((x) => x !== c) })} className="hover:text-destructive/80">
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-                <div className="mt-2 flex gap-2">
-                  <Input
-                    value={customTypeInput}
-                    onChange={(e) => setCustomTypeInput(e.target.value)}
-                    placeholder="e.g. Bar, Pub, Pool hall…"
-                    maxLength={30}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        const clean = sanitizeCustomLabel(customTypeInput);
-                        if (!clean) return toast.error("Use 2–30 letters/numbers.");
-                        if (form.custom_types.some((c) => c.toLowerCase() === clean.toLowerCase())) { setCustomTypeInput(""); return; }
-                        if (form.custom_types.length >= 10) return toast.error("Up to 10 custom categories.");
-                        setForm({ ...form, custom_types: [...form.custom_types, clean] });
-                        setCustomTypeInput("");
-                      }
-                    }}
-                  />
-                  <Button type="button" variant="outline" className="gap-1" onClick={() => {
-                    const clean = sanitizeCustomLabel(customTypeInput);
-                    if (!clean) return toast.error("Use 2–30 letters/numbers.");
-                    if (form.custom_types.some((c) => c.toLowerCase() === clean.toLowerCase())) { setCustomTypeInput(""); return; }
-                    if (form.custom_types.length >= 10) return toast.error("Up to 10 custom categories.");
-                    setForm({ ...form, custom_types: [...form.custom_types, clean] });
-                    setCustomTypeInput("");
-                  }}>
-                    <Plus className="h-4 w-4" /> Add
-                  </Button>
-                </div>
-              </div>
+              <BusinessCategoryPicker
+                primaryType={form.type}
+                additionalTypes={form.additional_types}
+                customTypes={form.custom_types}
+                onAdditionalTypesChange={(additional_types) =>
+                  setForm((current) => ({ ...current, additional_types }))
+                }
+                onCustomTypesChange={(custom_types) =>
+                  setForm((current) => ({ ...current, custom_types }))
+                }
+              />
 
               <div className="md:col-span-2">
                 <Label>Features & amenities <span className="text-xs text-muted-foreground">— what does the place have? (billiards, videoke, WiFi, GCash…)</span></Label>
@@ -342,7 +265,6 @@ function Dashboard() {
                 )}
                 <p className="mt-3 text-xs text-primary">Manage listings & images →</p>
               </Card>
-
             </Link>
           ))}
           {businesses.length === 0 && <p className="text-muted-foreground">No businesses yet. Create your first one above.</p>}
