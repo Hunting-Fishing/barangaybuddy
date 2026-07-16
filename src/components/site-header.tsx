@@ -1,7 +1,18 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { MapPin, Menu, Search, Fuel, LayoutDashboard, MessageSquare, LogOut, Home, Store } from "lucide-react";
+import {
+  MapPin,
+  Menu,
+  Search,
+  Fuel,
+  LayoutDashboard,
+  MessageSquare,
+  LogOut,
+  Home,
+  Store,
+  Plus,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -39,10 +50,8 @@ export function SiteHeader() {
   }, [user]);
 
   const hasBusiness = ownedBusinesses.length > 0;
-  const businessMenuLabel =
-    ownedBusinesses.length === 1 ? "My business" : "My businesses";
 
-  const openMyBusiness = () => {
+  const openBusinessAction = () => {
     const business = ownedBusinesses[0];
 
     if (ownedBusinesses.length === 1 && business) {
@@ -98,17 +107,18 @@ export function SiteHeader() {
                     <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
                   </DropdownMenuItem>
                 )}
-                {hasBusiness && (
-                  <DropdownMenuItem onClick={openMyBusiness}>
+                <DropdownMenuItem onClick={openBusinessAction}>
+                  {hasBusiness ? (
                     <Store className="mr-2 h-4 w-4" />
-                    <span className="min-w-0 flex-1 truncate">
-                      {businessMenuLabel}
-                      {ownedBusinesses.length === 1 && ownedBusinesses[0]?.name
-                        ? `: ${ownedBusinesses[0].name}`
-                        : ""}
-                    </span>
-                  </DropdownMenuItem>
-                )}
+                  ) : (
+                    <Plus className="mr-2 h-4 w-4" />
+                  )}
+                  <span className="min-w-0 flex-1 truncate">
+                    {hasBusiness
+                      ? `My business${ownedBusinesses.length === 1 && ownedBusinesses[0]?.name ? `: ${ownedBusinesses[0].name}` : ""}`
+                      : "+ Add Business"}
+                  </span>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate({ to: "/messages" })}>
                   <MessageSquare className="mr-2 h-4 w-4" /> Messages
                 </DropdownMenuItem>
