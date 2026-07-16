@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BusinessImportDialog } from "@/components/business-import-dialog";
 import { AddBusinessBasicSection } from "@/components/add-business-basic-section";
 import { AddBusinessCategoriesSection } from "@/components/add-business-categories-section";
@@ -11,8 +13,26 @@ import { AddBusinessMediaSection } from "@/components/add-business-media-section
 import { AddBusinessPreview } from "@/components/add-business-preview";
 import { useAddBusinessForm } from "@/hooks/use-add-business-form";
 
+const TAB_ORDER = ["basics", "categories", "location", "contact", "photos"] as const;
+type AddBusinessTab = (typeof TAB_ORDER)[number];
+
 export function AddBusinessForm() {
   const businessForm = useAddBusinessForm();
+  const [tab, setTab] = useState<AddBusinessTab>("basics");
+
+  const tabIndex = TAB_ORDER.indexOf(tab);
+  const canGoBack = tabIndex > 0;
+  const canGoNext = tabIndex < TAB_ORDER.length - 1;
+
+  const goBack = () => {
+    if (!canGoBack) return;
+    setTab(TAB_ORDER[tabIndex - 1]);
+  };
+
+  const goNext = () => {
+    if (!canGoNext) return;
+    setTab(TAB_ORDER[tabIndex + 1]);
+  };
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
@@ -40,34 +60,68 @@ export function AddBusinessForm() {
           </div>
         </Card>
 
-        <AddBusinessBasicSection
-          form={businessForm.form}
-          update={businessForm.update}
-        />
+        <Tabs value={tab} onValueChange={(value) => setTab(value as AddBusinessTab)}>
+          <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-2xl p-1 sm:grid-cols-5">
+            <TabsTrigger value="basics" className="rounded-xl py-2">
+              Basics
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="rounded-xl py-2">
+              Categories
+            </TabsTrigger>
+            <TabsTrigger value="location" className="rounded-xl py-2">
+              Location
+            </TabsTrigger>
+            <TabsTrigger value="contact" className="rounded-xl py-2">
+              Contact
+            </TabsTrigger>
+            <TabsTrigger value="photos" className="rounded-xl py-2">
+              Photos
+            </TabsTrigger>
+          </TabsList>
 
-        <AddBusinessCategoriesSection
-          form={businessForm.form}
-          setForm={businessForm.setForm}
-        />
+          <TabsContent value="basics" className="mt-6">
+            <AddBusinessBasicSection
+              form={businessForm.form}
+              update={businessForm.update}
+            />
+          </TabsContent>
 
-        <AddBusinessLocationSection
-          form={businessForm.form}
-          update={businessForm.update}
-          barangayResults={businessForm.barangayResults}
-          chooseBarangay={businessForm.chooseBarangay}
-          useCurrentLocation={businessForm.useCurrentLocation}
-          locating={businessForm.locating}
-        />
+          <TabsContent value="categories" className="mt-6">
+            <AddBusinessCategoriesSection
+              form={businessForm.form}
+              setForm={businessForm.setForm}
+            />
+          </TabsContent>
 
-        <AddBusinessContactSection
-          form={businessForm.form}
-          update={businessForm.update}
-        />
+          <TabsContent value="location" className="mt-6">
+            <AddBusinessLocationSection
+              form={businessForm.form}
+              update={businessForm.update}
+              barangayResults={businessForm.barangayResults}
+              chooseBarangay={businessForm.chooseBarangay}
+              profileBarangay={businessForm.profileBarangay}
+              useProfileBarangay={businessForm.useProfileBarangay}
+              saveBarangayToProfile={businessForm.saveBarangayToProfile}
+              savingProfileBarangay={businessForm.savingProfileBarangay}
+              useCurrentLocation={businessForm.useCurrentLocation}
+              locating={businessForm.locating}
+            />
+          </TabsContent>
 
-        <AddBusinessMediaSection
-          form={businessForm.form}
-          update={businessForm.update}
-        />
+          <TabsContent value="contact" className="mt-6">
+            <AddBusinessContactSection
+              form={businessForm.form}
+              update={businessForm.update}
+            />
+          </TabsContent>
+
+          <TabsContent value="photos" className="mt-6">
+            <AddBusinessMediaSection
+              form={businessForm.form}
+              update={businessForm.update}
+            />
+          </TabsContent>
+        </Tabs>
 
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
           <Button variant="ghost" asChild className="gap-2">
@@ -75,12 +129,29 @@ export function AddBusinessForm() {
               <ArrowLeft className="h-4 w-4" /> Back to dashboard
             </Link>
           </Button>
-          <Button type="submit" size="lg" disabled={businessForm.submitting}>
-            {businessForm.submitting && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={goBack}
+              disabled={!canGoBack}
+              className="gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" /> Previous
+            </Button>
+            {canGoNext && (
+              <Button type="button" variant="outline" onClick={goNext} className="gap-2">
+                Next <ArrowRight className="h-4 w-4" />
+              </Button>
             )}
-            Save and manage business
-          </Button>
+            <Button type="submit" size="lg" disabled={businessForm.submitting}>
+              {businessForm.submitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Save and manage business
+            </Button>
+          </div>
         </div>
       </form>
 

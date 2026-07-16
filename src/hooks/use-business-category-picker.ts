@@ -29,6 +29,7 @@ export function useBusinessCategoryPicker({
   onCustomTypesChange,
 }: Args) {
   const [query, setQuery] = useState("");
+  const [groupQuery, setGroupQuery] = useState("");
   const [activeGroupId, setActiveGroupId] = useState(
     BUSINESS_CATEGORY_GROUPS[0]?.id ?? "",
   );
@@ -37,6 +38,28 @@ export function useBusinessCategoryPicker({
     () => new Set(customTypes.map((type) => type.toLowerCase())),
     [customTypes],
   );
+
+  const filteredGroups = useMemo(() => {
+    const needle = groupQuery.trim().toLowerCase();
+    if (needle.length < 2) return BUSINESS_CATEGORY_GROUPS;
+
+    return BUSINESS_CATEGORY_GROUPS.filter((group) => {
+      const fields = [
+        group.label,
+        group.description,
+        ...group.items.flatMap((item) => [
+          item.label,
+          item.description,
+          item.businessType ?? "",
+          item.customType ?? "",
+          item.section ?? "",
+          ...item.keywords,
+        ]),
+      ].map((value) => value.toLowerCase());
+
+      return fields.some((field) => field.includes(needle));
+    });
+  }, [groupQuery]);
 
   const activeGroup =
     BUSINESS_CATEGORY_GROUPS.find((group) => group.id === activeGroupId) ??
@@ -142,6 +165,7 @@ export function useBusinessCategoryPicker({
   const selectSuggestion = (suggestion: BusinessCategoryPickerSuggestion) => {
     setActiveGroupId(suggestion.groupId);
     if (!isItemSelected(suggestion)) addItem(suggestion);
+    setQuery("");
   };
 
   const selectedCountForGroup = (groupId: string) => {
@@ -153,6 +177,9 @@ export function useBusinessCategoryPicker({
   return {
     query,
     setQuery,
+    groupQuery,
+    setGroupQuery,
+    filteredGroups,
     activeGroup,
     activeGroupId,
     setActiveGroupId,

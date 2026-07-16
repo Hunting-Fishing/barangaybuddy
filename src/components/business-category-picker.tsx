@@ -49,7 +49,10 @@ export function BusinessCategoryPicker({
 
       <BusinessCategoryGroupSelector
         activeGroupId={picker.activeGroupId}
+        groupQuery={picker.groupQuery}
+        groups={picker.filteredGroups}
         onActiveGroupChange={picker.setActiveGroupId}
+        onGroupQueryChange={picker.setGroupQuery}
         selectedCountForGroup={picker.selectedCountForGroup}
       />
 

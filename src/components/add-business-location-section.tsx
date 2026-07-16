@@ -1,4 +1,4 @@
-import { LocateFixed, MapPin } from "lucide-react";
+import { LocateFixed, MapPin, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,10 @@ type Props = {
   ) => void;
   barangayResults: BarangayPickResult[];
   chooseBarangay: (barangay: BarangayPickResult) => void;
+  profileBarangay: { code: string; label: string } | null;
+  useProfileBarangay: () => void;
+  saveBarangayToProfile: () => void;
+  savingProfileBarangay: boolean;
   useCurrentLocation: () => void;
   locating: boolean;
 };
@@ -23,9 +27,18 @@ export function AddBusinessLocationSection({
   update,
   barangayResults,
   chooseBarangay,
+  profileBarangay,
+  useProfileBarangay,
+  saveBarangayToProfile,
+  savingProfileBarangay,
   useCurrentLocation,
   locating,
 }: Props) {
+  const canUseProfileBarangay =
+    profileBarangay != null && profileBarangay.code !== form.barangay_code;
+  const canSaveProfileBarangay =
+    !!form.barangay_code && profileBarangay?.code !== form.barangay_code;
+
   return (
     <Card className="p-5 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -35,7 +48,7 @@ export function AddBusinessLocationSection({
           </div>
           <h2 className="font-display text-xl font-bold">Location</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Barangay is required. A full address and map pin help customers find you faster.
+            Barangay is required. You can search by barangay name or by municipality/city, like Carrasi.
           </p>
         </div>
         <Button
@@ -48,6 +61,38 @@ export function AddBusinessLocationSection({
           <LocateFixed className="h-4 w-4" />
           {locating ? "Locating…" : "Use my location"}
         </Button>
+      </div>
+
+      <div className="mt-5 rounded-xl border border-border bg-muted/30 p-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2">
+            <UserRound className="mt-0.5 h-4 w-4 text-primary" />
+            <div>
+              <div className="text-sm font-medium">Profile barangay</div>
+              <p className="text-xs text-muted-foreground">
+                {profileBarangay
+                  ? profileBarangay.label
+                  : "No profile barangay saved yet. Choose one below and save it for next time."}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {canUseProfileBarangay && (
+              <Button type="button" size="sm" variant="outline" onClick={useProfileBarangay}>
+                Use profile barangay
+              </Button>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={saveBarangayToProfile}
+              disabled={!canSaveProfileBarangay || savingProfileBarangay}
+            >
+              {savingProfileBarangay ? "Saving…" : "Save selected to profile"}
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -66,10 +111,13 @@ export function AddBusinessLocationSection({
               id="barangay-search"
               value={form.barangay_search}
               onChange={(event) => update("barangay_search", event.target.value)}
-              placeholder={form.barangay_label ? "Change barangay…" : "Type barangay name…"}
+              placeholder={form.barangay_label ? "Change barangay…" : "Type barangay, city, or municipality name…"}
               className="pl-9"
             />
           </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Tip: if you search a municipality like Carrasi, the form will show barangays inside that municipality.
+          </p>
           {barangayResults.length > 0 && (
             <div className="mt-2 max-h-60 overflow-auto rounded-md border border-border bg-card">
               {barangayResults.map((barangay) => (

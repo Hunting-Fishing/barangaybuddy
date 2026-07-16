@@ -24,6 +24,32 @@ export type BarangayPickResult = {
     | null;
 };
 
+type ProfileBarangay = {
+  code: string;
+  label: string;
+};
+
+type CitySearchResult = {
+  code: string;
+  name: string;
+  provinces?: { name: string } | null;
+};
+
+function formatBarangayLabel(barangay: BarangayPickResult) {
+  const city = barangay.cities_municipalities?.name ?? "";
+  const province = barangay.cities_municipalities?.provinces?.name ?? "";
+  return [barangay.name, city, province].filter(Boolean).join(", ");
+}
+
+function uniqueBarangays(rows: BarangayPickResult[]) {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    if (seen.has(row.code)) return false;
+    seen.add(row.code);
+    return true;
+  });
+}
+
 export function useAddBusinessForm() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -31,23 +57,100 @@ export function useAddBusinessForm() {
     createInitialAddBusinessForm(),
   );
   const [barangayResults, setBarangayResults] = useState<BarangayPickResult[]>([]);
+  const [profileBarangay, setProfileBarangay] = useState<ProfileBarangay | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [savingProfileBarangay, setSavingProfileBarangay] = useState(false);
 
   useEffect(() => {
-    if (form.barangay_search.length < 2) {
+    if (!user) {
+      setProfileBarangay(null);
+      return;
+    }
+
+    supabase
+      .from("profiles")
+      .select("barangay_code, barangays(name, cities_municipalities(name, provinces(name)))")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const row = data as
+          | {
+              barangay_code: string | null;
+              barangays?: BarangayPickResult | null;
+            }
+          | null;
+
+        if (!row?.barangay_code || !row.barangays) return;
+
+        const next = {
+          code: row.barangay_code,
+          label: formatBarangayLabel(row.barangays),
+        };
+
+        setProfileBarangay(next);
+        setForm((current) =>
+          current.barangay_code
+            ? current
+            : {
+                ...current,
+                barangay_code: next.code,
+                barangay_label: next.label,
+              },
+        );
+      });
+  }, [user]);
+
+  useEffect(() => {
+    const query = form.barangay_search.trim();
+
+    if (query.length < 2) {
       setBarangayResults([]);
       return;
     }
 
     const timeout = window.setTimeout(async () => {
-      const { data, error } = await supabase
-        .from("barangays")
-        .select("code, name, cities_municipalities(name, provinces(name))")
-        .ilike("name", `%${form.barangay_search}%`)
-        .limit(10);
+      const barangaySelect =
+        "code, name, cities_municipalities(name, provinces(name))";
 
-      if (!error) setBarangayResults((data ?? []) as BarangayPickResult[]);
+      const [{ data: directBarangays }, { data: matchingCities }] =
+        await Promise.all([
+          supabase
+            .from("barangays")
+            .select(barangaySelect)
+            .ilike("name", `%${query}%`)
+            .order("name")
+            .limit(15),
+          supabase
+            .from("cities_municipalities")
+            .select("code, name, provinces(name)")
+            .ilike("name", `%${query}%`)
+            .order("name")
+            .limit(8),
+        ]);
+
+      const cityCodes = ((matchingCities ?? []) as CitySearchResult[]).map(
+        (city) => city.code,
+      );
+
+      let cityBarangays: BarangayPickResult[] = [];
+      if (cityCodes.length > 0) {
+        const { data } = await supabase
+          .from("barangays")
+          .select(barangaySelect)
+          .in("city_code", cityCodes)
+          .order("name")
+          .limit(30);
+
+        cityBarangays = (data ?? []) as BarangayPickResult[];
+      }
+
+      setBarangayResults(
+        uniqueBarangays([
+          ...((directBarangays ?? []) as BarangayPickResult[]),
+          ...cityBarangays,
+        ]).slice(0, 30),
+      );
     }, 200);
 
     return () => window.clearTimeout(timeout);
@@ -61,15 +164,65 @@ export function useAddBusinessForm() {
   }
 
   function chooseBarangay(barangay: BarangayPickResult) {
-    const city = barangay.cities_municipalities?.name ?? "";
-    const province = barangay.cities_municipalities?.provinces?.name ?? "";
     setForm((current) => ({
       ...current,
       barangay_code: barangay.code,
-      barangay_label: [barangay.name, city, province].filter(Boolean).join(", "),
+      barangay_label: formatBarangayLabel(barangay),
       barangay_search: "",
     }));
     setBarangayResults([]);
+  }
+
+  function useProfileBarangay() {
+    if (!profileBarangay) return;
+
+    setForm((current) => ({
+      ...current,
+      barangay_code: profileBarangay.code,
+      barangay_label: profileBarangay.label,
+      barangay_search: "",
+    }));
+
+    toast.success("Profile barangay selected.");
+  }
+
+  async function saveBarangayToProfile() {
+    if (!user) {
+      toast.error("Sign in to save your profile barangay.");
+      return;
+    }
+
+    if (!form.barangay_code) {
+      toast.error("Choose a barangay first.");
+      return;
+    }
+
+    setSavingProfileBarangay(true);
+    const displayName =
+      typeof user.user_metadata?.display_name === "string"
+        ? user.user_metadata.display_name
+        : user.email?.split("@")[0] ?? "BarangayHub user";
+
+    const { error } = await supabase.from("profiles").upsert(
+      {
+        id: user.id,
+        display_name: displayName,
+        barangay_code: form.barangay_code,
+      },
+      { onConflict: "id" },
+    );
+    setSavingProfileBarangay(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    setProfileBarangay({
+      code: form.barangay_code,
+      label: form.barangay_label,
+    });
+    toast.success("Profile barangay saved.");
   }
 
   function useCurrentLocation() {
@@ -179,6 +332,10 @@ export function useAddBusinessForm() {
     update,
     barangayResults,
     chooseBarangay,
+    profileBarangay,
+    useProfileBarangay,
+    saveBarangayToProfile,
+    savingProfileBarangay,
     useCurrentLocation,
     submitting,
     locating,
