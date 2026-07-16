@@ -18,6 +18,7 @@ import { Route as ImportRouteImport } from './routes/import'
 import { Route as FuelRouteImport } from './routes/fuel'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AddBusinessRouteImport } from './routes/add-business'
+import { Route as BusinessSlugRouteImport } from './routes/$businessSlug'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RegionsIndexRouteImport } from './routes/regions.index'
 import { Route as BarangaysIndexRouteImport } from './routes/barangays.index'
@@ -29,6 +30,7 @@ import { Route as CategoriesCategoryRouteImport } from './routes/categories.$cat
 import { Route as BusinessSlugRouteImport } from './routes/business.$slug'
 import { Route as DashboardBusinessIdRouteImport } from './routes/dashboard.business.$id'
 import { Route as BarangaysCityBarangayRouteImport } from './routes/barangays.$city.$barangay'
+import { Route as DashboardBusinessIdInventoryRouteImport } from './routes/dashboard.business.$id.inventory'
 import { Route as ApiPublicHooksFuelSyncRouteImport } from './routes/api/public/hooks/fuel-sync'
 import { Route as ApiPublicHooksFuelStationsSyncRouteImport } from './routes/api/public/hooks/fuel-stations-sync'
 import { Route as ApiPublicHooksBusinessOsmSyncRouteImport } from './routes/api/public/hooks/business-osm-sync'
@@ -76,6 +78,11 @@ const DashboardRoute = DashboardRouteImport.update({
 const AddBusinessRoute = AddBusinessRouteImport.update({
   id: '/add-business',
   path: '/add-business',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessSlugRoute = BusinessSlugRouteImport.update({
+  id: '/$businessSlug',
+  path: '/$businessSlug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -133,6 +140,12 @@ const BarangaysCityBarangayRoute = BarangaysCityBarangayRouteImport.update({
   path: '/barangays/$city/$barangay',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardBusinessIdInventoryRoute =
+  DashboardBusinessIdInventoryRouteImport.update({
+    id: '/inventory',
+    path: '/inventory',
+    getParentRoute: () => DashboardBusinessIdRoute,
+  } as any)
 const ApiPublicHooksFuelSyncRoute = ApiPublicHooksFuelSyncRouteImport.update({
   id: '/api/public/hooks/fuel-sync',
   path: '/api/public/hooks/fuel-sync',
@@ -153,6 +166,7 @@ const ApiPublicHooksBusinessOsmSyncRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$businessSlug': typeof BusinessSlugRoute
   '/add-business': typeof AddBusinessRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/fuel': typeof FuelRoute
@@ -171,13 +185,15 @@ export interface FileRoutesByFullPath {
   '/barangays/': typeof BarangaysIndexRoute
   '/regions/': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
-  '/dashboard/business/$id': typeof DashboardBusinessIdRoute
+  '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
+  '/dashboard/business/$id/inventory': typeof DashboardBusinessIdInventoryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$businessSlug': typeof BusinessSlugRoute
   '/add-business': typeof AddBusinessRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/fuel': typeof FuelRoute
@@ -196,14 +212,16 @@ export interface FileRoutesByTo {
   '/barangays': typeof BarangaysIndexRoute
   '/regions': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
-  '/dashboard/business/$id': typeof DashboardBusinessIdRoute
+  '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
+  '/dashboard/business/$id/inventory': typeof DashboardBusinessIdInventoryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$businessSlug': typeof BusinessSlugRoute
   '/add-business': typeof AddBusinessRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/fuel': typeof FuelRoute
@@ -222,15 +240,17 @@ export interface FileRoutesById {
   '/barangays/': typeof BarangaysIndexRoute
   '/regions/': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
-  '/dashboard/business/$id': typeof DashboardBusinessIdRoute
+  '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
+  '/dashboard/business/$id/inventory': typeof DashboardBusinessIdInventoryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$businessSlug'
     | '/add-business'
     | '/dashboard'
     | '/fuel'
@@ -253,9 +273,11 @@ export interface FileRouteTypes {
     | '/api/public/hooks/business-osm-sync'
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
+    | '/dashboard/business/$id/inventory'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$businessSlug'
     | '/add-business'
     | '/dashboard'
     | '/fuel'
@@ -278,9 +300,11 @@ export interface FileRouteTypes {
     | '/api/public/hooks/business-osm-sync'
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
+    | '/dashboard/business/$id/inventory'
   id:
     | '__root__'
     | '/'
+    | '/$businessSlug'
     | '/add-business'
     | '/dashboard'
     | '/fuel'
@@ -303,10 +327,12 @@ export interface FileRouteTypes {
     | '/api/public/hooks/business-osm-sync'
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
+    | '/dashboard/business/$id/inventory'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BusinessSlugRoute: typeof BusinessSlugRoute
   AddBusinessRoute: typeof AddBusinessRoute
   DashboardRoute: typeof DashboardRouteWithChildren
   FuelRoute: typeof FuelRoute
@@ -394,6 +420,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AddBusinessRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$businessSlug': {
+      id: '/$businessSlug'
+      path: '/$businessSlug'
+      fullPath: '/$businessSlug'
+      preLoaderRoute: typeof BusinessSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -471,6 +504,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BarangaysCityBarangayRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/business/$id/inventory': {
+      id: '/dashboard/business/$id/inventory'
+      path: '/inventory'
+      fullPath: '/dashboard/business/$id/inventory'
+      preLoaderRoute: typeof DashboardBusinessIdInventoryRouteImport
+      parentRoute: typeof DashboardBusinessIdRoute
+    }
     '/api/public/hooks/fuel-sync': {
       id: '/api/public/hooks/fuel-sync'
       path: '/api/public/hooks/fuel-sync'
@@ -495,12 +535,23 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface DashboardBusinessIdRouteChildren {
+  DashboardBusinessIdInventoryRoute: typeof DashboardBusinessIdInventoryRoute
+}
+
+const DashboardBusinessIdRouteChildren: DashboardBusinessIdRouteChildren = {
+  DashboardBusinessIdInventoryRoute: DashboardBusinessIdInventoryRoute,
+}
+
+const DashboardBusinessIdRouteWithChildren =
+  DashboardBusinessIdRoute._addFileChildren(DashboardBusinessIdRouteChildren)
+
 interface DashboardRouteChildren {
-  DashboardBusinessIdRoute: typeof DashboardBusinessIdRoute
+  DashboardBusinessIdRoute: typeof DashboardBusinessIdRouteWithChildren
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
-  DashboardBusinessIdRoute: DashboardBusinessIdRoute,
+  DashboardBusinessIdRoute: DashboardBusinessIdRouteWithChildren,
 }
 
 const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
@@ -521,6 +572,7 @@ const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BusinessSlugRoute: BusinessSlugRoute,
   AddBusinessRoute: AddBusinessRoute,
   DashboardRoute: DashboardRouteWithChildren,
   FuelRoute: FuelRoute,
