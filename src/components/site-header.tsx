@@ -12,6 +12,7 @@ import {
   Home,
   Store,
   Plus,
+  ExternalLink,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +27,7 @@ import {
 type OwnedBusiness = {
   id: string;
   name: string;
+  slug: string;
 };
 
 export function SiteHeader() {
@@ -42,7 +44,7 @@ export function SiteHeader() {
 
     supabase
       .from("businesses")
-      .select("id, name")
+      .select("id, name, slug")
       .eq("owner_id", user.id)
       .order("created_at", { ascending: false })
       .limit(2)
@@ -50,6 +52,7 @@ export function SiteHeader() {
   }, [user]);
 
   const hasBusiness = ownedBusinesses.length > 0;
+  const firstBusiness = ownedBusinesses[0];
 
   const openBusinessAction = () => {
     if (!hasBusiness) {
@@ -57,10 +60,8 @@ export function SiteHeader() {
       return;
     }
 
-    const business = ownedBusinesses[0];
-
-    if (ownedBusinesses.length === 1 && business) {
-      navigate({ to: "/dashboard/business/$id", params: { id: business.id } });
+    if (ownedBusinesses.length === 1 && firstBusiness) {
+      navigate({ to: "/dashboard/business/$id", params: { id: firstBusiness.id } });
       return;
     }
 
@@ -120,10 +121,19 @@ export function SiteHeader() {
                   )}
                   <span className="min-w-0 flex-1 truncate">
                     {hasBusiness
-                      ? `My business${ownedBusinesses.length === 1 && ownedBusinesses[0]?.name ? `: ${ownedBusinesses[0].name}` : ""}`
+                      ? `My business${ownedBusinesses.length === 1 && firstBusiness?.name ? `: ${firstBusiness.name}` : ""}`
                       : "+ Add Business"}
                   </span>
                 </DropdownMenuItem>
+                {firstBusiness && (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      window.location.href = `/${firstBusiness.slug}`;
+                    }}
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" /> View public mini-site
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => navigate({ to: "/messages" })}>
                   <MessageSquare className="mr-2 h-4 w-4" /> Messages
                 </DropdownMenuItem>
