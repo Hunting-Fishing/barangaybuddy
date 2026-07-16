@@ -12,12 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { z } from "zod";
-import { ArrowLeft, Plus, Trash2, Upload, Pencil, Fuel, ThumbsUp, ThumbsDown, X } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, Pencil, Fuel, ThumbsUp, ThumbsDown, X, ExternalLink, Package } from "lucide-react";
 import { computeUnitPrice, formatPerEach, formatPerUnit, SIZE_UNITS, type SizeUnit } from "@/lib/unit-price";
 import { FeatureTagsPicker } from "@/components/feature-tags-picker";
 import { sanitizeCustomLabel, dedupeCaseInsensitive } from "@/lib/business-tags";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { EditBusinessDialog } from "@/components/edit-business-dialog";
 
 
 const TYPES = [
@@ -85,7 +86,11 @@ function ManageBusiness() {
   useEffect(() => { if (!loading && !user) nav({ to: "/login" }); }, [user, loading, nav]);
 
   async function load() {
-    const { data: b } = await supabase.from("businesses").select("*").eq("id", id).maybeSingle();
+    const { data: b } = await supabase
+      .from("businesses")
+      .select("*, barangays(name, cities_municipalities(name, provinces(name)))")
+      .eq("id", id)
+      .maybeSingle();
     setBiz(b);
     if (b) {
       setDetails({
@@ -266,11 +271,29 @@ function ManageBusiness() {
             <h1 className="font-display text-4xl font-bold">{biz.name}</h1>
             <p className="mt-1 text-muted-foreground capitalize">{biz.type.replace("_", " ")}</p>
           </div>
-          <Link to="/business/$slug" params={{ slug: biz.slug }}><Button variant="outline">View public page</Button></Link>
+          <div className="flex flex-wrap gap-2">
+            <EditBusinessDialog business={biz} onSaved={load} />
+            <Button variant="outline" asChild>
+              <a href={`/${biz.slug}`} target="_blank" rel="noreferrer">
+                <ExternalLink className="mr-2 h-4 w-4" /> Open public mini-site
+              </a>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/dashboard/business/$id/inventory" params={{ id }}>
+                <Package className="mr-2 h-4 w-4" /> Inventory
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/business/$slug" params={{ slug: biz.slug }}>Classic page</Link>
+            </Button>
+          </div>
         </div>
 
         <Card className="mt-8 p-6">
           <h2 className="font-display text-xl font-bold">Branding</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Upload the images shown on your directory page and mini-site.
+          </p>
           <div className="mt-4 grid gap-6 md:grid-cols-2">
             <div>
               <Label>Logo</Label>

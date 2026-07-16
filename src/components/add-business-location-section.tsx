@@ -20,6 +20,7 @@ type Props = {
   savingProfileBarangay: boolean;
   useCurrentLocation: () => void;
   locating: boolean;
+  showProfileTools?: boolean;
 };
 
 export function AddBusinessLocationSection({
@@ -33,6 +34,7 @@ export function AddBusinessLocationSection({
   savingProfileBarangay,
   useCurrentLocation,
   locating,
+  showProfileTools = true,
 }: Props) {
   const canUseProfileBarangay =
     profileBarangay != null && profileBarangay.code !== form.barangay_code;
@@ -63,37 +65,39 @@ export function AddBusinessLocationSection({
         </Button>
       </div>
 
-      <div className="mt-5 rounded-xl border border-border bg-muted/30 p-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-2">
-            <UserRound className="mt-0.5 h-4 w-4 text-primary" />
-            <div>
-              <div className="text-sm font-medium">Profile barangay</div>
-              <p className="text-xs text-muted-foreground">
-                {profileBarangay
-                  ? profileBarangay.label
-                  : "No profile barangay saved yet. Choose one below and save it for next time."}
-              </p>
+      {showProfileTools && (
+        <div className="mt-5 rounded-xl border border-border bg-muted/30 p-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-2">
+              <UserRound className="mt-0.5 h-4 w-4 text-primary" />
+              <div>
+                <div className="text-sm font-medium">Profile barangay</div>
+                <p className="text-xs text-muted-foreground">
+                  {profileBarangay
+                    ? profileBarangay.label
+                    : "No profile barangay saved yet. Choose one below and save it for next time."}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {canUseProfileBarangay && (
+                <Button type="button" size="sm" variant="outline" onClick={useProfileBarangay}>
+                  Use profile barangay
+                </Button>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={saveBarangayToProfile}
+                disabled={!canSaveProfileBarangay || savingProfileBarangay}
+              >
+                {savingProfileBarangay ? "Saving…" : "Save selected to profile"}
+              </Button>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {canUseProfileBarangay && (
-              <Button type="button" size="sm" variant="outline" onClick={useProfileBarangay}>
-                Use profile barangay
-              </Button>
-            )}
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={saveBarangayToProfile}
-              disabled={!canSaveProfileBarangay || savingProfileBarangay}
-            >
-              {savingProfileBarangay ? "Saving…" : "Save selected to profile"}
-            </Button>
-          </div>
         </div>
-      </div>
+      )}
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <div className="md:col-span-2">

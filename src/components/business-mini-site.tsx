@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EditBusinessDialog } from "@/components/edit-business-dialog";
 import { BUSINESS_TYPE_LABEL, type BusinessType } from "@/lib/business-types";
 import { tagLabel } from "@/lib/business-tags";
 import { formatPrice } from "@/lib/unit-price";
@@ -25,6 +26,9 @@ type MiniBusiness = {
   cover_image_url: string | null;
   logo_url: string | null;
   owner_id: string | null;
+  barangay_code: string;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   barangays?: {
     name?: string;
     cities_municipalities?: {
@@ -76,9 +80,13 @@ export function BusinessMiniSite({ business, listings }: Props) {
               You are viewing your business mini-site as customers see it.
             </span>
             <div className="flex flex-wrap gap-2">
+              <EditBusinessDialog
+                business={business}
+                onSaved={() => window.location.reload()}
+              />
               <Button size="sm" variant="outline" asChild>
                 <Link to="/dashboard/business/$id" params={{ id: business.id }}>
-                  <Settings className="mr-1 h-3.5 w-3.5" /> Manage business
+                  <Settings className="mr-1 h-3.5 w-3.5" /> Listings & images
                 </Link>
               </Button>
               <Button size="sm" asChild>
