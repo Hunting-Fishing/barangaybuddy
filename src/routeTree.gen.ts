@@ -17,6 +17,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as FuelRouteImport } from './routes/fuel'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AddBusinessRouteImport } from './routes/add-business'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RegionsIndexRouteImport } from './routes/regions.index'
 import { Route as BarangaysIndexRouteImport } from './routes/barangays.index'
@@ -70,6 +71,11 @@ const FuelRoute = FuelRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AddBusinessRoute = AddBusinessRouteImport.update({
+  id: '/add-business',
+  path: '/add-business',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -147,6 +153,7 @@ const ApiPublicHooksBusinessOsmSyncRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/add-business': typeof AddBusinessRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/fuel': typeof FuelRoute
   '/import': typeof ImportRoute
@@ -171,6 +178,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/add-business': typeof AddBusinessRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/fuel': typeof FuelRoute
   '/import': typeof ImportRoute
@@ -196,6 +204,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/add-business': typeof AddBusinessRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/fuel': typeof FuelRoute
   '/import': typeof ImportRoute
@@ -222,6 +231,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/add-business'
     | '/dashboard'
     | '/fuel'
     | '/import'
@@ -246,6 +256,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/add-business'
     | '/dashboard'
     | '/fuel'
     | '/import'
@@ -270,6 +281,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/add-business'
     | '/dashboard'
     | '/fuel'
     | '/import'
@@ -295,6 +307,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AddBusinessRoute: typeof AddBusinessRoute
   DashboardRoute: typeof DashboardRouteWithChildren
   FuelRoute: typeof FuelRoute
   ImportRoute: typeof ImportRoute
@@ -372,6 +385,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/add-business': {
+      id: '/add-business'
+      path: '/add-business'
+      fullPath: '/add-business'
+      preLoaderRoute: typeof AddBusinessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -501,6 +521,7 @@ const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AddBusinessRoute: AddBusinessRoute,
   DashboardRoute: DashboardRouteWithChildren,
   FuelRoute: FuelRoute,
   ImportRoute: ImportRoute,
