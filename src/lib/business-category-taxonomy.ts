@@ -49,21 +49,101 @@ export const BUSINESS_CATEGORY_GROUPS: BusinessCategoryGroup[] = [
   {
     id: "food-drinks",
     label: "Food & drinks",
-    description: "Restaurants, carinderias, bakeries, cafés, food carts, and catering.",
+    description: "Restaurants, carinderias, bakeries, cafés, food carts, street food, and catering.",
     icon: "food",
     items: [
       item("restaurant", "Restaurant", "Dine-in or full food service business.", {
         businessType: "restaurant",
         keywords: ["food", "meal", "dining", "eatery", "kainan"],
       }),
+      item("buffet-restaurant", "Buffet restaurant", "Eat-all-you-can, buffet, samgyupsal, hotpot, or unlimited dining.", {
+        businessType: "restaurant",
+        customType: "Buffet restaurant",
+        keywords: ["buffet", "eat all you can", "unli", "samgyupsal", "hotpot", "unlimited"],
+      }),
       item("carinderia", "Carinderia / eatery", "Local cooked food, turo-turo, or lutong bahay.", {
         businessType: "restaurant",
         customType: "Carinderia",
         keywords: ["ulam", "lutong bahay", "turo turo", "canteen"],
       }),
+      item("silog-tapsihan", "Silog / tapsihan", "Tapsilog, longsilog, tocilog, breakfast meals, or tapsihan.", {
+        businessType: "restaurant",
+        customType: "Silog restaurant",
+        keywords: ["tapsilog", "longsilog", "tocilog", "breakfast", "tapsihan"],
+      }),
       item("food-vendor", "Food vendor", "Small food stall, kiosk, or prepared food seller.", {
         businessType: "food_vendor",
         keywords: ["street food", "stall", "kiosk", "snacks"],
+      }),
+      item("empanada-vendor", "Empanada vendor", "Empanada stall, Ilocos empanada, merienda, or fried snack seller.", {
+        businessType: "food_vendor",
+        customType: "Empanada vendor",
+        keywords: ["empanada", "ilocos empanada", "fried snack", "merienda", "stall"],
+      }),
+      item("sisig-vendor", "Sisig vendor", "Sisig stall, sizzling sisig, pork sisig, chicken sisig, or pulutan seller.", {
+        businessType: "food_vendor",
+        customType: "Sisig vendor",
+        keywords: ["sisig", "sizzling", "pulutan", "pork sisig", "chicken sisig"],
+      }),
+      item("turon-banana-cue-vendor", "Turon / banana cue vendor", "Turon, banana cue, camote cue, maruya, or fried saba vendor.", {
+        businessType: "food_vendor",
+        customType: "Turon vendor",
+        keywords: ["turon", "banana cue", "camote cue", "maruya", "saba", "merienda"],
+      }),
+      item("kakanin-vendor", "Kakanin vendor", "Bibingka, puto, kutsinta, sapin-sapin, biko, suman, or native delicacies.", {
+        businessType: "food_vendor",
+        customType: "Kakanin vendor",
+        keywords: ["kakanin", "puto", "kutsinta", "bibingka", "suman", "biko", "sapin sapin"],
+      }),
+      item("ihaw-ihaw-vendor", "Ihaw-ihaw / BBQ vendor", "Barbecue, isaw, tenga, betamax, grilled liempo, or street grill.", {
+        businessType: "food_vendor",
+        customType: "Ihaw-ihaw vendor",
+        keywords: ["bbq", "barbecue", "isaw", "grill", "ihaw", "liempo", "street food"],
+      }),
+      item("siomai-vendor", "Siomai vendor", "Siomai stall, steamed dumplings, chili garlic, or rice meals.", {
+        businessType: "food_vendor",
+        customType: "Siomai vendor",
+        keywords: ["siomai", "dumplings", "chili garlic", "rice meal", "steamed"],
+      }),
+      item("shawarma-vendor", "Shawarma vendor", "Shawarma rice, wrap, kebab-style stall, or Middle Eastern snack seller.", {
+        businessType: "food_vendor",
+        customType: "Shawarma vendor",
+        keywords: ["shawarma", "wrap", "shawarma rice", "kebab", "garlic sauce"],
+      }),
+      item("burger-stand", "Burger stand", "Burger cart, buy-one-take-one burgers, sandwiches, or quick snacks.", {
+        businessType: "food_vendor",
+        customType: "Burger stand",
+        keywords: ["burger", "sandwich", "buy one take one", "snacks", "stand"],
+      }),
+      item("pares-mami-vendor", "Pares / mami vendor", "Beef pares, mami, goto, lugaw, arroz caldo, or noodle soup stall.", {
+        businessType: "food_vendor",
+        customType: "Pares vendor",
+        keywords: ["pares", "mami", "goto", "lugaw", "arroz caldo", "noodle soup"],
+      }),
+      item("pancit-palabok-vendor", "Pancit / palabok vendor", "Pancit, palabok, bihon, canton, bilao orders, or noodle trays.", {
+        businessType: "food_vendor",
+        customType: "Pancit vendor",
+        keywords: ["pancit", "palabok", "bihon", "canton", "bilao", "noodles"],
+      }),
+      item("lechon-manok-vendor", "Lechon manok / liempo", "Roasted chicken, liempo, rotisserie, or take-home roasted meat.", {
+        businessType: "food_vendor",
+        customType: "Lechon manok vendor",
+        keywords: ["lechon manok", "liempo", "roasted chicken", "rotisserie", "takeout"],
+      }),
+      item("halo-halo-vendor", "Halo-halo / dessert vendor", "Halo-halo, mais con hielo, ice scramble, banana split, or cold desserts.", {
+        businessType: "food_vendor",
+        customType: "Halo-halo vendor",
+        keywords: ["halo halo", "ice scramble", "mais con hielo", "dessert", "cold drinks"],
+      }),
+      item("balut-vendor", "Balut / penoy vendor", "Balut, penoy, salted egg, or evening street food vendor.", {
+        businessType: "ambulant_vendor",
+        customType: "Balut vendor",
+        keywords: ["balut", "penoy", "salted egg", "street food", "night vendor"],
+      }),
+      item("taho-vendor", "Taho vendor", "Taho, arnibal, sago, or roaming morning snack vendor.", {
+        businessType: "ambulant_vendor",
+        customType: "Taho vendor",
+        keywords: ["taho", "arnibal", "sago", "morning", "roaming vendor"],
       }),
       item("bakery", "Bakery", "Bread, pastries, cakes, or panaderya.", {
         businessType: "bakery",
@@ -73,6 +153,11 @@ export const BUSINESS_CATEGORY_GROUPS: BusinessCategoryGroup[] = [
         businessType: "restaurant",
         customType: "Cafe",
         keywords: ["coffee", "milk tea", "dessert", "tea", "frappe"],
+      }),
+      item("fruit-shake-milk-tea", "Fruit shake / milk tea stand", "Fruit shakes, milk tea, lemonade, gulaman, or cold drinks.", {
+        businessType: "food_vendor",
+        customType: "Drink stand",
+        keywords: ["fruit shake", "milk tea", "lemonade", "gulaman", "cold drinks"],
       }),
       item("catering", "Catering", "Food trays, party packages, and event food service.", {
         businessType: "restaurant",
