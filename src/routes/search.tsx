@@ -19,6 +19,7 @@ export const Route = createFileRoute("/search")({
   validateSearch: (s: Record<string, unknown>) => ({
     q: typeof s.q === "string" ? s.q : "",
     types: Array.isArray(s.types) ? (s.types as string[]).filter((x) => BUSINESS_TYPES.includes(x as BusinessType)) : [],
+    customTypes: Array.isArray(s.customTypes) ? (s.customTypes as string[]).filter((x) => typeof x === "string" && x.length > 0) : [],
     tags: Array.isArray(s.tags) ? (s.tags as string[]).filter((x) => typeof x === "string") : [],
     page: typeof s.page === "number" && s.page > 0 ? s.page : 1,
   }),
@@ -27,11 +28,12 @@ export const Route = createFileRoute("/search")({
 
 function SearchPage() {
   const searchParams = Route.useSearch();
-  const { q: urlQ, types: urlTypes, tags: urlTags, page: urlPage } = searchParams;
+  const { q: urlQ, types: urlTypes, customTypes: urlCustomTypes, tags: urlTags, page: urlPage } = searchParams;
   const navigate = useNavigate({ from: "/search" });
 
   const [q, setQ] = useState(urlQ);
   const [types, setTypes] = useState<BusinessType[]>(urlTypes as BusinessType[]);
+  const [customTypes, setCustomTypes] = useState<string[]>(urlCustomTypes);
   const [tags, setTags] = useState<string[]>(urlTags);
   const [tagQ, setTagQ] = useState("");
   const [results, setResults] = useState<any[]>([]);
@@ -43,23 +45,24 @@ function SearchPage() {
   // Sync URL changes (back/forward) into local state
   useEffect(() => { setQ(urlQ); }, [urlQ]);
   useEffect(() => { setTypes(urlTypes as BusinessType[]); }, [urlTypes]);
+  useEffect(() => { setCustomTypes(urlCustomTypes); }, [urlCustomTypes]);
   useEffect(() => { setTags(urlTags); }, [urlTags]);
 
   // Sync URL <- filter state (debounced); reset page to 1 on filter change
   useEffect(() => {
     const t = setTimeout(() => {
-      navigate({ search: { ...searchParams, q, types, tags, page: 1 }, replace: true });
+      navigate({ search: { ...searchParams, q, types, customTypes, tags, page: 1 }, replace: true });
     }, 200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, types, tags]);
+  }, [q, types, customTypes, tags]);
 
-  const hasFilter = q.trim().length > 0 || types.length > 0 || tags.length > 0;
+  const hasFilter = q.trim().length > 0 || types.length > 0 || customTypes.length > 0 || tags.length > 0;
 
   // Build a stable filter signature so the fetch effect knows when filters truly changed
   const filterKey = useMemo(
-    () => JSON.stringify({ q: q.trim(), types: [...types].sort(), tags: [...tags].sort() }),
-    [q, types, tags],
+    () => JSON.stringify({ q: q.trim(), types: [...types].sort(), customTypes: [...customTypes].sort(), tags: [...tags].sort() }),
+    [q, types, customTypes, tags],
   );
 
   const buildQuery = useCallback(
@@ -83,12 +86,15 @@ function SearchPage() {
         const ovList = `{${types.join(",")}}`;
         query = query.or(`type.in.(${inList}),additional_types.ov.${ovList}`);
       }
+      if (customTypes.length > 0) {
+        query = query.overlaps("custom_types", customTypes);
+      }
       if (tags.length > 0) {
         query = query.overlaps("tags", tags);
       }
       return query;
     },
-    [q, types, tags],
+    [q, types, customTypes, tags],
   );
 
   // Initial / filter-change fetch: load pages 1..urlPage (supports refresh restoring scroll position of loaded items)
@@ -124,8 +130,8 @@ function SearchPage() {
     setResults((prev) => [...prev, ...(data ?? [])]);
     if (typeof count === "number") setTotalCount(count);
     setLoadingMore(false);
-    navigate({ search: { ...searchParams, q, types, tags, page: nextPage }, replace: true });
-  }, [canLoadMore, results.length, buildQuery, navigate, searchParams, q, types, tags]);
+    navigate({ search: { ...searchParams, q, types, customTypes, tags, page: nextPage }, replace: true });
+  }, [canLoadMore, results.length, buildQuery, navigate, searchParams, q, types, customTypes, tags]);
 
   // Infinite scroll sentinel
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -151,10 +157,15 @@ function SearchPage() {
     })).filter((g) => g.tags.length > 0);
   }, [tagQ]);
 
-  const activeCount = types.length + tags.length;
+  const activeCount = types.length + customTypes.length + tags.length;
   const hasAnyFilter = hasFilter;
 
-  function clearAll() { setQ(""); setTypes([]); setTags([]); }
+  function clearAll() {
+    setQ("");
+    setTypes([]);
+    setCustomTypes([]);
+    setTags([]);
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -185,12 +196,21 @@ function SearchPage() {
           )}
         </div>
 
-        {(types.length > 0 || tags.length > 0) && (
+        {(types.length > 0 || customTypes.length > 0 || tags.length > 0) && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {types.map((t) => (
               <Badge key={`t-${t}`} variant="secondary" className="gap-1">
                 {BUSINESS_TYPE_LABEL[t]}
                 <button onClick={() => setTypes(types.filter((x) => x !== t))} aria-label={`Remove ${BUSINESS_TYPE_LABEL[t]}`}>
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+            {customTypes.map((type) => (
+              <Badge key={`custom-${type}`} className="gap-1">
+                {type}
+                <span className="text-[10px] uppercase opacity-70">specific</span>
+                <button onClick={() => setCustomTypes(customTypes.filter((x) => x !== type))} aria-label={`Remove ${type}`}>
                   <X className="h-3 w-3" />
                 </button>
               </Badge>

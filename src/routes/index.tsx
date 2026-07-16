@@ -6,19 +6,25 @@ import { SiteFooter } from "@/components/site-footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Store, UtensilsCrossed, Briefcase, Fuel, MapPin, ArrowRight, Link2, Sparkles } from "lucide-react";
+import { Search, MapPin, ArrowRight, Link2, Sparkles } from "lucide-react";
+import { BusinessCategoryIcon } from "@/components/business-category-icon";
+import { BUSINESS_CATEGORY_GROUPS } from "@/lib/business-category-taxonomy";
 import heroImage from "@/assets/hero-barangay.jpg";
 
 export const Route = createFileRoute("/")({
   component: Home,
 });
 
-const TYPES = [
-  { type: "store", label: "Stores", icon: Store, gradient: "from-sea/90 to-sea/70" },
-  { type: "service", label: "Services", icon: Briefcase, gradient: "from-leaf/90 to-leaf/70" },
-  { type: "restaurant", label: "Restaurants", icon: UtensilsCrossed, gradient: "from-sun/90 to-sun/70" },
-  { type: "fuel_station", label: "Fuel Stations", icon: Fuel, gradient: "from-destructive/90 to-destructive/70" },
-];
+const GROUP_STYLES: Record<string, string> = {
+  "food-drinks": "from-sun/90 to-orange-500/80",
+  "retail-essentials": "from-sea/90 to-blue-500/80",
+  "vehicle-transport": "from-emerald-600/90 to-emerald-500/80",
+  "construction-home": "from-amber-700/90 to-amber-500/80",
+  "health-beauty": "from-pink-600/90 to-rose-500/80",
+  "local-services": "from-violet-700/90 to-violet-500/80",
+  "markets-vendors": "from-leaf/90 to-green-500/80",
+  "agriculture-fisheries": "from-lime-700/90 to-lime-500/80",
+};
 
 function Home() {
   const [stats, setStats] = useState({ businesses: 0, barangays: 42042 });
@@ -124,23 +130,33 @@ function Home() {
         <div className="flex items-end justify-between">
           <div>
             <h2 className="font-display text-3xl font-bold md:text-4xl">Browse by category</h2>
-            <p className="mt-2 text-muted-foreground">Whatever you need, your barangay has it.</p>
+            <p className="mt-2 text-muted-foreground">
+              Choose a category first, then pick the exact business type you need.
+            </p>
           </div>
-          <Link to="/regions" className="hidden text-sm font-medium text-primary hover:underline md:inline-flex">
-            All regions <ArrowRight className="ml-1 inline h-4 w-4" />
+          <Link to="/search" className="hidden text-sm font-medium text-primary hover:underline md:inline-flex">
+            Search all businesses <ArrowRight className="ml-1 inline h-4 w-4" />
           </Link>
         </div>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {TYPES.map((t) => (
+          {BUSINESS_CATEGORY_GROUPS.map((group) => (
             <Link
-              key={t.type}
-              to="/search"
-              search={{ type: t.type } as any}
-              className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${t.gradient} p-6 text-primary-foreground shadow-soft transition-all hover:-translate-y-1 hover:shadow-elegant`}
+              key={group.id}
+              to="/categories/$category"
+              params={{ category: group.id }}
+              className={`group relative flex min-h-44 flex-col overflow-hidden rounded-2xl bg-gradient-to-br ${
+                GROUP_STYLES[group.id] ?? "from-primary/90 to-primary/70"
+              } p-6 text-primary-foreground shadow-soft transition-all hover:-translate-y-1 hover:shadow-elegant`}
             >
-              <t.icon className="h-10 w-10 opacity-90" />
-              <h3 className="mt-4 font-display text-xl font-bold">{t.label}</h3>
-              <ArrowRight className="absolute right-5 top-1/2 h-5 w-5 -translate-y-1/2 opacity-0 transition-all group-hover:opacity-100" />
+              <BusinessCategoryIcon icon={group.icon} className="h-10 w-10 opacity-95" />
+              <h3 className="mt-4 font-display text-xl font-bold">{group.label}</h3>
+              <p className="mt-1 line-clamp-2 text-sm text-primary-foreground/80">
+                {group.description}
+              </p>
+              <div className="mt-auto pt-4 text-xs text-primary-foreground/75">
+                {group.items.length} business types
+              </div>
+              <ArrowRight className="absolute right-5 top-1/2 h-5 w-5 -translate-y-1/2 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
             </Link>
           ))}
         </div>

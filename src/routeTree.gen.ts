@@ -24,6 +24,7 @@ import { Route as RegionsRegionRouteImport } from './routes/regions.$region'
 import { Route as ProvincesProvinceRouteImport } from './routes/provinces.$province'
 import { Route as MessagesConversationIdRouteImport } from './routes/messages.$conversationId'
 import { Route as CitiesCityRouteImport } from './routes/cities.$city'
+import { Route as CategoriesCategoryRouteImport } from './routes/categories.$category'
 import { Route as BusinessSlugRouteImport } from './routes/business.$slug'
 import { Route as DashboardBusinessIdRouteImport } from './routes/dashboard.business.$id'
 import { Route as BarangaysCityBarangayRouteImport } from './routes/barangays.$city.$barangay'
@@ -106,6 +107,11 @@ const CitiesCityRoute = CitiesCityRouteImport.update({
   path: '/cities/$city',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CategoriesCategoryRoute = CategoriesCategoryRouteImport.update({
+  id: '/categories/$category',
+  path: '/categories/$category',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BusinessSlugRoute = BusinessSlugRouteImport.update({
   id: '/business/$slug',
   path: '/business/$slug',
@@ -150,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/business/$slug': typeof BusinessSlugRoute
+  '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
@@ -173,6 +180,7 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/business/$slug': typeof BusinessSlugRoute
+  '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/business/$slug': typeof BusinessSlugRoute
+  '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
@@ -222,6 +231,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/signup'
     | '/business/$slug'
+    | '/categories/$category'
     | '/cities/$city'
     | '/messages/$conversationId'
     | '/provinces/$province'
@@ -245,6 +255,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/signup'
     | '/business/$slug'
+    | '/categories/$category'
     | '/cities/$city'
     | '/messages/$conversationId'
     | '/provinces/$province'
@@ -268,6 +279,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/signup'
     | '/business/$slug'
+    | '/categories/$category'
     | '/cities/$city'
     | '/messages/$conversationId'
     | '/provinces/$province'
@@ -292,6 +304,7 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   SignupRoute: typeof SignupRoute
   BusinessSlugRoute: typeof BusinessSlugRoute
+  CategoriesCategoryRoute: typeof CategoriesCategoryRoute
   CitiesCityRoute: typeof CitiesCityRoute
   ProvincesProvinceRoute: typeof ProvincesProvinceRoute
   RegionsRegionRoute: typeof RegionsRegionRoute
@@ -410,6 +423,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CitiesCityRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/categories/$category': {
+      id: '/categories/$category'
+      path: '/categories/$category'
+      fullPath: '/categories/$category'
+      preLoaderRoute: typeof CategoriesCategoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/business/$slug': {
       id: '/business/$slug'
       path: '/business/$slug'
@@ -490,6 +510,7 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   SignupRoute: SignupRoute,
   BusinessSlugRoute: BusinessSlugRoute,
+  CategoriesCategoryRoute: CategoriesCategoryRoute,
   CitiesCityRoute: CitiesCityRoute,
   ProvincesProvinceRoute: ProvincesProvinceRoute,
   RegionsRegionRoute: RegionsRegionRoute,
