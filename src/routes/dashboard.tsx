@@ -12,10 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Plus } from "lucide-react";
+import { ExternalLink, Package, Plus, Settings } from "lucide-react";
 import { FeatureTagsPicker } from "@/components/feature-tags-picker";
 import { BusinessImportDialog } from "@/components/business-import-dialog";
 import { BusinessCategoryPicker } from "@/components/business-category-picker";
+import { EditBusinessDialog } from "@/components/edit-business-dialog";
 import { dedupeCaseInsensitive, tagLabel } from "@/lib/business-tags";
 import {
   BUSINESS_TYPES,
@@ -88,7 +89,11 @@ function Dashboard() {
 
   async function load() {
     if (!user) return;
-    const { data } = await supabase.from("businesses").select("*").eq("owner_id", user.id).order("created_at", { ascending: false });
+    const { data } = await supabase
+      .from("businesses")
+      .select("*, barangays(name, cities_municipalities(name, provinces(name)))")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: false });
     setBusinesses(data ?? []);
   }
   useEffect(() => { load(); }, [user]);
@@ -135,12 +140,12 @@ function Dashboard() {
     <div className="min-h-screen bg-background">
       <SiteHeader />
       <main className="container mx-auto px-4 py-12">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="font-display text-4xl font-bold">Your businesses</h1>
             <p className="mt-1 text-muted-foreground">Manage everything you've listed.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <BusinessImportDialog />
             <Button onClick={() => setShowForm(!showForm)} className="gap-2"><Plus className="h-4 w-4" /> New business</Button>
           </div>
@@ -248,24 +253,40 @@ function Dashboard() {
 
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {businesses.map((b) => (
-            <Link key={b.id} to="/dashboard/business/$id" params={{ id: b.id }}>
-              <Card className="p-5 transition-all hover:-translate-y-1 hover:shadow-elegant">
-                <div className="text-xs uppercase text-muted-foreground">
-                  {[TYPE_LABEL[b.type as BizType] ?? b.type, ...(b.additional_types ?? []).map((t: BizType) => TYPE_LABEL[t] ?? t), ...(b.custom_types ?? [])].join(" · ")}
+            <Card key={b.id} className="flex flex-col p-5 transition-all hover:-translate-y-1 hover:shadow-elegant">
+              <div className="text-xs uppercase text-muted-foreground">
+                {[TYPE_LABEL[b.type as BizType] ?? b.type, ...(b.additional_types ?? []).map((t: BizType) => TYPE_LABEL[t] ?? t), ...(b.custom_types ?? [])].join(" · ")}
+              </div>
+              <h3 className="mt-1 font-display text-lg font-bold">{b.name}</h3>
+              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{b.description}</p>
+              {Array.isArray(b.tags) && b.tags.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {b.tags.slice(0, 6).map((t: string) => (
+                    <span key={t} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-secondary-foreground">{tagLabel(t)}</span>
+                  ))}
+                  {b.tags.length > 6 && <span className="text-[10px] text-muted-foreground">+{b.tags.length - 6} more</span>}
                 </div>
-                <h3 className="mt-1 font-display text-lg font-bold">{b.name}</h3>
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{b.description}</p>
-                {Array.isArray(b.tags) && b.tags.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1">
-                    {b.tags.slice(0, 6).map((t: string) => (
-                      <span key={t} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-secondary-foreground">{tagLabel(t)}</span>
-                    ))}
-                    {b.tags.length > 6 && <span className="text-[10px] text-muted-foreground">+{b.tags.length - 6} more</span>}
-                  </div>
-                )}
-                <p className="mt-3 text-xs text-primary">Manage listings & images →</p>
-              </Card>
-            </Link>
+              )}
+
+              <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                <Button variant="outline" size="sm" asChild className="gap-1">
+                  <a href={`/${b.slug}`} target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-3.5 w-3.5" /> View page
+                  </a>
+                </Button>
+                <EditBusinessDialog business={b} onSaved={load} />
+                <Button variant="outline" size="sm" asChild className="gap-1">
+                  <Link to="/dashboard/business/$id" params={{ id: b.id }}>
+                    <Settings className="h-3.5 w-3.5" /> Listings/images
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild className="gap-1">
+                  <Link to="/dashboard/business/$id/inventory" params={{ id: b.id }}>
+                    <Package className="h-3.5 w-3.5" /> Inventory
+                  </Link>
+                </Button>
+              </div>
+            </Card>
           ))}
           {businesses.length === 0 && <p className="text-muted-foreground">No businesses yet. Create your first one above.</p>}
         </div>
