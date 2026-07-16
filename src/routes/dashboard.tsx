@@ -281,7 +281,7 @@ function Dashboard() {
                   </Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild className="gap-1">
-                  <Link to="/dashboard/business/$id/inventory" params={{ id: b.id }}>
+                  <Link to="/inventory/$businessId" params={{ businessId: b.id }}>
                     <Package className="h-3.5 w-3.5" /> Inventory
                   </Link>
                 </Button>

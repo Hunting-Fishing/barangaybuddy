@@ -90,7 +90,7 @@ export function BusinessMiniSite({ business, listings }: Props) {
                 </Link>
               </Button>
               <Button size="sm" asChild>
-                <Link to="/dashboard/business/$id/inventory" params={{ id: business.id }}>
+                <Link to="/inventory/$businessId" params={{ businessId: business.id }}>
                   <Package className="mr-1 h-3.5 w-3.5" /> Inventory
                 </Link>
               </Button>
