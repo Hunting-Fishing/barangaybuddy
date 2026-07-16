@@ -8,10 +8,16 @@ import type { BusinessCategoryItem } from "@/lib/business-category-taxonomy";
 type Props = {
   item: BusinessCategoryItem;
   searchCount: number;
+  categoryId?: string;
   onSelect: (item: BusinessCategoryItem) => void;
 };
 
-export function CategoryTypeCard({ item, searchCount, onSelect }: Props) {
+export function CategoryTypeCard({
+  item,
+  searchCount,
+  categoryId,
+  onSelect,
+}: Props) {
   return (
     <Link
       to="/search"
@@ -19,6 +25,7 @@ export function CategoryTypeCard({ item, searchCount, onSelect }: Props) {
         types: item.businessType ? [item.businessType] : [],
         customTypes: item.customType ? [item.customType] : [],
         tags: [],
+        category: categoryId,
         page: 1,
       }}
       onClick={() => onSelect(item)}
@@ -33,6 +40,11 @@ export function CategoryTypeCard({ item, searchCount, onSelect }: Props) {
               </Badge>
             )}
             {item.customType && <Badge>{item.customType}</Badge>}
+            {item.section && (
+              <Badge variant="outline" className="text-[10px]">
+                {item.section}
+              </Badge>
+            )}
           </div>
           <h3 className="mt-4 font-display text-lg font-bold">{item.label}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>

@@ -8,27 +8,93 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Search, X, SlidersHorizontal, Loader2 } from "lucide-react";
+import { Search, X, SlidersHorizontal, Loader2, ArrowLeft, Plus, Sparkles } from "lucide-react";
 import { BUSINESS_TYPES, BUSINESS_TYPE_LABEL, type BusinessType } from "@/lib/business-types";
 import { FEATURE_TAG_GROUPS, tagLabel } from "@/lib/business-tags";
+import { SearchCategoryGuidance } from "@/components/search-category-guidance";
+import {
+  getBusinessCategoryGroup,
+  getBusinessCategoryGroupForFilters,
+  type BusinessCategoryItem,
+} from "@/lib/business-category-taxonomy";
 
 const RESULTS_PER_PAGE = 12;
+
+function parseStringArray(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string");
+  }
+
+  if (typeof value !== "string" || value.length === 0) return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((item): item is string => typeof item === "string");
+    }
+  } catch {
+    // Fall back to comma-separated or single value parsing below.
+  }
+
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
 
 export const Route = createFileRoute("/search")({
   head: () => ({ meta: [{ title: "Search businesses — BarangayHub" }] }),
   validateSearch: (s: Record<string, unknown>) => ({
     q: typeof s.q === "string" ? s.q : "",
-    types: Array.isArray(s.types) ? (s.types as string[]).filter((x) => BUSINESS_TYPES.includes(x as BusinessType)) : [],
-    customTypes: Array.isArray(s.customTypes) ? (s.customTypes as string[]).filter((x) => typeof x === "string" && x.length > 0) : [],
-    tags: Array.isArray(s.tags) ? (s.tags as string[]).filter((x) => typeof x === "string") : [],
-    page: typeof s.page === "number" && s.page > 0 ? s.page : 1,
+    types: parseStringArray(s.types).filter((x) =>
+      BUSINESS_TYPES.includes(x as BusinessType),
+    ),
+    customTypes: parseStringArray(s.customTypes).filter((x) => x.length > 0),
+    tags: parseStringArray(s.tags),
+    category: typeof s.category === "string" ? s.category : undefined,
+    page: Number(s.page) > 0 ? Number(s.page) : 1,
   }),
   component: SearchPage,
 });
 
+type RpcError = { message: string };
+type RpcClient = {
+  rpc: (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ error: RpcError | null }>;
+};
+
+const rpcClient = supabase as unknown as RpcClient;
+
+async function recordCategoryEvent(data: {
+  groupId: string;
+  itemId: string;
+  label: string;
+}) {
+  const { error } = await rpcClient.rpc(
+    "increment_business_category_interaction",
+    {
+      p_group_id: data.groupId,
+      p_item_id: data.itemId,
+      p_label: data.label,
+      p_action: "type_search",
+    },
+  );
+
+  if (error) console.error(error.message);
+}
+
 function SearchPage() {
   const searchParams = Route.useSearch();
-  const { q: urlQ, types: urlTypes, customTypes: urlCustomTypes, tags: urlTags, page: urlPage } = searchParams;
+  const {
+    q: urlQ,
+    types: urlTypes,
+    customTypes: urlCustomTypes,
+    tags: urlTags,
+    category,
+    page: urlPage,
+  } = searchParams;
   const navigate = useNavigate({ from: "/search" });
 
   const [q, setQ] = useState(urlQ);
@@ -51,13 +117,75 @@ function SearchPage() {
   // Sync URL <- filter state (debounced); reset page to 1 on filter change
   useEffect(() => {
     const t = setTimeout(() => {
-      navigate({ search: { ...searchParams, q, types, customTypes, tags, page: 1 }, replace: true });
+      navigate({
+        search: {
+          ...searchParams,
+          q,
+          types,
+          customTypes,
+          tags,
+          page: 1,
+        },
+        replace: true,
+      });
     }, 200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, types, customTypes, tags]);
 
   const hasFilter = q.trim().length > 0 || types.length > 0 || customTypes.length > 0 || tags.length > 0;
+
+  const selectedCategoryGroup = useMemo(
+    () =>
+      getBusinessCategoryGroup(category) ??
+      getBusinessCategoryGroupForFilters({
+        types,
+        customTypes,
+      }),
+    [category, types, customTypes],
+  );
+
+  const relatedCategoryItems = useMemo(() => {
+    if (!selectedCategoryGroup) return [];
+
+    const selectedCustomKeys = new Set(
+      customTypes.map((customType) => customType.toLowerCase()),
+    );
+
+    if (types.length > 0) {
+      return selectedCategoryGroup.items
+        .filter((item) => {
+          if (!item.businessType || !types.includes(item.businessType)) return false;
+          if (item.customType && selectedCustomKeys.has(item.customType.toLowerCase())) return false;
+
+          // When the user searched a broad type like "Food vendor", show the
+          // specific subtypes under that broad type: Empanada, Sisig, Turon, etc.
+          return Boolean(item.customType);
+        })
+        .slice(0, 12);
+    }
+
+    if (customTypes.length > 0) {
+      const selectedItems = selectedCategoryGroup.items.filter(
+        (item) =>
+          item.customType &&
+          selectedCustomKeys.has(item.customType.toLowerCase()),
+      );
+      const siblingTypes = new Set(
+        selectedItems.map((item) => item.businessType).filter(Boolean),
+      );
+
+      return selectedCategoryGroup.items
+        .filter((item) => {
+          if (!item.businessType || !siblingTypes.has(item.businessType)) return false;
+          if (item.customType && selectedCustomKeys.has(item.customType.toLowerCase())) return false;
+          return true;
+        })
+        .slice(0, 12);
+    }
+
+    return selectedCategoryGroup.items.slice(0, 12);
+  }, [selectedCategoryGroup, types, customTypes]);
 
   // Build a stable filter signature so the fetch effect knows when filters truly changed
   const filterKey = useMemo(
@@ -130,7 +258,17 @@ function SearchPage() {
     setResults((prev) => [...prev, ...(data ?? [])]);
     if (typeof count === "number") setTotalCount(count);
     setLoadingMore(false);
-    navigate({ search: { ...searchParams, q, types, customTypes, tags, page: nextPage }, replace: true });
+    navigate({
+      search: {
+        ...searchParams,
+        q,
+        types,
+        customTypes,
+        tags,
+        page: nextPage,
+      },
+      replace: true,
+    });
   }, [canLoadMore, results.length, buildQuery, navigate, searchParams, q, types, customTypes, tags]);
 
   // Infinite scroll sentinel
@@ -165,12 +303,51 @@ function SearchPage() {
     setTypes([]);
     setCustomTypes([]);
     setTags([]);
+    navigate({
+      search: {
+        q: "",
+        types: [],
+        customTypes: [],
+        tags: [],
+        page: 1,
+      },
+      replace: true,
+    });
+  }
+
+  function handleRelatedSelect(item: BusinessCategoryItem) {
+    if (!selectedCategoryGroup) return;
+
+    void recordCategoryEvent({
+      groupId: selectedCategoryGroup.id,
+      itemId: item.id,
+      label: item.label,
+    });
   }
 
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
       <main className="container mx-auto px-4 py-12">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          {selectedCategoryGroup ? (
+            <Button variant="ghost" size="sm" asChild className="gap-2">
+              <Link
+                to="/categories/$category"
+                params={{ category: selectedCategoryGroup.id }}
+              >
+                <ArrowLeft className="h-4 w-4" /> Back to {selectedCategoryGroup.label}
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" asChild className="gap-2">
+              <Link to="/">
+                <ArrowLeft className="h-4 w-4" /> Back home
+              </Link>
+            </Button>
+          )}
+        </div>
+
         <h1 className="font-display text-4xl font-bold">Search businesses</h1>
         <p className="mt-1 text-muted-foreground">Find by name, category, or features.</p>
 
@@ -287,7 +464,44 @@ function SearchPage() {
               </Card>
             )}
             {!loading && hasAnyFilter && results.length === 0 && (
-              <p className="text-muted-foreground">No matches. Try removing a filter.</p>
+              <>
+                <Card className="p-6 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <Sparkles className="h-6 w-6" />
+                  </div>
+                  <h2 className="mt-4 font-display text-xl font-bold">
+                    No businesses listed for this exact search yet
+                  </h2>
+                  <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+                    This does not mean the category is missing. It means no one has listed a matching business yet. You can try a more specific type or add/import a business for this category.
+                  </p>
+                  <div className="mt-5 flex flex-wrap justify-center gap-2">
+                    {selectedCategoryGroup && (
+                      <Button variant="outline" asChild>
+                        <Link
+                          to="/categories/$category"
+                          params={{ category: selectedCategoryGroup.id }}
+                        >
+                          Browse all {selectedCategoryGroup.label} types
+                        </Link>
+                      </Button>
+                    )}
+                    <Button asChild className="gap-2">
+                      <Link to="/import">
+                        <Plus className="h-4 w-4" /> Add/import a business
+                      </Link>
+                    </Button>
+                  </div>
+                </Card>
+
+                {selectedCategoryGroup && (
+                  <SearchCategoryGuidance
+                    group={selectedCategoryGroup}
+                    items={relatedCategoryItems}
+                    onSelect={handleRelatedSelect}
+                  />
+                )}
+              </>
             )}
 
             {!loading && totalCount > 0 && (
