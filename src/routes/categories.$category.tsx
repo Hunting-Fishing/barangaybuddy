@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, BarChart3 } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -13,7 +12,7 @@ import {
   BUSINESS_CATEGORY_GROUPS,
   type BusinessCategoryItem,
 } from "@/lib/business-category-taxonomy";
-import { recordCategoryEvent } from "@/lib/category-analytics.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/categories/$category")({
   head: () => ({
@@ -39,9 +38,37 @@ type SuggestionRow = {
   suggestion_count: number;
 };
 
+type RpcError = { message: string };
+type RpcClient = {
+  rpc: (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ error: RpcError | null }>;
+};
+
+const rpcClient = supabase as unknown as RpcClient;
+
+async function recordCategoryEvent(data: {
+  groupId: string;
+  itemId: string;
+  label: string;
+  action: "category_view" | "type_search";
+}) {
+  const { error } = await rpcClient.rpc(
+    "increment_business_category_interaction",
+    {
+      p_group_id: data.groupId,
+      p_item_id: data.itemId,
+      p_label: data.label,
+      p_action: data.action,
+    },
+  );
+
+  if (error) console.error(error.message);
+}
+
 function CategoryPage() {
   const { category } = Route.useParams();
-  const recordEvent = useServerFn(recordCategoryEvent);
   const group = useMemo(
     () => BUSINESS_CATEGORY_GROUPS.find((item) => item.id === category),
     [category],
@@ -96,16 +123,14 @@ function CategoryPage() {
   useEffect(() => {
     if (!group) return;
 
-    void recordEvent({
-      data: {
-        groupId: group.id,
-        itemId: group.id,
-        label: group.label,
-        action: "category_view",
-      },
+    void recordCategoryEvent({
+      groupId: group.id,
+      itemId: group.id,
+      label: group.label,
+      action: "category_view",
     });
     void loadStats();
-  }, [group, loadStats, recordEvent]);
+  }, [group, loadStats]);
 
   function handleSelect(item: BusinessCategoryItem) {
     setCounts((current) => ({
@@ -113,13 +138,11 @@ function CategoryPage() {
       [item.id]: (current[item.id] ?? 0) + 1,
     }));
 
-    void recordEvent({
-      data: {
-        groupId: group!.id,
-        itemId: item.id,
-        label: item.label,
-        action: "type_search",
-      },
+    void recordCategoryEvent({
+      groupId: group!.id,
+      itemId: item.id,
+      label: item.label,
+      action: "type_search",
     });
   }
 

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { Lightbulb, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { submitCategorySuggestion } from "@/lib/category-analytics.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 type Props = {
   groupId: string;
@@ -15,12 +14,30 @@ type Props = {
   onSubmitted: () => void;
 };
 
+type RpcError = { message: string };
+type RpcClient = {
+  rpc: (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ error: RpcError | null }>;
+};
+
+const rpcClient = supabase as unknown as RpcClient;
+
+function normalizeSuggestion(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s&\-'./+]/g, "")
+    .replace(/\s+/g, " ")
+    .slice(0, 80);
+}
+
 export function CategorySuggestionForm({
   groupId,
   groupLabel,
   onSubmitted,
 }: Props) {
-  const submitSuggestion = useServerFn(submitCategorySuggestion);
   const [suggestion, setSuggestion] = useState("");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -33,19 +50,28 @@ export function CategorySuggestionForm({
       return;
     }
 
+    const normalized = normalizeSuggestion(suggestion);
+
+    if (normalized.length < 2) {
+      toast.error("Suggestion is too short.");
+      return;
+    }
+
     setSubmitting(true);
-    const result = await submitSuggestion({
-      data: {
-        groupId,
-        groupLabel,
-        suggestion: suggestion.trim(),
-        note: note.trim() || undefined,
+    const { error } = await rpcClient.rpc(
+      "upsert_business_category_suggestion",
+      {
+        p_group_id: groupId,
+        p_group_label: groupLabel,
+        p_suggestion: suggestion.trim(),
+        p_normalized_suggestion: normalized,
+        p_note: note.trim() || null,
       },
-    });
+    );
     setSubmitting(false);
 
-    if (!result.ok) {
-      toast.error(result.error);
+    if (error) {
+      toast.error(error.message);
       return;
     }
 
