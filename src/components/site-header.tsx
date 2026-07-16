@@ -52,6 +52,11 @@ export function SiteHeader() {
   const hasBusiness = ownedBusinesses.length > 0;
 
   const openBusinessAction = () => {
+    if (!hasBusiness) {
+      navigate({ to: "/add-business" });
+      return;
+    }
+
     const business = ownedBusinesses[0];
 
     if (ownedBusinesses.length === 1 && business) {
