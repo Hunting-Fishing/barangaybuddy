@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ComponentType } from "react";
 import {
   Briefcase,
   Car,
+  Check,
   ChevronRight,
   Hammer,
   HeartPulse,
@@ -29,7 +30,7 @@ import {
 import { dedupeCaseInsensitive, sanitizeCustomLabel } from "@/lib/business-tags";
 import { cn } from "@/lib/utils";
 
-const ICONS: Record<BusinessCategoryIcon, React.ComponentType<{ className?: string }>> = {
+const ICONS: Record<BusinessCategoryIcon, ComponentType<{ className?: string }>> = {
   food: UtensilsCrossed,
   retail: ShoppingBasket,
   vehicle: Car,
@@ -39,6 +40,15 @@ const ICONS: Record<BusinessCategoryIcon, React.ComponentType<{ className?: stri
   market: Store,
   agriculture: Sprout,
 };
+
+const QUICK_SEARCHES = [
+  "food",
+  "vehicle",
+  "delivery",
+  "construction",
+  "convenience",
+  "laundry",
+];
 
 type Props = {
   primaryType: BusinessType;
@@ -56,7 +66,9 @@ export function BusinessCategoryPicker({
   onCustomTypesChange,
 }: Props) {
   const [query, setQuery] = useState("");
-  const [activeGroupId, setActiveGroupId] = useState(BUSINESS_CATEGORY_GROUPS[0]?.id ?? "");
+  const [activeGroupId, setActiveGroupId] = useState(
+    BUSINESS_CATEGORY_GROUPS[0]?.id ?? "",
+  );
 
   const customTypeKeys = useMemo(
     () => new Set(customTypes.map((type) => type.toLowerCase())),
@@ -121,7 +133,9 @@ export function BusinessCategoryPicker({
 
   const removeItem = (item: BusinessCategoryItem) => {
     if (item.businessType && item.businessType !== primaryType) {
-      onAdditionalTypesChange(additionalTypes.filter((type) => type !== item.businessType));
+      onAdditionalTypesChange(
+        additionalTypes.filter((type) => type !== item.businessType),
+      );
     }
 
     if (item.customType) {
@@ -163,6 +177,7 @@ export function BusinessCategoryPicker({
 
     onCustomTypesChange(dedupeCaseInsensitive([...customTypes, clean]));
     setQuery("");
+    toast.success("Custom category added.");
   };
 
   const selectedCountForGroup = (groupId: string) => {
@@ -172,70 +187,125 @@ export function BusinessCategoryPicker({
   };
 
   const hasSelectedCategories = additionalTypes.length > 0 || customTypes.length > 0;
+  const ActiveIcon = activeGroup ? ICONS[activeGroup.icon] : Sparkles;
 
   return (
     <div className="md:col-span-2">
-      <div>
-        <h3 className="font-display text-lg font-bold">Additional categories</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Choose a main category group first, then select only the related business types. You can also search for a type directly.
-        </p>
+      <div className="rounded-2xl border border-border bg-muted/20 p-4 md:p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wide text-primary">
+              Business category helper
+            </div>
+            <h3 className="mt-1 font-display text-xl font-bold">
+              Choose what this business does
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Start with a major category, then pick the related business type. This keeps the form fast on mobile and keeps your directory organized.
+            </p>
+          </div>
+          <div className="rounded-full bg-background px-3 py-1 text-xs text-muted-foreground ring-1 ring-border">
+            Primary:{" "}
+            <span className="font-medium text-foreground">
+              {BUSINESS_TYPE_LABEL[primaryType]}
+            </span>
+          </div>
+        </div>
+
+        <div
+          className={cn(
+            "mt-4 rounded-xl border p-3",
+            hasSelectedCategories
+              ? "border-primary/30 bg-primary/5"
+              : "border-dashed border-border bg-background/60",
+          )}
+        >
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div className="text-sm font-medium">Selected extra categories</div>
+            <div className="text-xs text-muted-foreground">
+              {additionalTypes.length + customTypes.length} selected
+            </div>
+          </div>
+
+          {hasSelectedCategories ? (
+            <div className="flex flex-wrap gap-1.5">
+              {additionalTypes.map((type) => (
+                <Badge key={type} variant="secondary" className="gap-1">
+                  {BUSINESS_TYPE_LABEL[type]}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onAdditionalTypesChange(
+                        additionalTypes.filter((item) => item !== type),
+                      )
+                    }
+                    className="hover:text-destructive"
+                    aria-label={`Remove ${BUSINESS_TYPE_LABEL[type]}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              {customTypes.map((type) => (
+                <Badge key={type} className="gap-1">
+                  {type}
+                  <span className="text-[10px] uppercase opacity-70">specific</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onCustomTypesChange(
+                        customTypes.filter(
+                          (item) => item.toLowerCase() !== type.toLowerCase(),
+                        ),
+                      )
+                    }
+                    className="hover:text-destructive/80"
+                    aria-label={`Remove ${type}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Optional — add extra categories only if the business does more than its primary type.
+            </p>
+          )}
+        </div>
       </div>
 
-      {hasSelectedCategories && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {additionalTypes.map((type) => (
-            <Badge key={type} variant="secondary" className="gap-1">
-              {BUSINESS_TYPE_LABEL[type]}
-              <button
-                type="button"
-                onClick={() =>
-                  onAdditionalTypesChange(additionalTypes.filter((item) => item !== type))
-                }
-                className="hover:text-destructive"
-                aria-label={`Remove ${BUSINESS_TYPE_LABEL[type]}`}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
-          {customTypes.map((type) => (
-            <Badge key={type} className="gap-1">
-              {type}
-              <span className="text-[10px] uppercase opacity-70">specific</span>
-              <button
-                type="button"
-                onClick={() =>
-                  onCustomTypesChange(
-                    customTypes.filter((item) => item.toLowerCase() !== type.toLowerCase()),
-                  )
-                }
-                className="hover:text-destructive/80"
-                aria-label={`Remove ${type}`}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
-        </div>
-      )}
-
-      <div className="mt-4">
+      <div className="mt-5">
         <label className="mb-1.5 block text-sm font-medium">
-          Smart category search
+          Search categories quickly
         </label>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Try vehicle, food, construction, delivery, convenience store…"
-            className="pl-9"
+            placeholder="Try delivery, car wash, sari-sari, plumber…"
+            className="h-11 pl-9"
           />
         </div>
 
+        {query.trim().length < 2 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {QUICK_SEARCHES.map((term) => (
+              <button
+                key={term}
+                type="button"
+                onClick={() => setQuery(term)}
+                className="rounded-full bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+              >
+                {term}
+              </button>
+            ))}
+          </div>
+        )}
+
         {query.trim().length >= 2 && (
-          <div className="mt-2 overflow-hidden rounded-lg border border-border bg-card">
+          <div className="mt-2 overflow-hidden rounded-xl border border-border bg-card shadow-soft">
             {suggestions.length > 0 ? (
               suggestions.map((suggestion) => {
                 const selected = isItemSelected(suggestion);
@@ -247,7 +317,7 @@ export function BusinessCategoryPicker({
                       setActiveGroupId(suggestion.groupId);
                       if (!selected) addItem(suggestion);
                     }}
-                    className="flex w-full items-start justify-between gap-3 border-b border-border px-3 py-2 text-left last:border-b-0 hover:bg-muted/60"
+                    className="flex min-h-16 w-full items-start justify-between gap-3 border-b border-border px-3 py-3 text-left last:border-b-0 hover:bg-muted/60"
                   >
                     <span>
                       <span className="flex items-center gap-1.5 text-sm font-medium">
@@ -258,7 +328,14 @@ export function BusinessCategoryPicker({
                         {suggestion.groupLabel} · {suggestion.description}
                       </span>
                     </span>
-                    <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-secondary-foreground">
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                        selected
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground",
+                      )}
+                    >
                       {selected ? "Added" : "Add"}
                     </span>
                   </button>
@@ -278,10 +355,21 @@ export function BusinessCategoryPicker({
         )}
       </div>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[280px_1fr]">
-        <div>
-          <div className="mb-2 text-sm font-medium">Category groups</div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+      <div className="mt-6">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wide text-primary">
+              Step 1
+            </div>
+            <h4 className="font-display text-lg font-bold">Pick a category group</h4>
+          </div>
+          <p className="hidden text-xs text-muted-foreground sm:block">
+            Swipe on mobile
+          </p>
+        </div>
+
+        <div className="lg:hidden">
+          <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {BUSINESS_CATEGORY_GROUPS.map((group) => {
               const Icon = ICONS[group.icon];
               const selectedCount = selectedCountForGroup(group.id);
@@ -292,93 +380,148 @@ export function BusinessCategoryPicker({
                   key={group.id}
                   type="button"
                   onClick={() => setActiveGroupId(group.id)}
+                  aria-pressed={active}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-soft",
-                    active && "border-primary bg-primary/5 ring-1 ring-primary",
+                    "min-w-[13rem] snap-start rounded-2xl border bg-card p-3 text-left transition-all",
+                    active
+                      ? "border-primary bg-primary/5 shadow-soft ring-1 ring-primary"
+                      : "border-border",
                   )}
                 >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate font-medium">{group.label}</span>
-                      {selectedCount > 0 && (
-                        <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
-                          {selectedCount}
-                        </span>
-                      )}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <Icon className="h-5 w-5" />
                     </div>
-                    <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                      {group.description}
-                    </p>
-                  </div>
-                  <ChevronRight
-                    className={cn(
-                      "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
-                      active && "translate-x-0.5 text-primary",
+                    {selectedCount > 0 && (
+                      <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+                        {selectedCount}
+                      </span>
                     )}
-                  />
+                  </div>
+                  <div className="mt-3 font-medium leading-tight">{group.label}</div>
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                    {group.description}
+                  </p>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {activeGroup && (
-          <Card className="overflow-hidden">
-            <div className="border-b border-border bg-muted/40 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h4 className="font-display text-lg font-bold">{activeGroup.label}</h4>
-                  <p className="mt-0.5 text-sm text-muted-foreground">
-                    {activeGroup.description}
+        <div className="hidden lg:grid lg:grid-cols-4 lg:gap-3">
+          {BUSINESS_CATEGORY_GROUPS.map((group) => {
+            const Icon = ICONS[group.icon];
+            const selectedCount = selectedCountForGroup(group.id);
+            const active = group.id === activeGroup?.id;
+
+            return (
+              <button
+                key={group.id}
+                type="button"
+                onClick={() => setActiveGroupId(group.id)}
+                aria-pressed={active}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-soft",
+                  active && "border-primary bg-primary/5 ring-1 ring-primary",
+                )}
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-medium">{group.label}</span>
+                    {selectedCount > 0 && (
+                      <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                        {selectedCount}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+                    {group.description}
                   </p>
                 </div>
-                <span className="rounded-full bg-secondary px-3 py-1 text-xs text-secondary-foreground">
-                  {activeGroup.items.length} options
-                </span>
-              </div>
-            </div>
-
-            <div className="grid gap-2 p-3 sm:grid-cols-2">
-              {activeGroup.items.map((item) => {
-                const checked = isItemSelected(item);
-                const disabled = isItemDisabled(item);
-
-                return (
-                  <label
-                    key={item.id}
-                    className={cn(
-                      "flex cursor-pointer items-start gap-2 rounded-lg border border-transparent px-3 py-2.5 text-sm transition-colors hover:border-border hover:bg-muted/60",
-                      checked && "border-primary/30 bg-primary/5",
-                      disabled && "cursor-not-allowed opacity-60",
-                    )}
-                  >
-                    <Checkbox
-                      checked={checked}
-                      disabled={disabled}
-                      onCheckedChange={(value) => toggleItem(item, !!value)}
-                      className="mt-0.5"
-                    />
-                    <span className="min-w-0">
-                      <span className="block font-medium leading-tight">{item.label}</span>
-                      <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
-                        {item.description}
-                      </span>
-                      {disabled && (
-                        <span className="mt-1 inline-block text-[10px] font-medium uppercase tracking-wide text-primary">
-                          Primary type
-                        </span>
-                      )}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </Card>
-        )}
+                <ChevronRight
+                  className={cn(
+                    "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                    active && "translate-x-0.5 text-primary",
+                  )}
+                />
+              </button>
+            );
+          })}
+        </div>
       </div>
+
+      {activeGroup && (
+        <Card className="mt-4 overflow-hidden">
+          <div className="border-b border-border bg-muted/40 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <ActiveIcon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-bold uppercase tracking-wide text-primary">
+                  Step 2
+                </div>
+                <h4 className="font-display text-lg font-bold">{activeGroup.label}</h4>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {activeGroup.description}
+                </p>
+              </div>
+              <span className="hidden rounded-full bg-secondary px-3 py-1 text-xs text-secondary-foreground sm:inline-flex">
+                {activeGroup.items.length} options
+              </span>
+            </div>
+          </div>
+
+          <div className="grid gap-2 p-3 sm:grid-cols-2">
+            {activeGroup.items.map((item) => {
+              const checked = isItemSelected(item);
+              const disabled = isItemDisabled(item);
+
+              return (
+                <label
+                  key={item.id}
+                  className={cn(
+                    "flex min-h-[4.75rem] cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-sm transition-colors",
+                    checked
+                      ? "border-primary/40 bg-primary/5"
+                      : "border-border bg-card hover:bg-muted/50",
+                    disabled && "cursor-not-allowed opacity-60",
+                  )}
+                >
+                  <Checkbox
+                    checked={checked}
+                    disabled={disabled}
+                    onCheckedChange={(value) => toggleItem(item, value === true)}
+                    className="mt-0.5"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5 font-medium leading-tight">
+                      {checked && <Check className="h-3.5 w-3.5 text-primary" />}
+                      {item.label}
+                    </span>
+                    <span className="mt-1 block text-xs leading-snug text-muted-foreground">
+                      {item.description}
+                    </span>
+                    {disabled && (
+                      <span className="mt-1 inline-block text-[10px] font-medium uppercase tracking-wide text-primary">
+                        Already selected as primary
+                      </span>
+                    )}
+                    {item.customType && !disabled && (
+                      <span className="mt-1 inline-block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Specific category
+                      </span>
+                    )}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
