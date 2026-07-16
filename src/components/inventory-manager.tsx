@@ -29,15 +29,27 @@ type Props = {
 
 const db = supabase as any;
 
+function isInventorySetupError(message: string) {
+  return (
+    message.includes("inventory_items") &&
+    (message.includes("schema cache") ||
+      message.includes("does not exist") ||
+      message.includes("Could not find the table"))
+  );
+}
+
 export function InventoryManager({ businessId }: Props) {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [setupError, setSetupError] = useState("");
   const [query, setQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
 
   async function loadItems() {
     setLoading(true);
+    setSetupError("");
+
     const { data, error } = await db
       .from("inventory_items")
       .select("*")
@@ -47,6 +59,13 @@ export function InventoryManager({ businessId }: Props) {
     setLoading(false);
 
     if (error) {
+      if (isInventorySetupError(error.message)) {
+        setSetupError(
+          "Inventory is still being set up in the database. Please refresh in a moment after the migration finishes.",
+        );
+        return;
+      }
+
       toast.error(error.message);
       return;
     }
@@ -143,6 +162,28 @@ export function InventoryManager({ businessId }: Props) {
 
     toast.success(direction === "in" ? "Stock added." : "Stock removed.");
     await loadItems();
+  }
+
+  if (setupError) {
+    return (
+      <Card className="border-amber-300 bg-amber-50 p-6 text-amber-950">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <h2 className="font-display text-xl font-bold">Inventory setup is finishing</h2>
+            <p className="mt-1 text-sm">{setupError}</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-4 bg-white"
+              onClick={loadItems}
+            >
+              Try loading inventory again
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
   }
 
   return (
