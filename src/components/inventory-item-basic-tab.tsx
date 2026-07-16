@@ -11,6 +11,7 @@ import { InventoryDialogField } from "@/components/inventory-dialog-field";
 import {
   INVENTORY_CATEGORIES,
   INVENTORY_STATUSES,
+  getInventorySubcategories,
   type InventoryFormState,
 } from "@/lib/inventory";
 import type { InventoryFormUpdate } from "@/hooks/use-inventory-item-dialog";
@@ -21,6 +22,8 @@ type Props = {
 };
 
 export function InventoryItemBasicTab({ form, update }: Props) {
+  const subcategories = getInventorySubcategories(form.category || "Other");
+
   return (
     <div className="rounded-xl border border-border p-5">
       <h3 className="font-display text-xl font-bold">Basic Information</h3>
@@ -58,9 +61,10 @@ export function InventoryItemBasicTab({ form, update }: Props) {
         <InventoryDialogField label="Main Category *">
           <Select
             value={form.category || "none"}
-            onValueChange={(value) =>
-              update("category", value === "none" ? "" : value)
-            }
+            onValueChange={(value) => {
+              update("category", value === "none" ? "" : value);
+              update("sub_category", "");
+            }}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select main category" />
@@ -70,6 +74,29 @@ export function InventoryItemBasicTab({ form, update }: Props) {
               {INVENTORY_CATEGORIES.map((category) => (
                 <SelectItem key={category} value={category}>
                   {category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </InventoryDialogField>
+        <InventoryDialogField
+          label="Sub-category"
+          help="Use this to organize items inside the main category."
+        >
+          <Select
+            value={form.sub_category || "none"}
+            onValueChange={(value) =>
+              update("sub_category", value === "none" ? "" : value)
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select sub-category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No sub-category</SelectItem>
+              {subcategories.map((subcategory) => (
+                <SelectItem key={subcategory} value={subcategory}>
+                  {subcategory}
                 </SelectItem>
               ))}
             </SelectContent>

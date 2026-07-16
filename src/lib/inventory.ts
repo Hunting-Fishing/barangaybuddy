@@ -7,6 +7,7 @@ export type InventoryItem = {
   barcode: string | null;
   manufacturer_part_number: string | null;
   category: string | null;
+  sub_category: string | null;
   status: string;
   manufacturer: string | null;
   supplier: string | null;
@@ -57,6 +58,7 @@ export type InventoryFormState = {
   barcode: string;
   manufacturer_part_number: string;
   category: string;
+  sub_category: string;
   status: string;
   manufacturer: string;
   supplier: string;
@@ -87,6 +89,7 @@ export type InventoryFormState = {
   date_last_ordered: string;
   date_last_used: string;
   notes: string;
+  links: InventoryLink[];
   publish_to_store: boolean;
   image_url: string;
 };
@@ -120,6 +123,105 @@ export const INVENTORY_CATEGORIES = [
   "Other",
 ];
 
+export const INVENTORY_SUBCATEGORIES: Record<string, string[]> = {
+  "Food & drinks": [
+    "Ingredients",
+    "Prepared food",
+    "Drinks",
+    "Frozen goods",
+    "Snacks",
+    "Condiments",
+    "Packaging",
+  ],
+  "Retail goods": [
+    "Grocery",
+    "Household essentials",
+    "Mobile load/accessories",
+    "Water/LPG",
+    "General merchandise",
+  ],
+  "Dry goods": [
+    "Clothing",
+    "Footwear",
+    "Bags",
+    "School supplies",
+    "Textiles",
+    "Ukay-ukay",
+  ],
+  Hardware: [
+    "Tools",
+    "Paint",
+    "Electrical",
+    "Plumbing",
+    "Cement/aggregates",
+    "Lumber",
+    "Fasteners",
+  ],
+  "Parts & accessories": [
+    "Motorcycle parts",
+    "Auto parts",
+    "Bicycle parts",
+    "Tires",
+    "Oil/lubricants",
+    "Electronics",
+  ],
+  "Services supplies": [
+    "Cleaning supplies",
+    "Printing supplies",
+    "Laundry supplies",
+    "Salon supplies",
+    "Office supplies",
+  ],
+  "Fuel & automotive": [
+    "Gasoline",
+    "Diesel",
+    "Motor oil",
+    "Filters",
+    "Car wash supplies",
+    "Vulcanizing supplies",
+  ],
+  "Health & beauty": [
+    "Medicine",
+    "Supplements",
+    "Personal care",
+    "Hair care",
+    "Nail/lash supplies",
+    "Clinic supplies",
+  ],
+  Agriculture: [
+    "Seeds",
+    "Fertilizer",
+    "Feeds",
+    "Pesticides",
+    "Farm tools",
+    "Seedlings",
+    "Livestock supplies",
+  ],
+  Other: ["General", "Consumables", "Equipment", "Materials", "Supplies"],
+};
+
+export function getInventorySubcategories(category: string) {
+  return INVENTORY_SUBCATEGORIES[category] ?? INVENTORY_SUBCATEGORIES.Other;
+}
+
+function normalizeLinks(value: unknown): InventoryLink[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((link) => {
+      if (!link || typeof link !== "object") return null;
+      const row = link as Partial<InventoryLink>;
+      return {
+        type: String(row.type ?? "").trim(),
+        label: String(row.label ?? "").trim(),
+        url: String(row.url ?? "").trim(),
+      };
+    })
+    .filter(
+      (link): link is InventoryLink =>
+        link !== null && link.label.length > 0 && link.url.length > 0,
+    );
+}
+
 export function createInventoryForm(item?: InventoryItem | null): InventoryFormState {
   return {
     name: item?.name ?? "",
@@ -127,6 +229,7 @@ export function createInventoryForm(item?: InventoryItem | null): InventoryFormS
     barcode: item?.barcode ?? "",
     manufacturer_part_number: item?.manufacturer_part_number ?? "",
     category: item?.category ?? "",
+    sub_category: item?.sub_category ?? "",
     status: item?.status ?? "active",
     manufacturer: item?.manufacturer ?? "",
     supplier: item?.supplier ?? "",
@@ -157,6 +260,7 @@ export function createInventoryForm(item?: InventoryItem | null): InventoryFormS
     date_last_ordered: item?.date_last_ordered ?? "",
     date_last_used: item?.date_last_used ?? "",
     notes: item?.notes ?? "",
+    links: normalizeLinks(item?.links),
     publish_to_store: item?.publish_to_store ?? true,
     image_url: item?.image_url ?? "",
   };

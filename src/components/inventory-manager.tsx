@@ -68,6 +68,7 @@ export function InventoryManager({ businessId }: Props) {
         item.sku,
         item.barcode,
         item.category,
+        item.sub_category,
         item.supplier,
         item.location,
       ]
@@ -199,7 +200,7 @@ export function InventoryManager({ businessId }: Props) {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search inventory by item, SKU, supplier, location…"
+            placeholder="Search inventory by item, SKU, category, sub-category, supplier, location…"
             className="pl-9"
           />
         </div>
@@ -247,7 +248,14 @@ export function InventoryManager({ businessId }: Props) {
                         {item.publish_to_store && <Badge variant="outline">Published</Badge>}
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {[item.category, item.sku ? `SKU ${item.sku}` : null, item.location].filter(Boolean).join(" · ")}
+                        {[
+                          item.category,
+                          item.sub_category,
+                          item.sku ? `SKU ${item.sku}` : null,
+                          item.location,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </p>
                       <div className="mt-3 grid gap-2 text-sm sm:grid-cols-4">
                         <Metric label="Qty" value={`${quantity.toLocaleString()} ${item.unit}`} />

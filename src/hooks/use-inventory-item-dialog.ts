@@ -8,6 +8,7 @@ import {
   toNumber,
   type InventoryFormState,
   type InventoryItem,
+  type InventoryLink,
 } from "@/lib/inventory";
 
 export const INVENTORY_ITEM_DIALOG_TAB_VALUES = [
@@ -35,6 +36,17 @@ type Args = {
 };
 
 const db = supabase as any;
+
+function cleanLinks(links: InventoryLink[]) {
+  return links
+    .map((link) => ({
+      type: link.type.trim() || "related",
+      label: link.label.trim(),
+      url: link.url.trim(),
+    }))
+    .filter((link) => link.label.length > 0 && link.url.length > 0)
+    .slice(0, 12);
+}
 
 export function useInventoryItemDialog({
   businessId,
@@ -71,7 +83,13 @@ export function useInventoryItemDialog({
     if (form.tax_rate || form.environmental_fee || form.core_charge || form.hazmat_fee) {
       count += 1;
     }
-    if (form.notes || form.image_url || form.date_last_ordered || form.date_last_used) {
+    if (
+      form.notes ||
+      form.image_url ||
+      form.date_last_ordered ||
+      form.date_last_used ||
+      form.links.length > 0
+    ) {
       count += 1;
     }
     return count;
@@ -108,7 +126,7 @@ export function useInventoryItemDialog({
       description: form.description.trim() || null,
       price: sellPrice > 0 ? sellPrice : null,
       unit: form.unit || null,
-      category: form.category || null,
+      category: form.sub_category || form.category || null,
       image_url: form.image_url.trim() || null,
       in_stock: quantity > 0,
     };
@@ -168,6 +186,7 @@ export function useInventoryItemDialog({
       barcode: form.barcode.trim() || null,
       manufacturer_part_number: form.manufacturer_part_number.trim() || null,
       category: form.category.trim(),
+      sub_category: form.sub_category.trim() || null,
       status: form.status,
       manufacturer: form.manufacturer.trim() || null,
       supplier: form.supplier.trim() || null,
@@ -199,6 +218,7 @@ export function useInventoryItemDialog({
       date_last_ordered: form.date_last_ordered || null,
       date_last_used: form.date_last_used || null,
       notes: form.notes.trim() || null,
+      links: cleanLinks(form.links),
       publish_to_store: form.publish_to_store,
       image_url: form.image_url.trim() || null,
       updated_at: new Date().toISOString(),

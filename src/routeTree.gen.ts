@@ -25,6 +25,7 @@ import { Route as BarangaysIndexRouteImport } from './routes/barangays.index'
 import { Route as RegionsRegionRouteImport } from './routes/regions.$region'
 import { Route as ProvincesProvinceRouteImport } from './routes/provinces.$province'
 import { Route as MessagesConversationIdRouteImport } from './routes/messages.$conversationId'
+import { Route as InventoryBusinessIdRouteImport } from './routes/inventory.$businessId'
 import { Route as CitiesCityRouteImport } from './routes/cities.$city'
 import { Route as CategoriesCategoryRouteImport } from './routes/categories.$category'
 import { Route as BusinessSlugRouteImport } from './routes/business.$slug'
@@ -115,6 +116,11 @@ const MessagesConversationIdRoute = MessagesConversationIdRouteImport.update({
   path: '/$conversationId',
   getParentRoute: () => MessagesRoute,
 } as any)
+const InventoryBusinessIdRoute = InventoryBusinessIdRouteImport.update({
+  id: '/inventory/$businessId',
+  path: '/inventory/$businessId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CitiesCityRoute = CitiesCityRouteImport.update({
   id: '/cities/$city',
   path: '/cities/$city',
@@ -179,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
@@ -206,6 +213,7 @@ export interface FileRoutesByTo {
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
@@ -234,6 +242,7 @@ export interface FileRoutesById {
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
@@ -263,6 +272,7 @@ export interface FileRouteTypes {
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
+    | '/inventory/$businessId'
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
@@ -290,6 +300,7 @@ export interface FileRouteTypes {
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
+    | '/inventory/$businessId'
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
@@ -317,6 +328,7 @@ export interface FileRouteTypes {
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
+    | '/inventory/$businessId'
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
@@ -345,6 +357,7 @@ export interface RootRouteChildren {
   BusinessSlugRoute: typeof BusinessSlugRoute
   CategoriesCategoryRoute: typeof CategoriesCategoryRoute
   CitiesCityRoute: typeof CitiesCityRoute
+  InventoryBusinessIdRoute: typeof InventoryBusinessIdRoute
   ProvincesProvinceRoute: typeof ProvincesProvinceRoute
   RegionsRegionRoute: typeof RegionsRegionRoute
   BarangaysIndexRoute: typeof BarangaysIndexRoute
@@ -469,6 +482,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MessagesConversationIdRouteImport
       parentRoute: typeof MessagesRoute
     }
+    '/inventory/$businessId': {
+      id: '/inventory/$businessId'
+      path: '/inventory/$businessId'
+      fullPath: '/inventory/$businessId'
+      preLoaderRoute: typeof InventoryBusinessIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cities/$city': {
       id: '/cities/$city'
       path: '/cities/$city'
@@ -585,6 +605,7 @@ const rootRouteChildren: RootRouteChildren = {
   BusinessSlugRoute: BusinessSlugRoute,
   CategoriesCategoryRoute: CategoriesCategoryRoute,
   CitiesCityRoute: CitiesCityRoute,
+  InventoryBusinessIdRoute: InventoryBusinessIdRoute,
   ProvincesProvinceRoute: ProvincesProvinceRoute,
   RegionsRegionRoute: RegionsRegionRoute,
   BarangaysIndexRoute: BarangaysIndexRoute,
