@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as RoadsafeOperationsRouteImport } from './routes/roadsafe-operations'
+import { Route as RoadsafeNotificationsRouteImport } from './routes/roadsafe-notifications'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as LoginRouteImport } from './routes/login'
@@ -29,9 +31,12 @@ import { Route as InventoryBusinessIdRouteImport } from './routes/inventory.$bus
 import { Route as CitiesCityRouteImport } from './routes/cities.$city'
 import { Route as CategoriesCategoryRouteImport } from './routes/categories.$category'
 import { Route as BusinessSlugRouteImport } from './routes/business.$slug'
+import { Route as ApiRoadsafeRouteRouteImport } from './routes/api/roadsafe/route'
 import { Route as DashboardBusinessIdRouteImport } from './routes/dashboard.business.$id'
 import { Route as BarangaysCityBarangayRouteImport } from './routes/barangays.$city.$barangay'
 import { Route as DashboardBusinessIdInventoryRouteImport } from './routes/dashboard.business.$id.inventory'
+import { Route as ApiPublicHooksRoadsafeIngestRouteImport } from './routes/api/public/hooks/roadsafe-ingest'
+import { Route as ApiPublicHooksRoadsafeDeliverRouteImport } from './routes/api/public/hooks/roadsafe-deliver'
 import { Route as ApiPublicHooksFuelSyncRouteImport } from './routes/api/public/hooks/fuel-sync'
 import { Route as ApiPublicHooksFuelStationsSyncRouteImport } from './routes/api/public/hooks/fuel-stations-sync'
 import { Route as ApiPublicHooksBusinessOsmSyncRouteImport } from './routes/api/public/hooks/business-osm-sync'
@@ -44,6 +49,16 @@ const SignupRoute = SignupRouteImport.update({
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoadsafeOperationsRoute = RoadsafeOperationsRouteImport.update({
+  id: '/roadsafe-operations',
+  path: '/roadsafe-operations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoadsafeNotificationsRoute = RoadsafeNotificationsRouteImport.update({
+  id: '/roadsafe-notifications',
+  path: '/roadsafe-notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -136,6 +151,11 @@ const BusinessSlugRoute = BusinessSlugRouteImport.update({
   path: '/business/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiRoadsafeRouteRoute = ApiRoadsafeRouteRouteImport.update({
+  id: '/api/roadsafe',
+  path: '/api/roadsafe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardBusinessIdRoute = DashboardBusinessIdRouteImport.update({
   id: '/business/$id',
   path: '/business/$id',
@@ -151,6 +171,18 @@ const DashboardBusinessIdInventoryRoute =
     id: '/inventory',
     path: '/inventory',
     getParentRoute: () => DashboardBusinessIdRoute,
+  } as any)
+const ApiPublicHooksRoadsafeIngestRoute =
+  ApiPublicHooksRoadsafeIngestRouteImport.update({
+    id: '/api/public/hooks/roadsafe-ingest',
+    path: '/api/public/hooks/roadsafe-ingest',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksRoadsafeDeliverRoute =
+  ApiPublicHooksRoadsafeDeliverRouteImport.update({
+    id: '/api/public/hooks/roadsafe-deliver',
+    path: '/api/public/hooks/roadsafe-deliver',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksFuelSyncRoute = ApiPublicHooksFuelSyncRouteImport.update({
   id: '/api/public/hooks/fuel-sync',
@@ -180,8 +212,11 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/roadsafe-notifications': typeof RoadsafeNotificationsRoute
+  '/roadsafe-operations': typeof RoadsafeOperationsRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
+  '/api/roadsafe': typeof ApiRoadsafeRouteRoute
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
@@ -196,6 +231,8 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
+  '/api/public/hooks/roadsafe-deliver': typeof ApiPublicHooksRoadsafeDeliverRoute
+  '/api/public/hooks/roadsafe-ingest': typeof ApiPublicHooksRoadsafeIngestRoute
   '/dashboard/business/$id/inventory': typeof DashboardBusinessIdInventoryRoute
 }
 export interface FileRoutesByTo {
@@ -208,8 +245,11 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/roadsafe-notifications': typeof RoadsafeNotificationsRoute
+  '/roadsafe-operations': typeof RoadsafeOperationsRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
+  '/api/roadsafe': typeof ApiRoadsafeRouteRoute
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
@@ -224,6 +264,8 @@ export interface FileRoutesByTo {
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
+  '/api/public/hooks/roadsafe-deliver': typeof ApiPublicHooksRoadsafeDeliverRoute
+  '/api/public/hooks/roadsafe-ingest': typeof ApiPublicHooksRoadsafeIngestRoute
   '/dashboard/business/$id/inventory': typeof DashboardBusinessIdInventoryRoute
 }
 export interface FileRoutesById {
@@ -237,8 +279,11 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/roadsafe-notifications': typeof RoadsafeNotificationsRoute
+  '/roadsafe-operations': typeof RoadsafeOperationsRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
+  '/api/roadsafe': typeof ApiRoadsafeRouteRoute
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
@@ -253,6 +298,8 @@ export interface FileRoutesById {
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
+  '/api/public/hooks/roadsafe-deliver': typeof ApiPublicHooksRoadsafeDeliverRoute
+  '/api/public/hooks/roadsafe-ingest': typeof ApiPublicHooksRoadsafeIngestRoute
   '/dashboard/business/$id/inventory': typeof DashboardBusinessIdInventoryRoute
 }
 export interface FileRouteTypes {
@@ -267,8 +314,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/messages'
     | '/reset-password'
+    | '/roadsafe-notifications'
+    | '/roadsafe-operations'
     | '/search'
     | '/signup'
+    | '/api/roadsafe'
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
@@ -283,6 +333,8 @@ export interface FileRouteTypes {
     | '/api/public/hooks/business-osm-sync'
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
+    | '/api/public/hooks/roadsafe-deliver'
+    | '/api/public/hooks/roadsafe-ingest'
     | '/dashboard/business/$id/inventory'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -295,8 +347,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/messages'
     | '/reset-password'
+    | '/roadsafe-notifications'
+    | '/roadsafe-operations'
     | '/search'
     | '/signup'
+    | '/api/roadsafe'
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
@@ -311,6 +366,8 @@ export interface FileRouteTypes {
     | '/api/public/hooks/business-osm-sync'
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
+    | '/api/public/hooks/roadsafe-deliver'
+    | '/api/public/hooks/roadsafe-ingest'
     | '/dashboard/business/$id/inventory'
   id:
     | '__root__'
@@ -323,8 +380,11 @@ export interface FileRouteTypes {
     | '/login'
     | '/messages'
     | '/reset-password'
+    | '/roadsafe-notifications'
+    | '/roadsafe-operations'
     | '/search'
     | '/signup'
+    | '/api/roadsafe'
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
@@ -339,6 +399,8 @@ export interface FileRouteTypes {
     | '/api/public/hooks/business-osm-sync'
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
+    | '/api/public/hooks/roadsafe-deliver'
+    | '/api/public/hooks/roadsafe-ingest'
     | '/dashboard/business/$id/inventory'
   fileRoutesById: FileRoutesById
 }
@@ -352,8 +414,11 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MessagesRoute: typeof MessagesRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  RoadsafeNotificationsRoute: typeof RoadsafeNotificationsRoute
+  RoadsafeOperationsRoute: typeof RoadsafeOperationsRoute
   SearchRoute: typeof SearchRoute
   SignupRoute: typeof SignupRoute
+  ApiRoadsafeRouteRoute: typeof ApiRoadsafeRouteRoute
   BusinessSlugRoute: typeof BusinessSlugRoute
   CategoriesCategoryRoute: typeof CategoriesCategoryRoute
   CitiesCityRoute: typeof CitiesCityRoute
@@ -366,6 +431,8 @@ export interface RootRouteChildren {
   ApiPublicHooksBusinessOsmSyncRoute: typeof ApiPublicHooksBusinessOsmSyncRoute
   ApiPublicHooksFuelStationsSyncRoute: typeof ApiPublicHooksFuelStationsSyncRoute
   ApiPublicHooksFuelSyncRoute: typeof ApiPublicHooksFuelSyncRoute
+  ApiPublicHooksRoadsafeDeliverRoute: typeof ApiPublicHooksRoadsafeDeliverRoute
+  ApiPublicHooksRoadsafeIngestRoute: typeof ApiPublicHooksRoadsafeIngestRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -382,6 +449,20 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roadsafe-operations': {
+      id: '/roadsafe-operations'
+      path: '/roadsafe-operations'
+      fullPath: '/roadsafe-operations'
+      preLoaderRoute: typeof RoadsafeOperationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roadsafe-notifications': {
+      id: '/roadsafe-notifications'
+      path: '/roadsafe-notifications'
+      fullPath: '/roadsafe-notifications'
+      preLoaderRoute: typeof RoadsafeNotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -510,6 +591,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BusinessSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/roadsafe': {
+      id: '/api/roadsafe'
+      path: '/api/roadsafe'
+      fullPath: '/api/roadsafe'
+      preLoaderRoute: typeof ApiRoadsafeRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/business/$id': {
       id: '/dashboard/business/$id'
       path: '/business/$id'
@@ -530,6 +618,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/business/$id/inventory'
       preLoaderRoute: typeof DashboardBusinessIdInventoryRouteImport
       parentRoute: typeof DashboardBusinessIdRoute
+    }
+    '/api/public/hooks/roadsafe-ingest': {
+      id: '/api/public/hooks/roadsafe-ingest'
+      path: '/api/public/hooks/roadsafe-ingest'
+      fullPath: '/api/public/hooks/roadsafe-ingest'
+      preLoaderRoute: typeof ApiPublicHooksRoadsafeIngestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/roadsafe-deliver': {
+      id: '/api/public/hooks/roadsafe-deliver'
+      path: '/api/public/hooks/roadsafe-deliver'
+      fullPath: '/api/public/hooks/roadsafe-deliver'
+      preLoaderRoute: typeof ApiPublicHooksRoadsafeDeliverRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/fuel-sync': {
       id: '/api/public/hooks/fuel-sync'
@@ -600,8 +702,11 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MessagesRoute: MessagesRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  RoadsafeNotificationsRoute: RoadsafeNotificationsRoute,
+  RoadsafeOperationsRoute: RoadsafeOperationsRoute,
   SearchRoute: SearchRoute,
   SignupRoute: SignupRoute,
+  ApiRoadsafeRouteRoute: ApiRoadsafeRouteRoute,
   BusinessSlugRoute: BusinessSlugRoute,
   CategoriesCategoryRoute: CategoriesCategoryRoute,
   CitiesCityRoute: CitiesCityRoute,
@@ -614,6 +719,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksBusinessOsmSyncRoute: ApiPublicHooksBusinessOsmSyncRoute,
   ApiPublicHooksFuelStationsSyncRoute: ApiPublicHooksFuelStationsSyncRoute,
   ApiPublicHooksFuelSyncRoute: ApiPublicHooksFuelSyncRoute,
+  ApiPublicHooksRoadsafeDeliverRoute: ApiPublicHooksRoadsafeDeliverRoute,
+  ApiPublicHooksRoadsafeIngestRoute: ApiPublicHooksRoadsafeIngestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

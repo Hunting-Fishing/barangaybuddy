@@ -13,6 +13,7 @@ import {
   Store,
   Plus,
   ExternalLink,
+  Bell,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -136,6 +137,9 @@ export function SiteHeader() {
                 )}
                 <DropdownMenuItem onClick={() => navigate({ to: "/messages" })}>
                   <MessageSquare className="mr-2 h-4 w-4" /> Messages
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate({ to: "/roadsafe-notifications" })}>
+                  <Bell className="mr-2 h-4 w-4" /> Safety alerts
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

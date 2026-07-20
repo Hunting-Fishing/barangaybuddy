@@ -6,9 +6,10 @@ import { SiteFooter } from "@/components/site-footer";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Store, Briefcase, UtensilsCrossed, Coffee, Fuel, ShoppingBasket, MapPin } from "lucide-react";
+import { Store, Briefcase, UtensilsCrossed, Coffee, Fuel, ShoppingBasket, MapPin, ShieldAlert } from "lucide-react";
 import { BusinessMap, type MapBusiness } from "@/components/business-map";
 import { BarangayListingsFeed, type FeedListing } from "@/components/barangay-listings-feed";
+import { RoadSafePanel } from "@/components/roadsafe-panel";
 
 export const Route = createFileRoute("/barangays/$city/$barangay")({
   component: BrgyPage,
@@ -51,7 +52,7 @@ function BrgyPage() {
         if (ids.length) {
           const { data: ll } = await supabase
             .from("listings")
-            .select("id,name,normalized_name,description,price,pack_qty,size_value,size_unit,image_url,in_stock,category,business_id")
+            .select("id,name,normalized_name,description,price,pack_qty,size_value,size_unit,image_url,in_stock,category,business_id,updated_at,stock_checked_at")
             .in("business_id", ids);
           const byId = new Map(list.map((x: any) => [x.id, x]));
           const feed: FeedListing[] = (ll ?? []).map((l: any) => {
@@ -68,6 +69,8 @@ function BrgyPage() {
               image_url: l.image_url,
               in_stock: l.in_stock,
               category: l.category,
+              updated_at: l.updated_at,
+              stock_checked_at: l.stock_checked_at,
               business: {
                 id: bz.id,
                 name: bz.name,
@@ -149,6 +152,9 @@ function BrgyPage() {
             <TabsTrigger value="products">
               <ShoppingBasket className="mr-1.5 h-4 w-4" /> Products
             </TabsTrigger>
+            <TabsTrigger value="roadsafe">
+              <ShieldAlert className="mr-1.5 h-4 w-4" /> Road &amp; Safety
+            </TabsTrigger>
             {TYPES.map(({ type, label, Icon }) => (
               <TabsTrigger key={type} value={type}>
                 <Icon className="mr-1.5 h-4 w-4" /> {label}
@@ -158,6 +164,21 @@ function BrgyPage() {
 
           <TabsContent value="products" className="mt-6">
             <BarangayListingsFeed listings={listings} />
+          </TabsContent>
+
+          <TabsContent value="roadsafe" className="mt-6">
+            {brgy ? (
+              <RoadSafePanel
+                barangayCode={brgy.code}
+                barangayName={brgy.name}
+                businesses={businesses}
+                listings={listings}
+              />
+            ) : (
+              <Card className="p-6 text-sm text-muted-foreground">
+                Loading barangay safety information…
+              </Card>
+            )}
           </TabsContent>
 
           {TYPES.map(({ type }) => (
