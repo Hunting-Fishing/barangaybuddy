@@ -88,6 +88,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "BarangayHub — The Philippines' barangay network" },
+      { name: "twitter:description", content: "Discover stores, services, restaurants, food vendors and live fuel prices across all 42,011 barangays in the Philippines." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f33beb8e-3254-41c9-9fca-b5f339aa16d9/id-preview-455a814f--be26f2e6-75d8-4129-a0d9-8a96d4b5652e.lovable.app-1784526564687.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f33beb8e-3254-41c9-9fca-b5f339aa16d9/id-preview-455a814f--be26f2e6-75d8-4129-a0d9-8a96d4b5652e.lovable.app-1784526564687.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
