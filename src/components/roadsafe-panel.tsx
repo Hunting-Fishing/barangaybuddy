@@ -2,16 +2,25 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  Building2,
   CheckCircle2,
   Clock3,
   Navigation,
+  PackageSearch,
   ShieldAlert,
   ThumbsDown,
   ThumbsUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { hazardLabel, passabilityLabel, type RoadHazard } from "@/lib/roadsafe";
+import {
+  hazardLabel,
+  passabilityLabel,
+  type EvacuationCentre,
+  type RoadHazard,
+  type SafetyAlert,
+} from "@/lib/roadsafe";
+import type { FeedListing } from "@/components/barangay-listings-feed";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,34 +33,56 @@ export function RoadSafePanel({
   barangayCode,
   barangayName,
   businesses,
+  listings,
 }: {
   barangayCode: string;
   barangayName: string;
   businesses: any[];
+  listings: FeedListing[];
 }) {
   const [reports, setReports] = useState<RoadHazard[]>([]);
+  const [alerts, setAlerts] = useState<SafetyAlert[]>([]);
+  const [centres, setCentres] = useState<EvacuationCentre[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await (supabase as any)
-      .from("road_hazard_reports")
-      .select("*,road_hazard_confirmations(vote)")
-      .eq("barangay_code", barangayCode)
-      .eq("status", "active")
-      .gt("expires_at", new Date().toISOString())
-      .order("occurred_at", { ascending: false });
+    const now = new Date().toISOString();
+    const [hazardsResult, alertsResult, centresResult] = await Promise.all([
+      (supabase as any)
+        .from("road_hazard_reports")
+        .select("*,road_hazard_confirmations(vote)")
+        .eq("barangay_code", barangayCode)
+        .eq("status", "active")
+        .gt("expires_at", now)
+        .order("occurred_at", { ascending: false }),
+      (supabase as any)
+        .from("official_safety_alerts")
+        .select("*")
+        .eq("barangay_code", barangayCode)
+        .eq("is_active", true)
+        .gt("expires_at", now)
+        .order("issued_at", { ascending: false }),
+      (supabase as any)
+        .from("evacuation_centres")
+        .select("*")
+        .eq("barangay_code", barangayCode)
+        .in("status", ["standby", "open"])
+        .order("name"),
+    ]);
     setLoading(false);
-    if (error)
+    if (hazardsResult.error)
       return toast.error("RoadSafe data is not available until its database migration is applied.");
     setReports(
-      (data ?? []).map((report: any) => ({
+      (hazardsResult.data ?? []).map((report: any) => ({
         ...report,
         latitude: Number(report.latitude),
         longitude: Number(report.longitude),
         water_depth_cm: report.water_depth_cm == null ? null : Number(report.water_depth_cm),
       })),
     );
+    setAlerts(alertsResult.data ?? []);
+    setCentres(centresResult.data ?? []);
   }, [barangayCode]);
 
   useEffect(() => {
@@ -94,6 +125,22 @@ export function RoadSafePanel({
     [businesses],
   );
 
+  const emergencySupplies = useMemo(
+    () =>
+      listings
+        .filter(
+          (listing) =>
+            listing.in_stock &&
+            /water|rice|food|medicine|first aid|battery|flashlight|fuel|gas|sandbag|raincoat|umbrella|power bank|generator/i.test(
+              [listing.name, listing.normalized_name, listing.description, listing.category]
+                .filter(Boolean)
+                .join(" "),
+            ),
+        )
+        .slice(0, 12),
+    [listings],
+  );
+
   return (
     <div className="space-y-6">
       <Alert className="border-amber-300 bg-amber-50 text-amber-950">
@@ -104,6 +151,36 @@ export function RoadSafePanel({
           floodwater. Follow police, barangay, LGU and emergency-service closures.
         </AlertDescription>
       </Alert>
+      {alerts.length > 0 && (
+        <section className="space-y-3" aria-label="Official safety alerts">
+          {alerts.map((alert) => (
+            <Alert
+              key={alert.id}
+              variant={alert.severity === "emergency" ? "destructive" : "default"}
+            >
+              <ShieldAlert className="h-4 w-4" />
+              <AlertTitle>{alert.headline}</AlertTitle>
+              <AlertDescription>
+                {alert.message} — {alert.source_name}
+                {alert.source_url && (
+                  <>
+                    {" "}
+                    ·{" "}
+                    <a
+                      className="underline"
+                      href={alert.source_url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Official source
+                    </a>
+                  </>
+                )}
+              </AlertDescription>
+            </Alert>
+          ))}
+        </section>
+      )}
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <h2 className="font-display text-2xl font-bold">
@@ -208,6 +285,69 @@ export function RoadSafePanel({
           </Card>
         )}
       </section>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section>
+          <h3 className="mb-3 flex items-center gap-2 font-display text-xl font-bold">
+            <Building2 className="h-5 w-5" /> Evacuation centres
+          </h3>
+          <div className="grid gap-3">
+            {centres.length ? (
+              centres.map((centre) => (
+                <Card key={centre.id} className="p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <strong>{centre.name}</strong>
+                    <Badge variant={centre.status === "open" ? "default" : "outline"}>
+                      {centre.status}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {centre.address ||
+                      centre.notes ||
+                      "Contact the barangay for directions and availability."}
+                  </p>
+                  {centre.contact_number && (
+                    <a
+                      className="mt-2 inline-block text-sm underline"
+                      href={`tel:${centre.contact_number}`}
+                    >
+                      Call {centre.contact_number}
+                    </a>
+                  )}
+                </Card>
+              ))
+            ) : (
+              <Card className="p-5 text-sm text-muted-foreground">
+                No active evacuation centre has been published for this barangay.
+              </Card>
+            )}
+          </div>
+        </section>
+        <section>
+          <h3 className="mb-3 flex items-center gap-2 font-display text-xl font-bold">
+            <PackageSearch className="h-5 w-5" /> Emergency supplies in stock
+          </h3>
+          <div className="grid gap-3">
+            {emergencySupplies.length ? (
+              emergencySupplies.map((listing) => (
+                <a key={listing.id} href={`/business/${encodeURIComponent(listing.business.slug)}`}>
+                  <Card className="p-4 transition-shadow hover:shadow-md">
+                    <strong>{listing.name}</strong>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {listing.business.name}
+                      {listing.price != null ? ` · ₱${listing.price.toLocaleString()}` : ""}
+                    </p>
+                  </Card>
+                </a>
+              ))
+            ) : (
+              <Card className="p-5 text-sm text-muted-foreground">
+                No emergency supplies are currently marked in stock. Store owners can update
+                inventory to appear here.
+              </Card>
+            )}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

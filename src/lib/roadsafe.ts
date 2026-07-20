@@ -36,6 +36,27 @@ export type RoadHazard = {
   road_hazard_confirmations?: { vote: "confirm" | "dispute" | "resolved" }[];
 };
 
+export type SafetyAlert = {
+  id: string;
+  headline: string;
+  message: string;
+  severity: "information" | "watch" | "warning" | "emergency";
+  source_name: string;
+  source_url: string | null;
+  issued_at: string;
+  expires_at: string;
+};
+
+export type EvacuationCentre = {
+  id: string;
+  name: string;
+  address: string | null;
+  contact_number: string | null;
+  capacity: number | null;
+  status: "standby" | "open" | "full" | "closed";
+  notes: string | null;
+};
+
 export function hazardLabel(value: string) {
   return HAZARD_TYPES.find((item) => item.value === value)?.label ?? "Road hazard";
 }

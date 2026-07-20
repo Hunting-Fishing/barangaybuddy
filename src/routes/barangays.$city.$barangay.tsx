@@ -170,6 +170,7 @@ function BrgyPage() {
                 barangayCode={brgy.code}
                 barangayName={brgy.name}
                 businesses={businesses}
+                listings={listings}
               />
             ) : (
               <Card className="p-6 text-sm text-muted-foreground">
