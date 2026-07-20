@@ -28,9 +28,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { RoadHazardReportDialog } from "@/components/road-hazard-report-dialog";
 import { RoadSafeMap } from "@/components/roadsafe-map";
 import { VehicleProfileCard } from "@/components/vehicle-profile-card";
+import { RoadSafeRoutePlanner } from "@/components/roadsafe-route-planner";
 
 export function RoadSafePanel({
   barangayCode,
@@ -48,6 +52,8 @@ export function RoadSafePanel({
   const [centres, setCentres] = useState<EvacuationCentre[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [subscribed, setSubscribed] = useState(false);
+  const [smsEnabled, setSmsEnabled] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -105,11 +111,13 @@ export function RoadSafePanel({
       if (!data.user) return;
       const { data: subscription } = await (supabase as any)
         .from("roadsafe_subscriptions")
-        .select("id")
+        .select("id,sms_enabled,phone_number")
         .eq("user_id", data.user.id)
         .eq("barangay_code", barangayCode)
         .maybeSingle();
       setSubscribed(Boolean(subscription));
+      setSmsEnabled(Boolean(subscription?.sms_enabled));
+      setPhoneNumber(subscription?.phone_number ?? "");
     });
   }, [barangayCode]);
 
@@ -128,6 +136,21 @@ export function RoadSafePanel({
     toast.success(
       subscribed ? "Alert subscription removed." : "Following warning and emergency alerts.",
     );
+  }
+
+  async function saveDeliverySettings() {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return toast.error("Please sign in first.");
+    const normalized = phoneNumber.replace(/[^0-9+]/g, "");
+    if (smsEnabled && !/^(\+?63|0)9\d{9}$/.test(normalized))
+      return toast.error("Enter a valid Philippine mobile number.");
+    const { error } = await (supabase as any)
+      .from("roadsafe_subscriptions")
+      .update({ sms_enabled: smsEnabled, phone_number: smsEnabled ? normalized : null })
+      .eq("user_id", data.user.id)
+      .eq("barangay_code", barangayCode);
+    if (error) return toast.error(error.message);
+    toast.success("Alert delivery settings saved.");
   }
 
   async function vote(reportId: string, voteValue: "confirm" | "dispute" | "resolved") {
@@ -240,6 +263,34 @@ export function RoadSafePanel({
         </div>
       </div>
       <VehicleProfileCard />
+      {subscribed && (
+        <Card className="p-5">
+          <h3 className="font-semibold">Alert delivery</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            In-app alerts are always included. Email uses your Barangay Buddy account address.
+          </p>
+          <div className="mt-4 flex items-center gap-3">
+            <Switch checked={smsEnabled} onCheckedChange={setSmsEnabled} id="roadsafe-sms" />
+            <Label htmlFor="roadsafe-sms">Also send urgent alerts by SMS</Label>
+          </div>
+          {smsEnabled && (
+            <div className="mt-3 max-w-sm">
+              <Label htmlFor="roadsafe-phone">Philippine mobile number</Label>
+              <Input
+                id="roadsafe-phone"
+                inputMode="tel"
+                placeholder="09XXXXXXXXX"
+                value={phoneNumber}
+                onChange={(event) => setPhoneNumber(event.target.value)}
+              />
+            </div>
+          )}
+          <Button className="mt-3" size="sm" variant="outline" onClick={saveDeliverySettings}>
+            Save delivery settings
+          </Button>
+        </Card>
+      )}
+      <RoadSafeRoutePlanner />
       {loading ? (
         <Card className="p-8 text-center text-sm text-muted-foreground">
           Loading current road reports…
