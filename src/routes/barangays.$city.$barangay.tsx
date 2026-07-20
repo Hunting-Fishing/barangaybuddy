@@ -52,7 +52,7 @@ function BrgyPage() {
         if (ids.length) {
           const { data: ll } = await supabase
             .from("listings")
-            .select("id,name,normalized_name,description,price,pack_qty,size_value,size_unit,image_url,in_stock,category,business_id")
+            .select("id,name,normalized_name,description,price,pack_qty,size_value,size_unit,image_url,in_stock,category,business_id,updated_at,stock_checked_at")
             .in("business_id", ids);
           const byId = new Map(list.map((x: any) => [x.id, x]));
           const feed: FeedListing[] = (ll ?? []).map((l: any) => {
@@ -69,6 +69,8 @@ function BrgyPage() {
               image_url: l.image_url,
               in_stock: l.in_stock,
               category: l.category,
+              updated_at: l.updated_at,
+              stock_checked_at: l.stock_checked_at,
               business: {
                 id: bz.id,
                 name: bz.name,

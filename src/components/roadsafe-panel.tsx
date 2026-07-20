@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  Bell,
+  BellOff,
   Building2,
   CheckCircle2,
   Clock3,
@@ -45,6 +47,7 @@ export function RoadSafePanel({
   const [alerts, setAlerts] = useState<SafetyAlert[]>([]);
   const [centres, setCentres] = useState<EvacuationCentre[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
+  const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -96,6 +99,36 @@ export function RoadSafePanel({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return;
+      const { data: subscription } = await (supabase as any)
+        .from("roadsafe_subscriptions")
+        .select("id")
+        .eq("user_id", data.user.id)
+        .eq("barangay_code", barangayCode)
+        .maybeSingle();
+      setSubscribed(Boolean(subscription));
+    });
+  }, [barangayCode]);
+
+  async function toggleSubscription() {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) return toast.error("Please sign in to follow barangay alerts.");
+    const query = (supabase as any).from("roadsafe_subscriptions");
+    const { error } = subscribed
+      ? await query.delete().eq("user_id", data.user.id).eq("barangay_code", barangayCode)
+      : await query.upsert(
+          { user_id: data.user.id, barangay_code: barangayCode, minimum_severity: "warning" },
+          { onConflict: "user_id,barangay_code" },
+        );
+    if (error) return toast.error(error.message);
+    setSubscribed(!subscribed);
+    toast.success(
+      subscribed ? "Alert subscription removed." : "Following warning and emergency alerts.",
+    );
+  }
 
   async function vote(reportId: string, voteValue: "confirm" | "dispute" | "resolved") {
     const { data: auth } = await supabase.auth.getUser();
@@ -198,7 +231,13 @@ export function RoadSafePanel({
             Reports automatically disappear when they become stale.
           </p>
         </div>
-        <RoadHazardReportDialog barangayCode={barangayCode} onCreated={load} />
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={toggleSubscription}>
+            {subscribed ? <BellOff className="mr-2 h-4 w-4" /> : <Bell className="mr-2 h-4 w-4" />}
+            {subscribed ? "Stop following" : "Follow alerts"}
+          </Button>
+          <RoadHazardReportDialog barangayCode={barangayCode} onCreated={load} />
+        </div>
       </div>
       <VehicleProfileCard />
       {loading ? (
@@ -343,6 +382,18 @@ export function RoadSafePanel({
                     <p className="mt-1 text-sm text-muted-foreground">
                       {listing.business.name}
                       {listing.price != null ? ` · ₱${listing.price.toLocaleString()}` : ""}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {(() => {
+                        const checked = listing.stock_checked_at || listing.updated_at;
+                        if (!checked) return "Stock freshness unknown";
+                        const hours = Math.floor(
+                          (Date.now() - new Date(checked).getTime()) / 3600000,
+                        );
+                        return hours < 24
+                          ? `Stock updated ${Math.max(1, hours)}h ago`
+                          : `Stock may be stale · updated ${Math.floor(hours / 24)}d ago`;
+                      })()}
                     </p>
                   </Card>
                 </a>

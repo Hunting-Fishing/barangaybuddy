@@ -33,6 +33,8 @@ export interface FeedListing {
   image_url: string | null;
   in_stock: boolean;
   category: string | null;
+  updated_at?: string | null;
+  stock_checked_at?: string | null;
   business: {
     id: string;
     name: string;

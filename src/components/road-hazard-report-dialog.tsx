@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- RoadSafe tables are introduced by this PR and are not in the generated Supabase types until the migration is applied and types are regenerated. */
 import { useState } from "react";
-import { AlertTriangle, LocateFixed } from "lucide-react";
+import { AlertTriangle, Camera, LocateFixed } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { HAZARD_TYPES, PASSABILITY_OPTIONS } from "@/lib/roadsafe";
@@ -39,6 +39,24 @@ export function RoadHazardReportDialog({
   const [longitude, setLongitude] = useState("");
   const [depth, setDepth] = useState("");
   const [description, setDescription] = useState("");
+  const [photo, setPhoto] = useState<File | null>(null);
+
+  async function sanitizedPhoto(file: File) {
+    if (file.size > 5 * 1024 * 1024) throw new Error("Photo must be 5 MB or smaller.");
+    const bitmap = await createImageBitmap(file);
+    const max = 1800;
+    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.86),
+    );
+    if (!blob) throw new Error("Could not prepare the photo.");
+    return blob;
+  }
 
   function useLocation() {
     if (!navigator.geolocation) return toast.error("Location is not available on this device.");
@@ -70,6 +88,21 @@ export function RoadHazardReportDialog({
         : passability === "high_clearance_only"
           ? "avoid"
           : "caution";
+    let photoUrl: string | null = null;
+    if (photo) {
+      try {
+        const blob = await sanitizedPhoto(photo);
+        const path = `${auth.user.id}/${crypto.randomUUID()}.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("roadsafe-reports")
+          .upload(path, blob, { contentType: "image/jpeg" });
+        if (uploadError) throw uploadError;
+        photoUrl = supabase.storage.from("roadsafe-reports").getPublicUrl(path).data.publicUrl;
+      } catch (error) {
+        setSaving(false);
+        return toast.error((error as Error).message);
+      }
+    }
     const { error } = await (supabase as any).from("road_hazard_reports").insert({
       barangay_code: barangayCode,
       reported_by: auth.user.id,
@@ -80,6 +113,7 @@ export function RoadHazardReportDialog({
       longitude: lng,
       water_depth_cm: depth ? Number(depth) : null,
       description: description.trim() || null,
+      photo_url: photoUrl,
       source: "community",
       expires_at: new Date(Date.now() + 90 * 60 * 1000).toISOString(),
     });
@@ -121,6 +155,23 @@ export function RoadHazardReportDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="hazard-photo">Observation photo (optional)</Label>
+            <label
+              htmlFor="hazard-photo"
+              className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground"
+            >
+              <Camera className="h-4 w-4" />{" "}
+              {photo ? photo.name : "Choose a photo — metadata will be removed"}
+            </label>
+            <Input
+              id="hazard-photo"
+              className="sr-only"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) => setPhoto(event.target.files?.[0] ?? null)}
+            />
           </div>
           <div className="grid gap-2">
             <Label>Observed passability</Label>
