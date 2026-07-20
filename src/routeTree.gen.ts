@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as RoadsafeOperationsRouteImport } from './routes/roadsafe-operations'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as LoginRouteImport } from './routes/login'
@@ -44,6 +45,11 @@ const SignupRoute = SignupRouteImport.update({
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
   path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoadsafeOperationsRoute = RoadsafeOperationsRouteImport.update({
+  id: '/roadsafe-operations',
+  path: '/roadsafe-operations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -180,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/roadsafe-operations': typeof RoadsafeOperationsRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/business/$slug': typeof BusinessSlugRoute
@@ -208,6 +215,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/roadsafe-operations': typeof RoadsafeOperationsRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/business/$slug': typeof BusinessSlugRoute
@@ -237,6 +245,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/roadsafe-operations': typeof RoadsafeOperationsRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/business/$slug': typeof BusinessSlugRoute
@@ -267,6 +276,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/messages'
     | '/reset-password'
+    | '/roadsafe-operations'
     | '/search'
     | '/signup'
     | '/business/$slug'
@@ -295,6 +305,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/messages'
     | '/reset-password'
+    | '/roadsafe-operations'
     | '/search'
     | '/signup'
     | '/business/$slug'
@@ -323,6 +334,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/messages'
     | '/reset-password'
+    | '/roadsafe-operations'
     | '/search'
     | '/signup'
     | '/business/$slug'
@@ -352,6 +364,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MessagesRoute: typeof MessagesRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  RoadsafeOperationsRoute: typeof RoadsafeOperationsRoute
   SearchRoute: typeof SearchRoute
   SignupRoute: typeof SignupRoute
   BusinessSlugRoute: typeof BusinessSlugRoute
@@ -382,6 +395,13 @@ declare module '@tanstack/react-router' {
       path: '/search'
       fullPath: '/search'
       preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roadsafe-operations': {
+      id: '/roadsafe-operations'
+      path: '/roadsafe-operations'
+      fullPath: '/roadsafe-operations'
+      preLoaderRoute: typeof RoadsafeOperationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -600,6 +620,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MessagesRoute: MessagesRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  RoadsafeOperationsRoute: RoadsafeOperationsRoute,
   SearchRoute: SearchRoute,
   SignupRoute: SignupRoute,
   BusinessSlugRoute: BusinessSlugRoute,

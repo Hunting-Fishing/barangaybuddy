@@ -7,6 +7,7 @@ import {
   Clock3,
   Navigation,
   PackageSearch,
+  Phone,
   ShieldAlert,
   ThumbsDown,
   ThumbsUp,
@@ -43,12 +44,13 @@ export function RoadSafePanel({
   const [reports, setReports] = useState<RoadHazard[]>([]);
   const [alerts, setAlerts] = useState<SafetyAlert[]>([]);
   const [centres, setCentres] = useState<EvacuationCentre[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     const now = new Date().toISOString();
-    const [hazardsResult, alertsResult, centresResult] = await Promise.all([
+    const [hazardsResult, alertsResult, centresResult, contactsResult] = await Promise.all([
       (supabase as any)
         .from("road_hazard_reports")
         .select("*,road_hazard_confirmations(vote)")
@@ -69,6 +71,11 @@ export function RoadSafePanel({
         .eq("barangay_code", barangayCode)
         .in("status", ["standby", "open"])
         .order("name"),
+      (supabase as any)
+        .from("emergency_contacts")
+        .select("*")
+        .eq("barangay_code", barangayCode)
+        .order("service_type"),
     ]);
     setLoading(false);
     if (hazardsResult.error)
@@ -83,6 +90,7 @@ export function RoadSafePanel({
     );
     setAlerts(alertsResult.data ?? []);
     setCentres(centresResult.data ?? []);
+    setContacts(contactsResult.data ?? []);
   }, [barangayCode]);
 
   useEffect(() => {
@@ -348,6 +356,38 @@ export function RoadSafePanel({
           </div>
         </section>
       </div>
+      <section>
+        <h3 className="mb-3 flex items-center gap-2 font-display text-xl font-bold">
+          <Phone className="h-5 w-5" /> Emergency contacts
+        </h3>
+        {contacts.length ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {contacts.map((contact) => (
+              <a key={contact.id} href={`tel:${contact.phone_number}`}>
+                <Card className="h-full p-4 transition-shadow hover:shadow-md">
+                  <div className="flex items-center justify-between gap-2">
+                    <strong>{contact.name}</strong>
+                    {contact.is_verified && <Badge>Verified</Badge>}
+                  </div>
+                  <p className="mt-1 text-sm capitalize text-muted-foreground">
+                    {contact.service_type} · {contact.phone_number}
+                  </p>
+                  {contact.verified_at && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Verified {new Date(contact.verified_at).toLocaleDateString()}
+                    </p>
+                  )}
+                </Card>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <Card className="p-5 text-sm text-muted-foreground">
+            No verified local emergency contacts have been published yet. For a life-threatening
+            emergency in the Philippines, call 911.
+          </Card>
+        )}
+      </section>
     </div>
   );
 }

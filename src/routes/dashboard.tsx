@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { z } from "zod";
-import { ExternalLink, Package, Plus, Settings } from "lucide-react";
+import { ExternalLink, Package, Plus, Settings, ShieldCheck } from "lucide-react";
 import { FeatureTagsPicker } from "@/components/feature-tags-picker";
 import { BusinessImportDialog } from "@/components/business-import-dialog";
 import { BusinessCategoryPicker } from "@/components/business-category-picker";
@@ -146,6 +146,9 @@ function Dashboard() {
             <p className="mt-1 text-muted-foreground">Manage everything you've listed.</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/roadsafe-operations"><ShieldCheck className="mr-2 h-4 w-4" /> RoadSafe operations</Link>
+            </Button>
             <BusinessImportDialog />
             <Button onClick={() => setShowForm(!showForm)} className="gap-2"><Plus className="h-4 w-4" /> New business</Button>
           </div>
