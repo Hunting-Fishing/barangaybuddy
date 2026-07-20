@@ -55,6 +55,8 @@ export type EvacuationCentre = {
   capacity: number | null;
   status: "standby" | "open" | "full" | "closed";
   notes: string | null;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 export function hazardLabel(value: string) {

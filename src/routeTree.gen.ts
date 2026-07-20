@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as RoadsafeOperationsRouteImport } from './routes/roadsafe-operations'
+import { Route as RoadsafeNotificationsRouteImport } from './routes/roadsafe-notifications'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as MessagesRouteImport } from './routes/messages'
 import { Route as LoginRouteImport } from './routes/login'
@@ -50,6 +51,11 @@ const SearchRoute = SearchRouteImport.update({
 const RoadsafeOperationsRoute = RoadsafeOperationsRouteImport.update({
   id: '/roadsafe-operations',
   path: '/roadsafe-operations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoadsafeNotificationsRoute = RoadsafeNotificationsRouteImport.update({
+  id: '/roadsafe-notifications',
+  path: '/roadsafe-notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -186,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/roadsafe-notifications': typeof RoadsafeNotificationsRoute
   '/roadsafe-operations': typeof RoadsafeOperationsRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
@@ -215,6 +222,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/roadsafe-notifications': typeof RoadsafeNotificationsRoute
   '/roadsafe-operations': typeof RoadsafeOperationsRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
@@ -245,6 +253,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/messages': typeof MessagesRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/roadsafe-notifications': typeof RoadsafeNotificationsRoute
   '/roadsafe-operations': typeof RoadsafeOperationsRoute
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
@@ -276,6 +285,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/messages'
     | '/reset-password'
+    | '/roadsafe-notifications'
     | '/roadsafe-operations'
     | '/search'
     | '/signup'
@@ -305,6 +315,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/messages'
     | '/reset-password'
+    | '/roadsafe-notifications'
     | '/roadsafe-operations'
     | '/search'
     | '/signup'
@@ -334,6 +345,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/messages'
     | '/reset-password'
+    | '/roadsafe-notifications'
     | '/roadsafe-operations'
     | '/search'
     | '/signup'
@@ -364,6 +376,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MessagesRoute: typeof MessagesRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  RoadsafeNotificationsRoute: typeof RoadsafeNotificationsRoute
   RoadsafeOperationsRoute: typeof RoadsafeOperationsRoute
   SearchRoute: typeof SearchRoute
   SignupRoute: typeof SignupRoute
@@ -402,6 +415,13 @@ declare module '@tanstack/react-router' {
       path: '/roadsafe-operations'
       fullPath: '/roadsafe-operations'
       preLoaderRoute: typeof RoadsafeOperationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roadsafe-notifications': {
+      id: '/roadsafe-notifications'
+      path: '/roadsafe-notifications'
+      fullPath: '/roadsafe-notifications'
+      preLoaderRoute: typeof RoadsafeNotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -620,6 +640,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MessagesRoute: MessagesRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  RoadsafeNotificationsRoute: RoadsafeNotificationsRoute,
   RoadsafeOperationsRoute: RoadsafeOperationsRoute,
   SearchRoute: SearchRoute,
   SignupRoute: SignupRoute,

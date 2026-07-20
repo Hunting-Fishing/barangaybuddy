@@ -156,7 +156,7 @@ export function InventoryManager({ businessId }: Props) {
     if (item.listing_id) {
       await db
         .from("listings")
-        .update({ in_stock: nextQuantity > 0 })
+        .update({ in_stock: nextQuantity > 0, stock_checked_at: new Date().toISOString() })
         .eq("id", item.listing_id);
     }
 

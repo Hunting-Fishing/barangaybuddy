@@ -1,7 +1,12 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { hazardLabel, passabilityLabel, type RoadHazard } from "@/lib/roadsafe";
+import {
+  hazardLabel,
+  passabilityLabel,
+  type EvacuationCentre,
+  type RoadHazard,
+} from "@/lib/roadsafe";
 
 const COLORS = { information: "#2563eb", caution: "#f59e0b", avoid: "#ea580c", closed: "#dc2626" };
 
@@ -13,7 +18,13 @@ function esc(value: string) {
   );
 }
 
-export function RoadSafeMap({ reports }: { reports: RoadHazard[] }) {
+export function RoadSafeMap({
+  reports,
+  centres = [],
+}: {
+  reports: RoadHazard[];
+  centres?: EvacuationCentre[];
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
@@ -66,15 +77,32 @@ export function RoadSafeMap({ reports }: { reports: RoadHazard[] }) {
         )
         .addTo(layer);
     }
-    if (valid.length === 1) map.setView([valid[0].latitude, valid[0].longitude], 16);
-    else if (valid.length > 1)
-      map.fitBounds(
-        L.latLngBounds(
-          valid.map((report) => [report.latitude, report.longitude] as [number, number]),
-        ),
-        { padding: [32, 32], maxZoom: 16 },
-      );
-  }, [reports]);
+    const validCentres = centres.filter(
+      (centre) => Number.isFinite(centre.latitude) && Number.isFinite(centre.longitude),
+    );
+    for (const centre of validCentres) {
+      L.circleMarker([Number(centre.latitude), Number(centre.longitude)], {
+        radius: 9,
+        color: "#fff",
+        weight: 3,
+        fillColor: "#16a34a",
+        fillOpacity: 1,
+      })
+        .bindPopup(
+          `<div style="font-family:inherit;min-width:190px"><strong>${esc(centre.name)}</strong><div style="color:#15803d;font-weight:700;text-transform:capitalize">Evacuation centre · ${esc(centre.status)}</div>${centre.address ? `<p>${esc(centre.address)}</p>` : ""}${centre.contact_number ? `<a href="tel:${esc(centre.contact_number)}">${esc(centre.contact_number)}</a>` : ""}</div>`,
+        )
+        .addTo(layer);
+    }
+    const allPoints = [
+      ...valid.map((report) => [report.latitude, report.longitude] as [number, number]),
+      ...validCentres.map(
+        (centre) => [Number(centre.latitude), Number(centre.longitude)] as [number, number],
+      ),
+    ];
+    if (allPoints.length === 1) map.setView(allPoints[0], 16);
+    else if (allPoints.length > 1)
+      map.fitBounds(L.latLngBounds(allPoints), { padding: [32, 32], maxZoom: 16 });
+  }, [centres, reports]);
 
   return (
     <div className="overflow-hidden rounded-xl border border-border">
@@ -87,6 +115,9 @@ export function RoadSafeMap({ reports }: { reports: RoadHazard[] }) {
             {label}
           </span>
         ))}
+        <span className="inline-flex items-center gap-1.5">
+          <i className="h-2.5 w-2.5 rounded-full bg-green-600" /> Evacuation centre
+        </span>
       </div>
     </div>
   );

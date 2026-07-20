@@ -1,7 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- RoadSafe tables require generated Supabase types after deployment. */
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, ArrowLeft, Building2, Megaphone, Phone, ShieldCheck } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Building2,
+  Megaphone,
+  Phone,
+  ShieldCheck,
+  UserCog,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -36,6 +45,7 @@ function RoadSafeOperations() {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [centres, setCentres] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<any[]>([]);
   const [allowed, setAllowed] = useState(false);
   const [alertForm, setAlertForm] = useState({
     headline: "",
@@ -50,6 +60,8 @@ function RoadSafeOperations() {
     address: "",
     contact_number: "",
     status: "standby",
+    latitude: "",
+    longitude: "",
   });
   const [contactForm, setContactForm] = useState({
     service_type: "barangay",
@@ -57,6 +69,7 @@ function RoadSafeOperations() {
     phone_number: "",
     availability: "24/7",
   });
+  const [operatorForm, setOperatorForm] = useState({ email: "", role: "barangay_operator" });
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
@@ -84,7 +97,7 @@ function RoadSafeOperations() {
 
   const load = useCallback(async () => {
     if (!barangayCode) return;
-    const [h, a, c, e] = await Promise.all([
+    const [h, a, c, e, o] = await Promise.all([
       (supabase as any)
         .from("road_hazard_reports")
         .select("*,road_hazard_confirmations(vote)")
@@ -106,6 +119,13 @@ function RoadSafeOperations() {
         .select("*")
         .eq("barangay_code", barangayCode)
         .order("service_type"),
+      isAdmin
+        ? (supabase as any)
+            .from("roadsafe_operator_assignments")
+            .select("*")
+            .eq("barangay_code", barangayCode)
+            .order("created_at")
+        : Promise.resolve({ data: [] }),
     ]);
     if (h.error)
       return toast.error("Apply the RoadSafe operations migration before using this console.");
@@ -113,7 +133,8 @@ function RoadSafeOperations() {
     setAlerts(a.data ?? []);
     setCentres(c.data ?? []);
     setContacts(e.data ?? []);
-  }, [barangayCode]);
+    setAssignments(o.data ?? []);
+  }, [barangayCode, isAdmin]);
 
   useEffect(() => {
     void load();
@@ -153,10 +174,41 @@ function RoadSafeOperations() {
       ...centreForm,
       barangay_code: barangayCode,
       contact_number: centreForm.contact_number || null,
+      latitude: centreForm.latitude ? Number(centreForm.latitude) : null,
+      longitude: centreForm.longitude ? Number(centreForm.longitude) : null,
     });
     if (error) return toast.error(error.message);
     toast.success("Evacuation centre added.");
-    setCentreForm({ name: "", address: "", contact_number: "", status: "standby" });
+    setCentreForm({
+      name: "",
+      address: "",
+      contact_number: "",
+      status: "standby",
+      latitude: "",
+      longitude: "",
+    });
+    void load();
+  }
+
+  async function assignOperator(event: React.FormEvent) {
+    event.preventDefault();
+    const { error } = await (supabase as any).rpc("assign_roadsafe_operator_by_email", {
+      _email: operatorForm.email,
+      _barangay_code: barangayCode,
+      _role: operatorForm.role,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("RoadSafe operator assigned.");
+    setOperatorForm({ ...operatorForm, email: "" });
+    void load();
+  }
+
+  async function removeOperator(id: string) {
+    const { error } = await (supabase as any).rpc("remove_roadsafe_operator", {
+      _assignment_id: id,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Operator access removed.");
     void load();
   }
 
@@ -234,6 +286,11 @@ function RoadSafeOperations() {
               <TabsTrigger value="contacts">
                 <Phone className="mr-1 h-4 w-4" /> Contacts
               </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="operators">
+                  <UserCog className="mr-1 h-4 w-4" /> Operators
+                </TabsTrigger>
+              )}
             </TabsList>
             <TabsContent value="reports" className="mt-5 grid gap-3">
               {hazards.length ? (
@@ -373,6 +430,26 @@ function RoadSafeOperations() {
                       }
                     />
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Latitude</Label>
+                      <Input
+                        inputMode="decimal"
+                        value={centreForm.latitude}
+                        onChange={(e) => setCentreForm({ ...centreForm, latitude: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label>Longitude</Label>
+                      <Input
+                        inputMode="decimal"
+                        value={centreForm.longitude}
+                        onChange={(e) =>
+                          setCentreForm({ ...centreForm, longitude: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
                   <Button type="submit">Add centre</Button>
                 </form>
               </Card>
@@ -385,6 +462,73 @@ function RoadSafeOperations() {
                 ))}
               </div>
             </TabsContent>
+            {isAdmin && (
+              <TabsContent value="operators" className="mt-5 grid gap-5 lg:grid-cols-2">
+                <Card className="p-5">
+                  <h2 className="text-xl font-bold">Assign RoadSafe operator</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    The person must already have a Barangay Buddy account.
+                  </p>
+                  <form onSubmit={assignOperator} className="mt-4 space-y-3">
+                    <div>
+                      <Label>Account email</Label>
+                      <Input
+                        required
+                        type="email"
+                        value={operatorForm.email}
+                        onChange={(e) =>
+                          setOperatorForm({ ...operatorForm, email: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label>Role</Label>
+                      <Select
+                        value={operatorForm.role}
+                        onValueChange={(role) => setOperatorForm({ ...operatorForm, role })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="barangay_operator">Barangay operator</SelectItem>
+                          <SelectItem value="lgu_officer">LGU officer</SelectItem>
+                          <SelectItem value="moderator">Moderator</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button type="submit">Assign operator</Button>
+                  </form>
+                </Card>
+                <div className="grid content-start gap-3">
+                  {assignments.length ? (
+                    assignments.map((assignment) => (
+                      <Card
+                        key={assignment.id}
+                        className="flex items-center justify-between gap-3 p-4"
+                      >
+                        <div>
+                          <strong>{assignment.role.replaceAll("_", " ")}</strong>
+                          <p className="text-xs text-muted-foreground">User {assignment.user_id}</p>
+                        </div>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          aria-label="Remove operator"
+                          onClick={() => removeOperator(assignment.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </Card>
+                    ))
+                  ) : (
+                    <Card className="p-5 text-sm text-muted-foreground">
+                      No scoped operators assigned yet.
+                    </Card>
+                  )}
+                </div>
+              </TabsContent>
+            )}
             <TabsContent value="contacts" className="mt-5 grid gap-5 lg:grid-cols-2">
               <Card className="p-5">
                 <h2 className="text-xl font-bold">Add verified contact</h2>

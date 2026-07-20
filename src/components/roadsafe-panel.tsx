@@ -245,7 +245,7 @@ export function RoadSafePanel({
           Loading current road reports…
         </Card>
       ) : reports.length ? (
-        <RoadSafeMap reports={reports} />
+        <RoadSafeMap reports={reports} centres={centres} />
       ) : (
         <Card className="p-8 text-center">
           <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-600" />
