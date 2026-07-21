@@ -385,7 +385,7 @@ export type Database = {
           source: string
           started_at?: string
           stations_upserted?: number
-          status?: string
+          status: string
         }
         Update: {
           error?: string | null
@@ -605,7 +605,6 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          barangay_code: string | null
           created_at: string
           display_name: string
           id: string
@@ -614,7 +613,6 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
-          barangay_code?: string | null
           created_at?: string
           display_name: string
           id: string
@@ -623,22 +621,13 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
-          barangay_code?: string | null
           created_at?: string
           display_name?: string
           id?: string
           phone?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_barangay_code_fkey"
-            columns: ["barangay_code"]
-            isOneToOne: false
-            referencedRelation: "barangays"
-            referencedColumns: ["code"]
-          },
-        ]
+        Relationships: []
       }
       provinces: {
         Row: {
