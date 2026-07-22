@@ -1,0 +1,516 @@
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { GroupVenueMap, type VenuePin } from "@/components/group-venue-map";
+import { GroupJoinDialog } from "@/components/group-join-dialog";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  getGroupBySlug,
+  getMyMembership,
+  isActiveMembership,
+  formatPhp,
+  type GroupRow,
+  type MembershipRow,
+  type GroupEventRow,
+  type GroupPromoRow,
+} from "@/lib/groups";
+import {
+  Calendar,
+  MapPin,
+  Trophy,
+  Users2,
+  CheckCircle2,
+  Clock,
+  Tag,
+  Settings,
+} from "lucide-react";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/groups/$slug")({
+  loader: async ({ params }) => {
+    const group = await getGroupBySlug(params.slug);
+    if (!group) throw notFound();
+    return { group };
+  },
+  head: ({ loaderData }) => {
+    const g = loaderData?.group;
+    const title = g ? `${g.name} — BarangayHub` : "Group — BarangayHub";
+    const desc =
+      g?.description?.slice(0, 155) ??
+      "Join this club or league on BarangayHub for member perks and event entry.";
+    const meta: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: desc },
+      { property: "og:title", content: title },
+      { property: "og:description", content: desc },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ];
+    if (g?.cover_image_url?.startsWith("https://")) {
+      meta.push({ property: "og:image", content: g.cover_image_url });
+      meta.push({ name: "twitter:image", content: g.cover_image_url });
+    }
+    return { meta };
+  },
+  component: GroupPage,
+  errorComponent: ({ reset }) => (
+    <div className="p-10 text-center">
+      <p>This group didn't load.</p>
+      <Button onClick={reset} className="mt-4">Try again</Button>
+    </div>
+  ),
+  notFoundComponent: () => (
+    <div className="p-10 text-center">
+      <p>Group not found.</p>
+      <Link to="/groups" className="mt-4 inline-block underline">Back to groups</Link>
+    </div>
+  ),
+});
+
+type MemberProfile = {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+};
+
+type VenueWithBiz = {
+  id: string;
+  status: string;
+  business: {
+    id: string;
+    name: string;
+    slug: string;
+    latitude: number | null;
+    longitude: number | null;
+    address: string | null;
+  } | null;
+};
+
+function GroupPage() {
+  const { group } = Route.useLoaderData();
+  const { user } = useAuth();
+  const nav = useNavigate();
+
+  const [membership, setMembership] = useState<MembershipRow | null>(null);
+  const [members, setMembers] = useState<MemberProfile[]>([]);
+  const [memberCount, setMemberCount] = useState<number>(0);
+  const [venues, setVenues] = useState<VenueWithBiz[]>([]);
+  const [events, setEvents] = useState<GroupEventRow[]>([]);
+  const [promos, setPromos] = useState<GroupPromoRow[]>([]);
+  const [isGroupAdmin, setIsGroupAdmin] = useState(false);
+
+  useEffect(() => {
+    void loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [group.id, user?.id]);
+
+  async function loadAll() {
+    const anyDb = supabase as any;
+    const [venuesRes, eventsRes, promosRes, activeCountRes, activeMembersRes] =
+      await Promise.all([
+        anyDb
+          .from("group_venues")
+          .select("id, status, business:businesses(id, name, slug, latitude, longitude, address)")
+          .eq("group_id", group.id)
+          .eq("status", "approved"),
+        anyDb
+          .from("group_events")
+          .select("*")
+          .eq("group_id", group.id)
+          .neq("status", "cancelled")
+          .order("starts_at", { ascending: true }),
+        anyDb
+          .from("group_promos")
+          .select("*")
+          .eq("group_id", group.id)
+          .or(`valid_until.is.null,valid_until.gte.${new Date().toISOString()}`)
+          .order("valid_from", { ascending: false }),
+        anyDb
+          .from("group_memberships")
+          .select("user_id", { count: "exact", head: true })
+          .eq("group_id", group.id)
+          .eq("status", "active"),
+        anyDb
+          .from("group_memberships")
+          .select("user_id, profile:profiles(id, display_name, avatar_url)")
+          .eq("group_id", group.id)
+          .eq("status", "active")
+          .limit(24),
+      ]);
+
+    setVenues((venuesRes.data ?? []) as VenueWithBiz[]);
+    setEvents((eventsRes.data ?? []) as GroupEventRow[]);
+    setPromos((promosRes.data ?? []) as GroupPromoRow[]);
+    setMemberCount(activeCountRes.count ?? 0);
+    const mems = ((activeMembersRes.data ?? []) as Array<{ profile: MemberProfile | null }>)
+      .map((r) => r.profile)
+      .filter((p): p is MemberProfile => Boolean(p));
+    setMembers(mems);
+
+    if (user) {
+      const m = await getMyMembership(group.id, user.id);
+      setMembership(m);
+      if (m && (m.role === "admin" || m.role === "owner") && m.status === "active") {
+        setIsGroupAdmin(true);
+      } else {
+        // check platform admin
+        const { data: role } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        setIsGroupAdmin(!!role);
+      }
+    } else {
+      setMembership(null);
+      setIsGroupAdmin(false);
+    }
+  }
+
+  const active = isActiveMembership(membership);
+  const venuePins: VenuePin[] = useMemo(
+    () =>
+      venues
+        .filter((v) => v.business && v.business.latitude && v.business.longitude)
+        .map((v) => ({
+          id: v.business!.id,
+          slug: v.business!.slug,
+          name: v.business!.name,
+          latitude: Number(v.business!.latitude),
+          longitude: Number(v.business!.longitude),
+          approved: true,
+        })),
+    [venues],
+  );
+
+  async function cancelMembership() {
+    if (!membership) return;
+    const { error } = await (supabase as any)
+      .from("group_memberships")
+      .update({ status: "cancelled" })
+      .eq("id", membership.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Membership cancelled.");
+    void loadAll();
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      <SiteHeader />
+
+      {/* Hero */}
+      <div className="relative h-56 w-full overflow-hidden bg-gradient-sun md:h-72">
+        {group.cover_image_url ? (
+          <img
+            src={group.cover_image_url}
+            alt={group.name}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <Trophy className="h-24 w-24 text-white/70" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+        <div className="container absolute inset-x-0 bottom-0 mx-auto px-4 pb-6">
+          <Badge className="bg-white/20 capitalize backdrop-blur">
+            {group.type.replace("_", " ")}
+          </Badge>
+          <h1 className="mt-2 font-display text-3xl font-bold text-white md:text-4xl">
+            {group.name}
+          </h1>
+        </div>
+      </div>
+
+      <main className="container mx-auto flex-1 px-4 py-8">
+        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+          {/* Left column: description + tabs */}
+          <div className="space-y-6">
+            {group.description && (
+              <Card className="p-5">
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                  {group.description}
+                </p>
+              </Card>
+            )}
+
+            <Tabs defaultValue="venues">
+              <TabsList>
+                <TabsTrigger value="venues">Venues ({venues.length})</TabsTrigger>
+                <TabsTrigger value="events">Events ({events.length})</TabsTrigger>
+                <TabsTrigger value="promos">Promos ({promos.length})</TabsTrigger>
+                <TabsTrigger value="members">Members ({memberCount})</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="venues" className="mt-4 space-y-4">
+                {venuePins.length > 0 && <GroupVenueMap venues={venuePins} />}
+                {venues.length === 0 ? (
+                  <Card className="p-6 text-center text-sm text-muted-foreground">
+                    No league venues yet. Business owners can request to join from their
+                    dashboard.
+                  </Card>
+                ) : (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {venues.map((v) =>
+                      v.business ? (
+                        <Link
+                          key={v.id}
+                          to="/business/$slug"
+                          params={{ slug: v.business.slug }}
+                          className="block"
+                        >
+                          <Card className="p-4 transition-shadow hover:shadow-md">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="font-semibold">{v.business.name}</div>
+                                {v.business.address && (
+                                  <div className="mt-1 flex items-start gap-1 text-xs text-muted-foreground">
+                                    <MapPin className="mt-0.5 h-3 w-3 flex-shrink-0" />
+                                    {v.business.address}
+                                  </div>
+                                )}
+                              </div>
+                              <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+                                League location
+                              </Badge>
+                            </div>
+                          </Card>
+                        </Link>
+                      ) : null,
+                    )}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="events" className="mt-4 space-y-3">
+                {events.length === 0 ? (
+                  <Card className="p-6 text-center text-sm text-muted-foreground">
+                    No upcoming events yet.
+                  </Card>
+                ) : (
+                  events.map((e) => (
+                    <Card key={e.id} className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="font-semibold">{e.title}</div>
+                          <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(e.starts_at).toLocaleString("en-PH", {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            })}
+                          </div>
+                          {e.description && (
+                            <p className="mt-2 text-sm text-muted-foreground">{e.description}</p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          {e.member_free && active ? (
+                            <Badge className="bg-emerald-100 text-emerald-800">
+                              Free entry (member)
+                            </Badge>
+                          ) : e.entry_fee_php > 0 ? (
+                            <Badge variant="secondary">{formatPhp(e.entry_fee_php)}</Badge>
+                          ) : (
+                            <Badge variant="secondary">Free</Badge>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="promos" className="mt-4 space-y-3">
+                {promos.length === 0 ? (
+                  <Card className="p-6 text-center text-sm text-muted-foreground">
+                    No active promos.
+                  </Card>
+                ) : (
+                  promos.map((p) => (
+                    <Card key={p.id} className="p-4">
+                      <div className="flex items-start gap-3">
+                        <Tag className="mt-0.5 h-4 w-4 text-amber-600" />
+                        <div className="flex-1">
+                          <div className="font-semibold">{p.title}</div>
+                          {p.description && (
+                            <p className="mt-1 text-sm text-muted-foreground">{p.description}</p>
+                          )}
+                          <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                            {p.discount_percent && (
+                              <Badge className="bg-emerald-100 text-emerald-800">
+                                {p.discount_percent}% off
+                              </Badge>
+                            )}
+                            {p.discount_amount_php && (
+                              <Badge className="bg-emerald-100 text-emerald-800">
+                                {formatPhp(p.discount_amount_php)} off
+                              </Badge>
+                            )}
+                            {active ? (
+                              <Badge variant="secondary">
+                                <CheckCircle2 className="mr-1 h-3 w-3" /> Applies to you
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline">Members only</Badge>
+                            )}
+                            {p.code && (
+                              <Badge variant="outline" className="font-mono">
+                                {p.code}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="members" className="mt-4">
+                {members.length === 0 ? (
+                  <Card className="p-6 text-center text-sm text-muted-foreground">
+                    Be one of the first members!
+                  </Card>
+                ) : (
+                  <div className="flex flex-wrap gap-3">
+                    {members.map((m) => (
+                      <div
+                        key={m.id}
+                        className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm"
+                      >
+                        {m.avatar_url ? (
+                          <img
+                            src={m.avatar_url}
+                            alt=""
+                            className="h-6 w-6 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs">
+                            {(m.display_name ?? "?").slice(0, 1).toUpperCase()}
+                          </div>
+                        )}
+                        <span>{m.display_name ?? "Member"}</span>
+                      </div>
+                    ))}
+                    {memberCount > members.length && (
+                      <div className="flex items-center rounded-full border border-dashed border-border px-3 py-1.5 text-sm text-muted-foreground">
+                        +{memberCount - members.length} more
+                      </div>
+                    )}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Right column: join card */}
+          <aside className="space-y-4">
+            <Card className="p-5">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Membership
+              </div>
+              <div className="mt-1 font-display text-2xl font-bold">
+                {group.membership_fee_php > 0
+                  ? `${formatPhp(group.membership_fee_php)}/yr`
+                  : "Free"}
+              </div>
+
+              {!user ? (
+                <Button className="mt-4 w-full" onClick={() => nav({ to: "/login" })}>
+                  Sign in to join
+                </Button>
+              ) : active ? (
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span>
+                      Active member
+                      {membership?.expires_at &&
+                        ` — expires ${new Date(membership.expires_at).toLocaleDateString("en-PH")}`}
+                    </span>
+                  </div>
+                  <Button variant="outline" className="w-full" onClick={cancelMembership}>
+                    Cancel membership
+                  </Button>
+                </div>
+              ) : membership?.status === "pending" ? (
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+                    <Clock className="h-4 w-4" />
+                    <span>Payment under review by league admin.</span>
+                  </div>
+                  <GroupJoinDialog
+                    group={group as GroupRow}
+                    existing={membership}
+                    onJoined={(m) => setMembership(m)}
+                  />
+                </div>
+              ) : (
+                <div className="mt-4">
+                  <GroupJoinDialog
+                    group={group as GroupRow}
+                    existing={membership}
+                    onJoined={(m) => setMembership(m)}
+                  />
+                </div>
+              )}
+
+              <ul className="mt-5 space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600" />
+                  Free entry to league events & tournaments
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600" />
+                  Automatic member discounts at league venues
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600" />
+                  Listed on the public members roster
+                </li>
+              </ul>
+            </Card>
+
+            <Card className="p-5">
+              <div className="flex items-center gap-2 text-sm">
+                <Users2 className="h-4 w-4 text-muted-foreground" />
+                <span className="font-semibold">{memberCount}</span>
+                <span className="text-muted-foreground">active members</span>
+              </div>
+              <div className="mt-2 flex items-center gap-2 text-sm">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <span className="font-semibold">{venues.length}</span>
+                <span className="text-muted-foreground">league venues</span>
+              </div>
+              <div className="mt-2 flex items-center gap-2 text-sm">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="font-semibold">{events.length}</span>
+                <span className="text-muted-foreground">upcoming events</span>
+              </div>
+            </Card>
+
+            {isGroupAdmin && (
+              <Link to="/groups/$slug/manage" params={{ slug: group.slug }} className="block">
+                <Button variant="outline" className="w-full">
+                  <Settings className="mr-2 h-4 w-4" /> Manage group
+                </Button>
+              </Link>
+            )}
+          </aside>
+        </div>
+      </main>
+      <SiteFooter />
+    </div>
+  );
+}
