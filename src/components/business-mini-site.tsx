@@ -81,7 +81,7 @@ export function BusinessMiniSite({ business, listings }: Props) {
             </span>
             <div className="flex flex-wrap gap-2">
               <EditBusinessDialog
-                business={business}
+                business={business as never}
                 onSaved={() => window.location.reload()}
               />
               <Button size="sm" variant="outline" asChild>
