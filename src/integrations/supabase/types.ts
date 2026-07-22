@@ -508,6 +508,316 @@ export type Database = {
           },
         ]
       }
+      group_event_rsvps: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_event_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "group_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_events: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_at: string | null
+          entry_fee_php: number
+          group_id: string
+          id: string
+          member_free: boolean
+          starts_at: string
+          status: Database["public"]["Enums"]["event_status"]
+          title: string
+          updated_at: string
+          venue_business_id: string | null
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          entry_fee_php?: number
+          group_id: string
+          id?: string
+          member_free?: boolean
+          starts_at: string
+          status?: Database["public"]["Enums"]["event_status"]
+          title: string
+          updated_at?: string
+          venue_business_id?: string | null
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          entry_fee_php?: number
+          group_id?: string
+          id?: string
+          member_free?: boolean
+          starts_at?: string
+          status?: Database["public"]["Enums"]["event_status"]
+          title?: string
+          updated_at?: string
+          venue_business_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_events_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_events_venue_business_id_fkey"
+            columns: ["venue_business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_memberships: {
+        Row: {
+          amount_paid_php: number
+          created_at: string
+          expires_at: string | null
+          group_id: string
+          id: string
+          payment_note: string | null
+          payment_ref: string | null
+          role: Database["public"]["Enums"]["group_role"]
+          started_at: string | null
+          status: Database["public"]["Enums"]["membership_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_paid_php?: number
+          created_at?: string
+          expires_at?: string | null
+          group_id: string
+          id?: string
+          payment_note?: string | null
+          payment_ref?: string | null
+          role?: Database["public"]["Enums"]["group_role"]
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["membership_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_paid_php?: number
+          created_at?: string
+          expires_at?: string | null
+          group_id?: string
+          id?: string
+          payment_note?: string | null
+          payment_ref?: string | null
+          role?: Database["public"]["Enums"]["group_role"]
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["membership_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_memberships_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_promos: {
+        Row: {
+          business_id: string | null
+          code: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          discount_amount_php: number | null
+          discount_percent: number | null
+          group_id: string
+          id: string
+          title: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+        }
+        Insert: {
+          business_id?: string | null
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_amount_php?: number | null
+          discount_percent?: number | null
+          group_id: string
+          id?: string
+          title: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Update: {
+          business_id?: string | null
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discount_amount_php?: number | null
+          discount_percent?: number | null
+          group_id?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_promos_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_promos_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_venues: {
+        Row: {
+          approved_at: string | null
+          business_id: string
+          created_at: string
+          group_id: string
+          id: string
+          requested_by: string | null
+          status: Database["public"]["Enums"]["venue_status"]
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          business_id: string
+          created_at?: string
+          group_id: string
+          id?: string
+          requested_by?: string | null
+          status?: Database["public"]["Enums"]["venue_status"]
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          business_id?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          requested_by?: string | null
+          status?: Database["public"]["Enums"]["venue_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_venues_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_venues_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_public: boolean
+          logo_url: string | null
+          membership_fee_php: number
+          membership_period_days: number
+          name: string
+          payment_instructions: string | null
+          slug: string
+          type: Database["public"]["Enums"]["group_type"]
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          logo_url?: string | null
+          membership_fee_php?: number
+          membership_period_days?: number
+          name: string
+          payment_instructions?: string | null
+          slug: string
+          type?: Database["public"]["Enums"]["group_type"]
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          logo_url?: string | null
+          membership_fee_php?: number
+          membership_period_days?: number
+          name?: string
+          payment_instructions?: string | null
+          slug?: string
+          type?: Database["public"]["Enums"]["group_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       listings: {
         Row: {
           business_id: string
@@ -777,6 +1087,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_active_member: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_group_admin: {
+        Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "owner" | "consumer" | "admin"
@@ -812,7 +1130,12 @@ export type Database = {
         | "transport"
         | "agri_supply"
         | "livestock"
+      event_status: "scheduled" | "cancelled" | "completed"
       fuel_type: "gasoline_91" | "gasoline_95" | "gasoline_97" | "diesel"
+      group_role: "owner" | "admin" | "member"
+      group_type: "league" | "club" | "interest_group"
+      membership_status: "pending" | "active" | "expired" | "cancelled"
+      venue_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -975,7 +1298,12 @@ export const Constants = {
         "agri_supply",
         "livestock",
       ],
+      event_status: ["scheduled", "cancelled", "completed"],
       fuel_type: ["gasoline_91", "gasoline_95", "gasoline_97", "diesel"],
+      group_role: ["owner", "admin", "member"],
+      group_type: ["league", "club", "interest_group"],
+      membership_status: ["pending", "active", "expired", "cancelled"],
+      venue_status: ["pending", "approved", "rejected"],
     },
   },
 } as const
