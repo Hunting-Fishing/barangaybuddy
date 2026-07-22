@@ -98,6 +98,9 @@ export function SiteHeader() {
           <Link to="/fuel" className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
             <Fuel className="h-4 w-4" /> Fuel Buddy
           </Link>
+          <Link to="/groups" className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+            <Trophy className="h-4 w-4" /> Leagues
+          </Link>
         </nav>
 
         <div className="flex items-center gap-2">
