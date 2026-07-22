@@ -27,8 +27,8 @@ type MiniBusiness = {
   logo_url: string | null;
   owner_id: string | null;
   barangay_code: string;
-  latitude?: number | string | null;
-  longitude?: number | string | null;
+  latitude: number | string | null;
+  longitude: number | string | null;
   barangays?: {
     name?: string;
     cities_municipalities?: {
