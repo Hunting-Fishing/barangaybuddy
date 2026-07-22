@@ -27,8 +27,8 @@ type MiniBusiness = {
   logo_url: string | null;
   owner_id: string | null;
   barangay_code: string;
-  latitude?: number | string | null;
-  longitude?: number | string | null;
+  latitude: number | string | null;
+  longitude: number | string | null;
   barangays?: {
     name?: string;
     cities_municipalities?: {
@@ -81,7 +81,7 @@ export function BusinessMiniSite({ business, listings }: Props) {
             </span>
             <div className="flex flex-wrap gap-2">
               <EditBusinessDialog
-                business={business}
+                business={business as never}
                 onSaved={() => window.location.reload()}
               />
               <Button size="sm" variant="outline" asChild>
