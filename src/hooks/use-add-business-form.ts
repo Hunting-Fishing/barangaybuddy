@@ -208,7 +208,7 @@ export function useAddBusinessForm() {
         id: user.id,
         display_name: displayName,
         barangay_code: form.barangay_code,
-      },
+      } as never,
       { onConflict: "id" },
     );
     setSavingProfileBarangay(false);
