@@ -1,70 +1,97 @@
-
 ## Goal
-Auto-populate the barangay directory with Philippine businesses pulled from OpenStreetMap (OSM) via the free Overpass API. Runs nightly, publishes immediately as **unclaimed** so real owners can claim later — same pattern as the existing OSM fuel-station importer.
+Build a Clubs & Groups system. Launch it with the first group: **Barangay Buddy Billiards League** — PHP 100 / year membership that grants event/tournament entry, member listing, and automatic league-promo discounts. Venues (businesses) can join the league as league locations and appear on the map.
 
-## How it works
+## What exists / what's missing
+- No groups, clubs, leagues, memberships, events, or promos anywhere in code or DB. Everything below is net-new.
+- Reuses existing pieces: `businesses` (venue link), `profiles` (member link), Leaflet `BusinessMap` (map pins), `has_role` (admin), Paddle/Stripe payments flow (for the PHP 100 fee).
 
-```text
-pg_cron (nightly 02:00 PHT)
-  └─► POST /api/public/hooks/business-osm-sync
-        └─► fetches OSM businesses by region (17 chunks)
-              └─► geocodes each to nearest barangay (lat/lng)
-                    └─► upserts into `businesses` (imported_from='osm')
-```
+## Database (one migration)
 
-### What we import from OSM
-OSM tags we'll map to your `business_type` enum:
-- `shop=*` → store / grocery / pharmacy / hardware / clothing …
-- `amenity=restaurant|cafe|fast_food|bar|bakery` → restaurant / cafe
-- `amenity=clinic|hospital|dentist|veterinary` → clinic / hospital
-- `amenity=bank|atm|pharmacy|post_office` → service
-- `office=*` → service
-- `tourism=hotel|guest_house|hostel` → hotel
-- anything unmapped → `other` with the OSM tag stored in `tags`
+New enums:
+- `group_type`: `league`, `club`, `interest_group`
+- `group_role`: `owner`, `admin`, `member`
+- `membership_status`: `pending`, `active`, `expired`, `cancelled`
+- `event_status`: `scheduled`, `cancelled`, `completed`
 
-Per place we capture: name, lat/lng, address (street+number when present), phone, website, opening_hours, OSM id → `import_source_id`.
+New tables (all with RLS + GRANTs to authenticated + service_role; anon SELECT only on public list columns of `groups`, `group_venues`, `group_events`, `group_promos`):
 
-### Coverage strategy (avoids Overpass timeouts)
-Overpass cannot return all PH businesses in one query. We chunk by the 17 **regions** (already in your `regions` table). The nightly job loops through regions sequentially with a 30s gap between calls — gentle on the public Overpass server, fully done in ~15–20 minutes.
+- `groups` — id, slug (unique), name, type, description, cover_image_url, logo_url, membership_fee_php (int, e.g. 100), membership_period_days (default 365), is_public, created_by, timestamps.
+- `group_memberships` — id, group_id, user_id, role, status, started_at, expires_at, payment_ref (nullable), amount_paid_php, unique(group_id, user_id).
+- `group_venues` — id, group_id, business_id, status (`pending`/`approved`/`rejected`), joined_at, unique(group_id, business_id). Approved venues render on the map and get the "League location" pill.
+- `group_events` — id, group_id, title, description, venue_business_id (nullable), starts_at, ends_at, entry_fee_php, member_free (bool default true), status, cover_image_url.
+- `group_event_rsvps` — id, event_id, user_id, created_at, unique(event_id, user_id).
+- `group_promos` — id, group_id, title, description, discount_percent OR discount_amount_php, business_id (nullable — null = all league venues), valid_from, valid_until, code (nullable).
 
-### Barangay geocoding
-For each OSM point we need a `barangay_code` (required column). Approach:
-1. Build a Postgres function `nearest_barangay(lat, lng) → barangay_code` that uses a centroid lookup against `barangays` (we'll seed centroids from existing `businesses` data + a one-time PSGC centroid backfill, or fall back to the existing `OSM-UNRESOLVED` sentinel for points we can't place).
-2. Simpler MVP fallback: use the existing `OSM-UNRESOLVED` sentinel barangay (already used by fuel-station importer) for v1, then refine later. **Recommend MVP first.**
+Indexes: `group_memberships(user_id, status)`, `group_venues(group_id, status)`, `group_events(group_id, starts_at)`, `group_promos(group_id, valid_until)`.
 
-### Dedupe & re-runs
-Reuse the existing unique index `businesses_import_source_unique (imported_from, import_source_id)`. Nightly upsert refreshes name/phone/hours without creating duplicates. Owner-claimed rows (`is_claimed=true`, `owner_id` set) are skipped on update — we only refresh unclaimed OSM rows.
+Security-definer helper `public.is_active_member(_group_id uuid, _user_id uuid) returns boolean` for use in RLS on events/promos (avoids recursive policy checks).
 
-### Where they show up
-- **Barangay directory** (`/barangays`, `/barangays/$city/$barangay`) — listed automatically because they have `is_published=true` and a `barangay_code`.
-- **Search** page — already queries `businesses`.
-- Each row shows an "Unclaimed — is this yours? Claim it" badge (reuses existing claim flow).
+RLS highlights:
+- `groups`: anyone (anon+authenticated) SELECT `is_public=true`; only creator or admin UPDATE/DELETE; authenticated INSERT.
+- `group_memberships`: user SELECTs own rows; group admins SELECT all in their group; INSERT self only with `status='pending'`; UPDATE status only via server function (service role) after payment.
+- `group_venues`: public SELECT approved rows; business owner INSERTs for their own business (status=pending); group admin UPDATEs status.
+- `group_events`: public SELECT scheduled; group admins manage.
+- `group_event_rsvps`: user SELECTs own + admins see all; active members INSERT; users DELETE own.
+- `group_promos`: public SELECT while `valid_until >= now()`; group admins manage.
+
+Seed row in the same migration: the Billiards League group (`slug='barangay-buddy-billiards-league'`, fee=100, period=365, `is_public=true`).
+
+## Payments (PHP 100 / year)
+
+Two paths, one flag decides which is wired live:
+- **If Paddle/Stripe is already enabled on this project**: create a "Group Membership – Billiards League" product (PHP 100, one-time; renewed manually on expiry — keeps v1 simple, no subscription webhook needed). Checkout server fn creates `group_memberships` row with `status='pending'` and stores the checkout session id in `payment_ref`. Webhook (existing `/api/public/hooks/...` pattern) verifies and flips to `active`, sets `started_at=now()`, `expires_at=now()+interval '365 days'`.
+- **Fallback (no payments provider yet)**: manual "Mark as paid" admin action + a "Pay via GCash/bank transfer" instructions modal that creates a pending membership. Admin approves.
+
+I'll ask below which path you want.
+
+## Server functions (`src/lib/groups.functions.ts` + `groups.server.ts`)
+- `getGroup(slug)` — public detail.
+- `listGroups()` — public list.
+- `joinGroup({groupId})` — auth; creates pending membership + returns checkout URL (or pending-approval message for free/manual path).
+- `leaveGroup({groupId})`.
+- `linkVenue({groupId, businessId})` — business owner requests to become a league venue.
+- `approveVenue`, `rejectVenue`, `approveMembership` — group-admin only (verified via `context.supabase` under RLS).
+- `createEvent`, `updateEvent`, `cancelEvent`, `rsvpEvent`.
+- `createPromo`, `updatePromo`, `deletePromo`, `getActivePromosForBusiness(businessId, userId?)` — returns promos plus a `discount_applies` flag when the user is an active member; product/business pages read this to show the badge and the discounted price.
+
+Public server route: `/api/public/hooks/group-payment` — Paddle/Stripe webhook (signature-verified, `supabaseAdmin` load-in-handler pattern).
+
+## Routes / UI
+
+- `src/routes/groups.index.tsx` — list of public groups, featured Billiards League hero card, "Create a group" CTA.
+- `src/routes/groups.$slug.tsx` — group landing: cover, description, stats (members / venues / next event), "Join for ₱100/yr" button (state-aware: Join → Pending → Active w/ expiry), tabs for **Members**, **Venues** (with mini Leaflet map reusing `BusinessMap` styling — league-location markers get a distinct gold ring), **Events**, **Promos**.
+- `src/routes/groups.$slug.manage.tsx` — under `_authenticated/`; group-admin console (approve members, approve venues, CRUD events + promos).
+- `src/routes/dashboard.tsx` — new "My groups" section (active memberships with expiry countdown, quick renew) + business-owner "Join a league" action on each owned business.
+- `src/components/group-venue-map.tsx` — map of approved venues for a group.
+- `src/components/group-member-badge.tsx` — chip on member profile cards.
+- On existing business page (`business.$slug.tsx`): show "League location" badge when the business is an approved venue, and show any active league promos with "You save ₱X as a member" if the viewer is an active member.
+- Header nav: add "Groups" link.
+
+## SEO
+Each route gets its own `head()` with unique title/description/og. Group detail sets og:image from `groups.cover_image_url`.
 
 ## Files
 
 **New**
-- `src/lib/business-osm-import.server.ts` — Overpass fetcher, tag→type mapper, upserter (mirrors `fuel-import.server.ts`)
-- `src/routes/api/public/hooks/business-osm-sync.ts` — cron endpoint, loops regions, writes a row to `business_import_runs` for observability
-- Migration: `business_import_runs` table (mirrors `fuel_import_runs`) for status/error tracking
-- Migration: add `is_claimed` filter index + small "Unclaimed" badge component for cards
+- migration (schema + seed)
+- `src/lib/groups.server.ts`, `src/lib/groups.functions.ts`
+- `src/routes/groups.index.tsx`, `src/routes/groups.$slug.tsx`, `src/routes/_authenticated/groups.$slug.manage.tsx`
+- `src/routes/api/public/hooks/group-payment.ts`
+- `src/components/group-venue-map.tsx`, `src/components/group-member-badge.tsx`, `src/components/group-join-button.tsx`, `src/components/group-promos-list.tsx`
 
 **Edited**
-- `src/components/barangay-listings-feed.tsx` — show "Unclaimed" pill on OSM-imported rows
-- `src/routes/dashboard.tsx` — add an admin-only "Run business OSM sync now" button + last-run status (so you don't have to wait for cron)
+- `src/routes/dashboard.tsx` — my-groups block + business "Join league" action
+- `src/routes/business.$slug.tsx` — league badge + member discount display
+- `src/components/site-header.tsx` — Groups nav link
 
-**Cron**
-- pg_cron job `business-osm-sync-nightly` at `0 18 * * *` UTC (02:00 PHT) posting to the new endpoint with the project's anon key.
+## Out of scope for v1
+- Auto-renewal / recurring subscription (renewal is a re-checkout — simple and reliable).
+- Bracket generation / scorekeeping for tournaments (events only track schedule + RSVP for now).
+- In-app messaging between members (existing `messages` table can be reused later).
 
-## Limitations to know
+## Questions before I build
+1. **Payments provider** — Should I wire this through Paddle/Stripe (needs `enable_paddle_payments` or `enable_stripe_payments` first), or ship v1 with a manual "GCash / bank transfer + admin approves" flow and add automated checkout in a follow-up?
+2. **Who can create new groups** — Only admins (you seed each new league), any signed-in user, or business owners only?
+3. **Venue approval** — Does a business auto-join the Billiards League when the owner clicks "Join league" from their dashboard, or does a league admin approve each venue?
 
-- **OSM coverage is patchy outside Metro Manila, Cebu, Davao**. Expect ~30–80k businesses nationwide (vs. millions in reality). Rural barangays will still be sparse — that's an OSM data limitation, not a code one.
-- **No photos, no ratings** — OSM doesn't have them. Cards will use a placeholder image.
-- Hours/phone present on only ~20–40% of OSM rows.
-- First nightly run will insert tens of thousands of rows; subsequent runs are mostly no-op upserts.
-
-## What I will NOT do
-- No Facebook scraping (against ToS, blocked by FB).
-- No Google Places (you chose free/OSM).
-- No moderation queue (you chose publish-immediately).
-
-Approve and I'll build it.
+Answer these three and I'll implement in one go.
