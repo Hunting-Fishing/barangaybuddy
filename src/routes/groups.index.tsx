@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trophy, Users2, Sparkles } from "lucide-react";
 import { listPublicGroups, formatPhp, type GroupRow } from "@/lib/groups";
 
-export const Route = createFileRoute("/groups")({
+export const Route = createFileRoute("/groups/")({
   head: () => ({
     meta: [
       { title: "Clubs & Leagues — BarangayHub" },

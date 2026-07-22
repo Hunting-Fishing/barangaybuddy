@@ -23,15 +23,18 @@ import { Route as AddBusinessRouteImport } from './routes/add-business'
 import { Route as MiniSiteSlugRouteImport } from './routes/$miniSiteSlug'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RegionsIndexRouteImport } from './routes/regions.index'
+import { Route as GroupsIndexRouteImport } from './routes/groups.index'
 import { Route as BarangaysIndexRouteImport } from './routes/barangays.index'
 import { Route as RegionsRegionRouteImport } from './routes/regions.$region'
 import { Route as ProvincesProvinceRouteImport } from './routes/provinces.$province'
 import { Route as MessagesConversationIdRouteImport } from './routes/messages.$conversationId'
 import { Route as InventoryBusinessIdRouteImport } from './routes/inventory.$businessId'
+import { Route as GroupsSlugRouteImport } from './routes/groups.$slug'
 import { Route as CitiesCityRouteImport } from './routes/cities.$city'
 import { Route as CategoriesCategoryRouteImport } from './routes/categories.$category'
 import { Route as BusinessSlugRouteImport } from './routes/business.$slug'
 import { Route as ApiRoadsafeRouteRouteImport } from './routes/api/roadsafe/route'
+import { Route as GroupsSlugManageRouteImport } from './routes/groups.$slug.manage'
 import { Route as DashboardBusinessIdRouteImport } from './routes/dashboard.business.$id'
 import { Route as BarangaysCityBarangayRouteImport } from './routes/barangays.$city.$barangay'
 import { Route as DashboardBusinessIdInventoryRouteImport } from './routes/dashboard.business.$id.inventory'
@@ -111,6 +114,11 @@ const RegionsIndexRoute = RegionsIndexRouteImport.update({
   path: '/regions/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GroupsIndexRoute = GroupsIndexRouteImport.update({
+  id: '/groups/',
+  path: '/groups/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BarangaysIndexRoute = BarangaysIndexRouteImport.update({
   id: '/barangays/',
   path: '/barangays/',
@@ -136,6 +144,11 @@ const InventoryBusinessIdRoute = InventoryBusinessIdRouteImport.update({
   path: '/inventory/$businessId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GroupsSlugRoute = GroupsSlugRouteImport.update({
+  id: '/groups/$slug',
+  path: '/groups/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CitiesCityRoute = CitiesCityRouteImport.update({
   id: '/cities/$city',
   path: '/cities/$city',
@@ -155,6 +168,11 @@ const ApiRoadsafeRouteRoute = ApiRoadsafeRouteRouteImport.update({
   id: '/api/roadsafe',
   path: '/api/roadsafe',
   getParentRoute: () => rootRouteImport,
+} as any)
+const GroupsSlugManageRoute = GroupsSlugManageRouteImport.update({
+  id: '/manage',
+  path: '/manage',
+  getParentRoute: () => GroupsSlugRoute,
 } as any)
 const DashboardBusinessIdRoute = DashboardBusinessIdRouteImport.update({
   id: '/business/$id',
@@ -220,14 +238,17 @@ export interface FileRoutesByFullPath {
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
   '/barangays/': typeof BarangaysIndexRoute
+  '/groups/': typeof GroupsIndexRoute
   '/regions/': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
+  '/groups/$slug/manage': typeof GroupsSlugManageRoute
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
@@ -253,14 +274,17 @@ export interface FileRoutesByTo {
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
   '/barangays': typeof BarangaysIndexRoute
+  '/groups': typeof GroupsIndexRoute
   '/regions': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
+  '/groups/$slug/manage': typeof GroupsSlugManageRoute
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
@@ -287,14 +311,17 @@ export interface FileRoutesById {
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
   '/barangays/': typeof BarangaysIndexRoute
+  '/groups/': typeof GroupsIndexRoute
   '/regions/': typeof RegionsIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
+  '/groups/$slug/manage': typeof GroupsSlugManageRoute
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
@@ -322,14 +349,17 @@ export interface FileRouteTypes {
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
+    | '/groups/$slug'
     | '/inventory/$businessId'
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
     | '/barangays/'
+    | '/groups/'
     | '/regions/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
+    | '/groups/$slug/manage'
     | '/api/public/hooks/business-osm-sync'
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
@@ -355,14 +385,17 @@ export interface FileRouteTypes {
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
+    | '/groups/$slug'
     | '/inventory/$businessId'
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
     | '/barangays'
+    | '/groups'
     | '/regions'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
+    | '/groups/$slug/manage'
     | '/api/public/hooks/business-osm-sync'
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
@@ -388,14 +421,17 @@ export interface FileRouteTypes {
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
+    | '/groups/$slug'
     | '/inventory/$businessId'
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
     | '/barangays/'
+    | '/groups/'
     | '/regions/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
+    | '/groups/$slug/manage'
     | '/api/public/hooks/business-osm-sync'
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
@@ -422,10 +458,12 @@ export interface RootRouteChildren {
   BusinessSlugRoute: typeof BusinessSlugRoute
   CategoriesCategoryRoute: typeof CategoriesCategoryRoute
   CitiesCityRoute: typeof CitiesCityRoute
+  GroupsSlugRoute: typeof GroupsSlugRouteWithChildren
   InventoryBusinessIdRoute: typeof InventoryBusinessIdRoute
   ProvincesProvinceRoute: typeof ProvincesProvinceRoute
   RegionsRegionRoute: typeof RegionsRegionRoute
   BarangaysIndexRoute: typeof BarangaysIndexRoute
+  GroupsIndexRoute: typeof GroupsIndexRoute
   RegionsIndexRoute: typeof RegionsIndexRoute
   BarangaysCityBarangayRoute: typeof BarangaysCityBarangayRoute
   ApiPublicHooksBusinessOsmSyncRoute: typeof ApiPublicHooksBusinessOsmSyncRoute
@@ -535,6 +573,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegionsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/groups/': {
+      id: '/groups/'
+      path: '/groups'
+      fullPath: '/groups/'
+      preLoaderRoute: typeof GroupsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/barangays/': {
       id: '/barangays/'
       path: '/barangays'
@@ -570,6 +615,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InventoryBusinessIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/groups/$slug': {
+      id: '/groups/$slug'
+      path: '/groups/$slug'
+      fullPath: '/groups/$slug'
+      preLoaderRoute: typeof GroupsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cities/$city': {
       id: '/cities/$city'
       path: '/cities/$city'
@@ -597,6 +649,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/roadsafe'
       preLoaderRoute: typeof ApiRoadsafeRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/groups/$slug/manage': {
+      id: '/groups/$slug/manage'
+      path: '/manage'
+      fullPath: '/groups/$slug/manage'
+      preLoaderRoute: typeof GroupsSlugManageRouteImport
+      parentRoute: typeof GroupsSlugRoute
     }
     '/dashboard/business/$id': {
       id: '/dashboard/business/$id'
@@ -692,6 +751,18 @@ const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
   MessagesRouteChildren,
 )
 
+interface GroupsSlugRouteChildren {
+  GroupsSlugManageRoute: typeof GroupsSlugManageRoute
+}
+
+const GroupsSlugRouteChildren: GroupsSlugRouteChildren = {
+  GroupsSlugManageRoute: GroupsSlugManageRoute,
+}
+
+const GroupsSlugRouteWithChildren = GroupsSlugRoute._addFileChildren(
+  GroupsSlugRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MiniSiteSlugRoute: MiniSiteSlugRoute,
@@ -710,10 +781,12 @@ const rootRouteChildren: RootRouteChildren = {
   BusinessSlugRoute: BusinessSlugRoute,
   CategoriesCategoryRoute: CategoriesCategoryRoute,
   CitiesCityRoute: CitiesCityRoute,
+  GroupsSlugRoute: GroupsSlugRouteWithChildren,
   InventoryBusinessIdRoute: InventoryBusinessIdRoute,
   ProvincesProvinceRoute: ProvincesProvinceRoute,
   RegionsRegionRoute: RegionsRegionRoute,
   BarangaysIndexRoute: BarangaysIndexRoute,
+  GroupsIndexRoute: GroupsIndexRoute,
   RegionsIndexRoute: RegionsIndexRoute,
   BarangaysCityBarangayRoute: BarangaysCityBarangayRoute,
   ApiPublicHooksBusinessOsmSyncRoute: ApiPublicHooksBusinessOsmSyncRoute,
