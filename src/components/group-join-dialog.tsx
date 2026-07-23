@@ -42,14 +42,22 @@ export function GroupJoinDialog({
       return;
     }
     setSubmitting(true);
+    const paymentRef = ref.trim();
+    const isPaid = paymentRef.length > 0;
+    const nowIso = new Date().toISOString();
+    const expiresIso = new Date(
+      Date.now() + group.membership_period_days * 24 * 60 * 60 * 1000,
+    ).toISOString();
     const payload = {
       group_id: group.id,
       user_id: user.id,
       role: "member",
-      status: "pending",
-      payment_ref: ref.trim() || null,
+      status: isPaid ? "active" : "pending",
+      payment_ref: paymentRef || null,
       payment_note: note.trim() || null,
       amount_paid_php: group.membership_fee_php,
+      started_at: isPaid ? nowIso : null,
+      expires_at: isPaid ? expiresIso : null,
     };
     const { data, error } = await (supabase as any)
       .from("group_memberships")
@@ -63,7 +71,11 @@ export function GroupJoinDialog({
     }
     onJoined(data as MembershipRow);
     setOpen(false);
-    toast.success("Membership request submitted — a league admin will verify shortly.");
+    toast.success(
+      isPaid
+        ? "You're in! Membership activated."
+        : "Add a payment reference to activate instantly.",
+    );
   }
 
   const label =
