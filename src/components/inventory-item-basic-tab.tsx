@@ -52,9 +52,7 @@ export function InventoryItemBasicTab({ form, update }: Props) {
         <InventoryDialogField label="Manufacturer Part Number">
           <Input
             value={form.manufacturer_part_number}
-            onChange={(event) =>
-              update("manufacturer_part_number", event.target.value)
-            }
+            onChange={(event) => update("manufacturer_part_number", event.target.value)}
             placeholder="Enter manufacturer part number"
           />
         </InventoryDialogField>
@@ -85,9 +83,7 @@ export function InventoryItemBasicTab({ form, update }: Props) {
         >
           <Select
             value={form.sub_category || "none"}
-            onValueChange={(value) =>
-              update("sub_category", value === "none" ? "" : value)
-            }
+            onValueChange={(value) => update("sub_category", value === "none" ? "" : value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select sub-category" />

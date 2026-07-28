@@ -15,10 +15,7 @@ import { AddBusinessCategoriesSection } from "@/components/add-business-categori
 import { AddBusinessContactSection } from "@/components/add-business-contact-section";
 import { AddBusinessLocationSection } from "@/components/add-business-location-section";
 import { AddBusinessMediaSection } from "@/components/add-business-media-section";
-import {
-  useEditBusinessForm,
-  type EditableBusiness,
-} from "@/hooks/use-edit-business-form";
+import { useEditBusinessForm, type EditableBusiness } from "@/hooks/use-edit-business-form";
 
 type Props = {
   business: EditableBusiness;
@@ -74,10 +71,7 @@ export function EditBusinessDialog({ business, onSaved }: Props) {
             </TabsContent>
 
             <TabsContent value="categories" className="mt-5">
-              <AddBusinessCategoriesSection
-                form={editor.form}
-                setForm={editor.setForm}
-              />
+              <AddBusinessCategoriesSection form={editor.form} setForm={editor.setForm} />
             </TabsContent>
 
             <TabsContent value="location" className="mt-5">

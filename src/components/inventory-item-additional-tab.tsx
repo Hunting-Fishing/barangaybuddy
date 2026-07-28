@@ -13,21 +13,14 @@ type Props = {
 };
 
 export function InventoryItemAdditionalTab({ form, update }: Props) {
-  const updateLink = (
-    index: number,
-    key: "type" | "label" | "url",
-    value: string,
-  ) => {
+  const updateLink = (index: number, key: "type" | "label" | "url", value: string) => {
     const next = [...form.links];
     next[index] = { ...next[index], [key]: value };
     update("links", next);
   };
 
   const addLink = () => {
-    update("links", [
-      ...form.links,
-      { type: "supplier", label: "", url: "" },
-    ]);
+    update("links", [...form.links, { type: "supplier", label: "", url: "" }]);
   };
 
   const removeLink = (index: number) => {
@@ -83,7 +76,10 @@ export function InventoryItemAdditionalTab({ form, update }: Props) {
           ) : (
             <div className="mt-2 space-y-2">
               {form.links.map((link, index) => (
-                <div key={index} className="grid gap-2 rounded-lg border border-border p-3 md:grid-cols-[140px_1fr_1.5fr_auto]">
+                <div
+                  key={index}
+                  className="grid gap-2 rounded-lg border border-border p-3 md:grid-cols-[140px_1fr_1.5fr_auto]"
+                >
                   <Input
                     value={link.type}
                     onChange={(event) => updateLink(index, "type", event.target.value)}

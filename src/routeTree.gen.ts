@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as MiniSiteSlugRouteImport } from './routes/$miniSiteSlug'
 import { Route as AddBusinessRouteImport } from './routes/add-business'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as EcosystemAdminRouteImport } from './routes/ecosystem-admin'
 import { Route as FamilyRouteImport } from './routes/family'
 import { Route as FuelRouteImport } from './routes/fuel'
 import { Route as ImportRouteImport } from './routes/import'
@@ -25,12 +26,16 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ApiRoadsafeRouteRouteImport } from './routes/api/roadsafe/route'
 import { Route as BarangaysIndexRouteImport } from './routes/barangays.index'
+import { Route as BuddyExpressIndexRouteImport } from './routes/buddy-express.index'
+import { Route as BuddyExpressDashboardRouteImport } from './routes/buddy-express.dashboard'
 import { Route as BusinessSlugRouteImport } from './routes/business.$slug'
 import { Route as CategoriesCategoryRouteImport } from './routes/categories.$category'
 import { Route as CitiesCityRouteImport } from './routes/cities.$city'
 import { Route as GroupsIndexRouteImport } from './routes/groups.index'
 import { Route as GroupsSlugRouteImport } from './routes/groups.$slug'
 import { Route as InventoryBusinessIdRouteImport } from './routes/inventory.$businessId'
+import { Route as MarketplaceIndexRouteImport } from './routes/marketplace.index'
+import { Route as MarketplaceOrdersRouteImport } from './routes/marketplace.orders'
 import { Route as MessagesConversationIdRouteImport } from './routes/messages.$conversationId'
 import { Route as ProvincesProvinceRouteImport } from './routes/provinces.$province'
 import { Route as RegionsIndexRouteImport } from './routes/regions.index'
@@ -44,6 +49,7 @@ import { Route as SpotlightSubmitRouteImport } from './routes/spotlight.submit'
 import { Route as BarangaysCityBarangayRouteImport } from './routes/barangays.$city.$barangay'
 import { Route as DashboardBusinessIdRouteImport } from './routes/dashboard.business.$id'
 import { Route as GroupsSlugManageRouteImport } from './routes/groups.$slug.manage'
+import { Route as MarketplaceBusinessIdRouteImport } from './routes/marketplace.business.$id'
 import { Route as SpotlightBookSlugRouteImport } from './routes/spotlight.book.$slug'
 import { Route as SpotlightTalentSlugRouteImport } from './routes/spotlight.talent.$slug'
 import { Route as ApiPublicHooksBusinessOsmSyncRouteImport } from './routes/api/public/hooks/business-osm-sync'
@@ -52,6 +58,7 @@ import { Route as ApiPublicHooksFuelSyncRouteImport } from './routes/api/public/
 import { Route as ApiPublicHooksRoadsafeDeliverRouteImport } from './routes/api/public/hooks/roadsafe-deliver'
 import { Route as ApiPublicHooksRoadsafeIngestRouteImport } from './routes/api/public/hooks/roadsafe-ingest'
 import { Route as DashboardBusinessIdInventoryRouteImport } from './routes/dashboard.business.$id.inventory'
+import { Route as DashboardBusinessIdRestaurantRouteImport } from './routes/dashboard.business.$id.restaurant'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -71,6 +78,11 @@ const AddBusinessRoute = AddBusinessRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EcosystemAdminRoute = EcosystemAdminRouteImport.update({
+  id: '/ecosystem-admin',
+  path: '/ecosystem-admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FamilyRoute = FamilyRouteImport.update({
@@ -133,6 +145,16 @@ const BarangaysIndexRoute = BarangaysIndexRouteImport.update({
   path: '/barangays/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BuddyExpressIndexRoute = BuddyExpressIndexRouteImport.update({
+  id: '/buddy-express/',
+  path: '/buddy-express/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BuddyExpressDashboardRoute = BuddyExpressDashboardRouteImport.update({
+  id: '/buddy-express/dashboard',
+  path: '/buddy-express/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BusinessSlugRoute = BusinessSlugRouteImport.update({
   id: '/business/$slug',
   path: '/business/$slug',
@@ -161,6 +183,16 @@ const GroupsSlugRoute = GroupsSlugRouteImport.update({
 const InventoryBusinessIdRoute = InventoryBusinessIdRouteImport.update({
   id: '/inventory/$businessId',
   path: '/inventory/$businessId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketplaceIndexRoute = MarketplaceIndexRouteImport.update({
+  id: '/marketplace/',
+  path: '/marketplace/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketplaceOrdersRoute = MarketplaceOrdersRouteImport.update({
+  id: '/marketplace/orders',
+  path: '/marketplace/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MessagesConversationIdRoute = MessagesConversationIdRouteImport.update({
@@ -228,6 +260,11 @@ const GroupsSlugManageRoute = GroupsSlugManageRouteImport.update({
   path: '/manage',
   getParentRoute: () => GroupsSlugRoute,
 } as any)
+const MarketplaceBusinessIdRoute = MarketplaceBusinessIdRouteImport.update({
+  id: '/marketplace/business/$id',
+  path: '/marketplace/business/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SpotlightBookSlugRoute = SpotlightBookSlugRouteImport.update({
   id: '/spotlight/book/$slug',
   path: '/spotlight/book/$slug',
@@ -273,12 +310,19 @@ const DashboardBusinessIdInventoryRoute =
     path: '/inventory',
     getParentRoute: () => DashboardBusinessIdRoute,
   } as any)
+const DashboardBusinessIdRestaurantRoute =
+  DashboardBusinessIdRestaurantRouteImport.update({
+    id: '/restaurant',
+    path: '/restaurant',
+    getParentRoute: () => DashboardBusinessIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$miniSiteSlug': typeof MiniSiteSlugRoute
   '/add-business': typeof AddBusinessRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/ecosystem-admin': typeof EcosystemAdminRoute
   '/family': typeof FamilyRoute
   '/fuel': typeof FuelRoute
   '/import': typeof ImportRoute
@@ -290,11 +334,13 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/api/roadsafe': typeof ApiRoadsafeRouteRoute
+  '/buddy-express/dashboard': typeof BuddyExpressDashboardRoute
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
+  '/marketplace/orders': typeof MarketplaceOrdersRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
@@ -304,12 +350,15 @@ export interface FileRoutesByFullPath {
   '/spotlight/star-of-the-month': typeof SpotlightStarOfTheMonthRoute
   '/spotlight/submit': typeof SpotlightSubmitRoute
   '/barangays/': typeof BarangaysIndexRoute
+  '/buddy-express/': typeof BuddyExpressIndexRoute
   '/groups/': typeof GroupsIndexRoute
+  '/marketplace/': typeof MarketplaceIndexRoute
   '/regions/': typeof RegionsIndexRoute
   '/spotlight/': typeof SpotlightIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
   '/groups/$slug/manage': typeof GroupsSlugManageRoute
+  '/marketplace/business/$id': typeof MarketplaceBusinessIdRoute
   '/spotlight/book/$slug': typeof SpotlightBookSlugRoute
   '/spotlight/talent/$slug': typeof SpotlightTalentSlugRoute
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
@@ -318,12 +367,14 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/roadsafe-deliver': typeof ApiPublicHooksRoadsafeDeliverRoute
   '/api/public/hooks/roadsafe-ingest': typeof ApiPublicHooksRoadsafeIngestRoute
   '/dashboard/business/$id/inventory': typeof DashboardBusinessIdInventoryRoute
+  '/dashboard/business/$id/restaurant': typeof DashboardBusinessIdRestaurantRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$miniSiteSlug': typeof MiniSiteSlugRoute
   '/add-business': typeof AddBusinessRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/ecosystem-admin': typeof EcosystemAdminRoute
   '/family': typeof FamilyRoute
   '/fuel': typeof FuelRoute
   '/import': typeof ImportRoute
@@ -335,11 +386,13 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/api/roadsafe': typeof ApiRoadsafeRouteRoute
+  '/buddy-express/dashboard': typeof BuddyExpressDashboardRoute
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
+  '/marketplace/orders': typeof MarketplaceOrdersRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
@@ -349,12 +402,15 @@ export interface FileRoutesByTo {
   '/spotlight/star-of-the-month': typeof SpotlightStarOfTheMonthRoute
   '/spotlight/submit': typeof SpotlightSubmitRoute
   '/barangays': typeof BarangaysIndexRoute
+  '/buddy-express': typeof BuddyExpressIndexRoute
   '/groups': typeof GroupsIndexRoute
+  '/marketplace': typeof MarketplaceIndexRoute
   '/regions': typeof RegionsIndexRoute
   '/spotlight': typeof SpotlightIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
   '/groups/$slug/manage': typeof GroupsSlugManageRoute
+  '/marketplace/business/$id': typeof MarketplaceBusinessIdRoute
   '/spotlight/book/$slug': typeof SpotlightBookSlugRoute
   '/spotlight/talent/$slug': typeof SpotlightTalentSlugRoute
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
@@ -363,6 +419,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/roadsafe-deliver': typeof ApiPublicHooksRoadsafeDeliverRoute
   '/api/public/hooks/roadsafe-ingest': typeof ApiPublicHooksRoadsafeIngestRoute
   '/dashboard/business/$id/inventory': typeof DashboardBusinessIdInventoryRoute
+  '/dashboard/business/$id/restaurant': typeof DashboardBusinessIdRestaurantRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -370,6 +427,7 @@ export interface FileRoutesById {
   '/$miniSiteSlug': typeof MiniSiteSlugRoute
   '/add-business': typeof AddBusinessRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/ecosystem-admin': typeof EcosystemAdminRoute
   '/family': typeof FamilyRoute
   '/fuel': typeof FuelRoute
   '/import': typeof ImportRoute
@@ -381,11 +439,13 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/signup': typeof SignupRoute
   '/api/roadsafe': typeof ApiRoadsafeRouteRoute
+  '/buddy-express/dashboard': typeof BuddyExpressDashboardRoute
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
+  '/marketplace/orders': typeof MarketplaceOrdersRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
@@ -395,12 +455,15 @@ export interface FileRoutesById {
   '/spotlight/star-of-the-month': typeof SpotlightStarOfTheMonthRoute
   '/spotlight/submit': typeof SpotlightSubmitRoute
   '/barangays/': typeof BarangaysIndexRoute
+  '/buddy-express/': typeof BuddyExpressIndexRoute
   '/groups/': typeof GroupsIndexRoute
+  '/marketplace/': typeof MarketplaceIndexRoute
   '/regions/': typeof RegionsIndexRoute
   '/spotlight/': typeof SpotlightIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
   '/groups/$slug/manage': typeof GroupsSlugManageRoute
+  '/marketplace/business/$id': typeof MarketplaceBusinessIdRoute
   '/spotlight/book/$slug': typeof SpotlightBookSlugRoute
   '/spotlight/talent/$slug': typeof SpotlightTalentSlugRoute
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
@@ -409,6 +472,7 @@ export interface FileRoutesById {
   '/api/public/hooks/roadsafe-deliver': typeof ApiPublicHooksRoadsafeDeliverRoute
   '/api/public/hooks/roadsafe-ingest': typeof ApiPublicHooksRoadsafeIngestRoute
   '/dashboard/business/$id/inventory': typeof DashboardBusinessIdInventoryRoute
+  '/dashboard/business/$id/restaurant': typeof DashboardBusinessIdRestaurantRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -417,6 +481,7 @@ export interface FileRouteTypes {
     | '/$miniSiteSlug'
     | '/add-business'
     | '/dashboard'
+    | '/ecosystem-admin'
     | '/family'
     | '/fuel'
     | '/import'
@@ -428,11 +493,13 @@ export interface FileRouteTypes {
     | '/search'
     | '/signup'
     | '/api/roadsafe'
+    | '/buddy-express/dashboard'
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
     | '/groups/$slug'
     | '/inventory/$businessId'
+    | '/marketplace/orders'
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
@@ -442,12 +509,15 @@ export interface FileRouteTypes {
     | '/spotlight/star-of-the-month'
     | '/spotlight/submit'
     | '/barangays/'
+    | '/buddy-express/'
     | '/groups/'
+    | '/marketplace/'
     | '/regions/'
     | '/spotlight/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
     | '/groups/$slug/manage'
+    | '/marketplace/business/$id'
     | '/spotlight/book/$slug'
     | '/spotlight/talent/$slug'
     | '/api/public/hooks/business-osm-sync'
@@ -456,12 +526,14 @@ export interface FileRouteTypes {
     | '/api/public/hooks/roadsafe-deliver'
     | '/api/public/hooks/roadsafe-ingest'
     | '/dashboard/business/$id/inventory'
+    | '/dashboard/business/$id/restaurant'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/$miniSiteSlug'
     | '/add-business'
     | '/dashboard'
+    | '/ecosystem-admin'
     | '/family'
     | '/fuel'
     | '/import'
@@ -473,11 +545,13 @@ export interface FileRouteTypes {
     | '/search'
     | '/signup'
     | '/api/roadsafe'
+    | '/buddy-express/dashboard'
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
     | '/groups/$slug'
     | '/inventory/$businessId'
+    | '/marketplace/orders'
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
@@ -487,12 +561,15 @@ export interface FileRouteTypes {
     | '/spotlight/star-of-the-month'
     | '/spotlight/submit'
     | '/barangays'
+    | '/buddy-express'
     | '/groups'
+    | '/marketplace'
     | '/regions'
     | '/spotlight'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
     | '/groups/$slug/manage'
+    | '/marketplace/business/$id'
     | '/spotlight/book/$slug'
     | '/spotlight/talent/$slug'
     | '/api/public/hooks/business-osm-sync'
@@ -501,12 +578,14 @@ export interface FileRouteTypes {
     | '/api/public/hooks/roadsafe-deliver'
     | '/api/public/hooks/roadsafe-ingest'
     | '/dashboard/business/$id/inventory'
+    | '/dashboard/business/$id/restaurant'
   id:
     | '__root__'
     | '/'
     | '/$miniSiteSlug'
     | '/add-business'
     | '/dashboard'
+    | '/ecosystem-admin'
     | '/family'
     | '/fuel'
     | '/import'
@@ -518,11 +597,13 @@ export interface FileRouteTypes {
     | '/search'
     | '/signup'
     | '/api/roadsafe'
+    | '/buddy-express/dashboard'
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
     | '/groups/$slug'
     | '/inventory/$businessId'
+    | '/marketplace/orders'
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
@@ -532,12 +613,15 @@ export interface FileRouteTypes {
     | '/spotlight/star-of-the-month'
     | '/spotlight/submit'
     | '/barangays/'
+    | '/buddy-express/'
     | '/groups/'
+    | '/marketplace/'
     | '/regions/'
     | '/spotlight/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
     | '/groups/$slug/manage'
+    | '/marketplace/business/$id'
     | '/spotlight/book/$slug'
     | '/spotlight/talent/$slug'
     | '/api/public/hooks/business-osm-sync'
@@ -546,6 +630,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/roadsafe-deliver'
     | '/api/public/hooks/roadsafe-ingest'
     | '/dashboard/business/$id/inventory'
+    | '/dashboard/business/$id/restaurant'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -553,6 +638,7 @@ export interface RootRouteChildren {
   MiniSiteSlugRoute: typeof MiniSiteSlugRoute
   AddBusinessRoute: typeof AddBusinessRoute
   DashboardRoute: typeof DashboardRouteWithChildren
+  EcosystemAdminRoute: typeof EcosystemAdminRoute
   FamilyRoute: typeof FamilyRoute
   FuelRoute: typeof FuelRoute
   ImportRoute: typeof ImportRoute
@@ -564,11 +650,13 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   SignupRoute: typeof SignupRoute
   ApiRoadsafeRouteRoute: typeof ApiRoadsafeRouteRoute
+  BuddyExpressDashboardRoute: typeof BuddyExpressDashboardRoute
   BusinessSlugRoute: typeof BusinessSlugRoute
   CategoriesCategoryRoute: typeof CategoriesCategoryRoute
   CitiesCityRoute: typeof CitiesCityRoute
   GroupsSlugRoute: typeof GroupsSlugRouteWithChildren
   InventoryBusinessIdRoute: typeof InventoryBusinessIdRoute
+  MarketplaceOrdersRoute: typeof MarketplaceOrdersRoute
   ProvincesProvinceRoute: typeof ProvincesProvinceRoute
   RegionsRegionRoute: typeof RegionsRegionRoute
   SpotlightAdminRoute: typeof SpotlightAdminRoute
@@ -577,10 +665,13 @@ export interface RootRouteChildren {
   SpotlightStarOfTheMonthRoute: typeof SpotlightStarOfTheMonthRoute
   SpotlightSubmitRoute: typeof SpotlightSubmitRoute
   BarangaysIndexRoute: typeof BarangaysIndexRoute
+  BuddyExpressIndexRoute: typeof BuddyExpressIndexRoute
   GroupsIndexRoute: typeof GroupsIndexRoute
+  MarketplaceIndexRoute: typeof MarketplaceIndexRoute
   RegionsIndexRoute: typeof RegionsIndexRoute
   SpotlightIndexRoute: typeof SpotlightIndexRoute
   BarangaysCityBarangayRoute: typeof BarangaysCityBarangayRoute
+  MarketplaceBusinessIdRoute: typeof MarketplaceBusinessIdRoute
   SpotlightBookSlugRoute: typeof SpotlightBookSlugRoute
   SpotlightTalentSlugRoute: typeof SpotlightTalentSlugRoute
   ApiPublicHooksBusinessOsmSyncRoute: typeof ApiPublicHooksBusinessOsmSyncRoute
@@ -618,6 +709,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ecosystem-admin': {
+      id: '/ecosystem-admin'
+      path: '/ecosystem-admin'
+      fullPath: '/ecosystem-admin'
+      preLoaderRoute: typeof EcosystemAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/family': {
@@ -704,6 +802,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BarangaysIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/buddy-express/': {
+      id: '/buddy-express/'
+      path: '/buddy-express'
+      fullPath: '/buddy-express/'
+      preLoaderRoute: typeof BuddyExpressIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/buddy-express/dashboard': {
+      id: '/buddy-express/dashboard'
+      path: '/buddy-express/dashboard'
+      fullPath: '/buddy-express/dashboard'
+      preLoaderRoute: typeof BuddyExpressDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/business/$slug': {
       id: '/business/$slug'
       path: '/business/$slug'
@@ -744,6 +856,20 @@ declare module '@tanstack/react-router' {
       path: '/inventory/$businessId'
       fullPath: '/inventory/$businessId'
       preLoaderRoute: typeof InventoryBusinessIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketplace/': {
+      id: '/marketplace/'
+      path: '/marketplace'
+      fullPath: '/marketplace/'
+      preLoaderRoute: typeof MarketplaceIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketplace/orders': {
+      id: '/marketplace/orders'
+      path: '/marketplace/orders'
+      fullPath: '/marketplace/orders'
+      preLoaderRoute: typeof MarketplaceOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/messages/$conversationId': {
@@ -837,6 +963,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsSlugManageRouteImport
       parentRoute: typeof GroupsSlugRoute
     }
+    '/marketplace/business/$id': {
+      id: '/marketplace/business/$id'
+      path: '/marketplace/business/$id'
+      fullPath: '/marketplace/business/$id'
+      preLoaderRoute: typeof MarketplaceBusinessIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/spotlight/book/$slug': {
       id: '/spotlight/book/$slug'
       path: '/spotlight/book/$slug'
@@ -893,15 +1026,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardBusinessIdInventoryRouteImport
       parentRoute: typeof DashboardBusinessIdRoute
     }
+    '/dashboard/business/$id/restaurant': {
+      id: '/dashboard/business/$id/restaurant'
+      path: '/restaurant'
+      fullPath: '/dashboard/business/$id/restaurant'
+      preLoaderRoute: typeof DashboardBusinessIdRestaurantRouteImport
+      parentRoute: typeof DashboardBusinessIdRoute
+    }
   }
 }
 
 interface DashboardBusinessIdRouteChildren {
   DashboardBusinessIdInventoryRoute: typeof DashboardBusinessIdInventoryRoute
+  DashboardBusinessIdRestaurantRoute: typeof DashboardBusinessIdRestaurantRoute
 }
 
 const DashboardBusinessIdRouteChildren: DashboardBusinessIdRouteChildren = {
   DashboardBusinessIdInventoryRoute: DashboardBusinessIdInventoryRoute,
+  DashboardBusinessIdRestaurantRoute: DashboardBusinessIdRestaurantRoute,
 }
 
 const DashboardBusinessIdRouteWithChildren =
@@ -948,6 +1090,7 @@ const rootRouteChildren: RootRouteChildren = {
   MiniSiteSlugRoute: MiniSiteSlugRoute,
   AddBusinessRoute: AddBusinessRoute,
   DashboardRoute: DashboardRouteWithChildren,
+  EcosystemAdminRoute: EcosystemAdminRoute,
   FamilyRoute: FamilyRoute,
   FuelRoute: FuelRoute,
   ImportRoute: ImportRoute,
@@ -959,11 +1102,13 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   SignupRoute: SignupRoute,
   ApiRoadsafeRouteRoute: ApiRoadsafeRouteRoute,
+  BuddyExpressDashboardRoute: BuddyExpressDashboardRoute,
   BusinessSlugRoute: BusinessSlugRoute,
   CategoriesCategoryRoute: CategoriesCategoryRoute,
   CitiesCityRoute: CitiesCityRoute,
   GroupsSlugRoute: GroupsSlugRouteWithChildren,
   InventoryBusinessIdRoute: InventoryBusinessIdRoute,
+  MarketplaceOrdersRoute: MarketplaceOrdersRoute,
   ProvincesProvinceRoute: ProvincesProvinceRoute,
   RegionsRegionRoute: RegionsRegionRoute,
   SpotlightAdminRoute: SpotlightAdminRoute,
@@ -972,10 +1117,13 @@ const rootRouteChildren: RootRouteChildren = {
   SpotlightStarOfTheMonthRoute: SpotlightStarOfTheMonthRoute,
   SpotlightSubmitRoute: SpotlightSubmitRoute,
   BarangaysIndexRoute: BarangaysIndexRoute,
+  BuddyExpressIndexRoute: BuddyExpressIndexRoute,
   GroupsIndexRoute: GroupsIndexRoute,
+  MarketplaceIndexRoute: MarketplaceIndexRoute,
   RegionsIndexRoute: RegionsIndexRoute,
   SpotlightIndexRoute: SpotlightIndexRoute,
   BarangaysCityBarangayRoute: BarangaysCityBarangayRoute,
+  MarketplaceBusinessIdRoute: MarketplaceBusinessIdRoute,
   SpotlightBookSlugRoute: SpotlightBookSlugRoute,
   SpotlightTalentSlugRoute: SpotlightTalentSlugRoute,
   ApiPublicHooksBusinessOsmSyncRoute: ApiPublicHooksBusinessOsmSyncRoute,

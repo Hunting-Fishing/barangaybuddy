@@ -17,11 +17,14 @@ async function firecrawlScrape(url: string, formats: ScrapeFormat[] = ["markdown
 }
 
 function slugify(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 const FUEL_TYPE_MAP: Record<string, string> = {
-  "diesel": "diesel",
+  diesel: "diesel",
   "diesel plus": "diesel",
   "gasoline (ron 91)": "gasoline_91",
   "ron 91": "gasoline_91",
@@ -42,40 +45,84 @@ function normFuel(raw: string): string | null {
 
 // Parse markdown table from DOE Metro Manila / Regional common posted prices page.
 // Expected shape (rough): rows like "| Brand | Diesel | Gas 91 | Gas 95 | Gas 97 |"
-function parsePriceTable(markdown: string, regionName: string): Array<{
-  brand: string; fuel_type: string; price: number; region_name: string;
+function parsePriceTable(
+  markdown: string,
+  regionName: string,
+): Array<{
+  brand: string;
+  fuel_type: string;
+  price: number;
+  region_name: string;
 }> {
   const lines = markdown.split("\n");
   const out: Array<{ brand: string; fuel_type: string; price: number; region_name: string }> = [];
   let headers: string[] | null = null;
 
   for (const line of lines) {
-    if (!line.trim().startsWith("|")) { headers = null; continue; }
-    const cells = line.split("|").map((c) => c.trim()).filter((_, i, a) => i > 0 && i < a.length - 1);
+    if (!line.trim().startsWith("|")) {
+      headers = null;
+      continue;
+    }
+    const cells = line
+      .split("|")
+      .map((c) => c.trim())
+      .filter((_, i, a) => i > 0 && i < a.length - 1);
     if (cells.length < 2) continue;
     if (cells.every((c) => /^[-:\s]+$/.test(c))) continue; // separator row
-    if (!headers) { headers = cells; continue; }
+    if (!headers) {
+      headers = cells;
+      continue;
+    }
     const brand = cells[0];
     if (!brand || /brand|company|oil firm/i.test(brand)) continue;
     for (let i = 1; i < cells.length && i < headers.length; i++) {
       const ft = normFuel(headers[i]);
       const num = parseFloat(cells[i].replace(/[^\d.]/g, ""));
       if (!ft || !isFinite(num) || num <= 0 || num > 500) continue;
-      out.push({ brand: brand.replace(/\*/g, "").trim(), fuel_type: ft, price: num, region_name: regionName });
+      out.push({
+        brand: brand.replace(/\*/g, "").trim(),
+        fuel_type: ft,
+        price: num,
+        region_name: regionName,
+      });
     }
   }
   return out;
 }
 
 const DOE_PRICE_SOURCES: Array<{ url: string; region_code: string; region_name: string }> = [
-  { url: "https://www.doe.gov.ph/retail-pump-prices-metro-manila", region_code: "NCR", region_name: "Metro Manila" },
-  { url: "https://www.doe.gov.ph/retail-pump-prices-north-luzon", region_code: "LUZ-N", region_name: "North Luzon" },
-  { url: "https://www.doe.gov.ph/retail-pump-prices-south-luzon", region_code: "LUZ-S", region_name: "South Luzon" },
-  { url: "https://www.doe.gov.ph/retail-pump-prices-visayas", region_code: "VIS", region_name: "Visayas" },
-  { url: "https://www.doe.gov.ph/retail-pump-prices-mindanao", region_code: "MIN", region_name: "Mindanao" },
+  {
+    url: "https://www.doe.gov.ph/retail-pump-prices-metro-manila",
+    region_code: "NCR",
+    region_name: "Metro Manila",
+  },
+  {
+    url: "https://www.doe.gov.ph/retail-pump-prices-north-luzon",
+    region_code: "LUZ-N",
+    region_name: "North Luzon",
+  },
+  {
+    url: "https://www.doe.gov.ph/retail-pump-prices-south-luzon",
+    region_code: "LUZ-S",
+    region_name: "South Luzon",
+  },
+  {
+    url: "https://www.doe.gov.ph/retail-pump-prices-visayas",
+    region_code: "VIS",
+    region_name: "Visayas",
+  },
+  {
+    url: "https://www.doe.gov.ph/retail-pump-prices-mindanao",
+    region_code: "MIN",
+    region_name: "Mindanao",
+  },
 ];
 
-export async function runFuelSync(): Promise<{ stations: number; prices: number; errors: string[] }> {
+export async function runFuelSync(): Promise<{
+  stations: number;
+  prices: number;
+  errors: string[];
+}> {
   const { data: runRow } = await supabaseAdmin
     .from("fuel_import_runs")
     .insert({ source: "doe", status: "running" })
@@ -104,9 +151,10 @@ export async function runFuelSync(): Promise<{ stations: number; prices: number;
         price: r.price,
         snapshot_date: today,
       }));
-      const { error, count } = await supabaseAdmin
-        .from("fuel_price_snapshots")
-        .upsert(payload, { onConflict: "source,brand,fuel_type,region_code,snapshot_date", count: "exact" });
+      const { error, count } = await supabaseAdmin.from("fuel_price_snapshots").upsert(payload, {
+        onConflict: "source,brand,fuel_type,region_code,snapshot_date",
+        count: "exact",
+      });
       if (error) errors.push(`${src.region_code}: ${error.message}`);
       else pricesUpserted += count ?? payload.length;
     } catch (e) {
@@ -207,12 +255,15 @@ async function fetchOverpass(): Promise<OsmElement[]> {
   throw lastErr ?? new Error("All Overpass endpoints failed");
 }
 
-
 // barangay_code is NOT NULL on businesses; use a sentinel for OSM-imported rows.
 // There's no FK constraint, so this is safe. Local owners can refine on claim.
 const OSM_BARANGAY_SENTINEL = "OSM-UNRESOLVED";
 
-export async function runStationSync(): Promise<{ upserted: number; total: number; errors: string[] }> {
+export async function runStationSync(): Promise<{
+  upserted: number;
+  total: number;
+  errors: string[];
+}> {
   const { data: runRow } = await supabaseAdmin
     .from("fuel_import_runs")
     .insert({ source: "osm", status: "running" })
@@ -259,9 +310,11 @@ export async function runStationSync(): Promise<{ upserted: number; total: numbe
     const chunkSize = 500;
     for (let i = 0; i < rows.length; i += chunkSize) {
       const chunk = rows.slice(i, i + chunkSize);
-      const { error, count } = await supabaseAdmin
-        .from("businesses")
-        .upsert(chunk, { onConflict: "imported_from,import_source_id", count: "exact", ignoreDuplicates: false });
+      const { error, count } = await supabaseAdmin.from("businesses").upsert(chunk, {
+        onConflict: "imported_from,import_source_id",
+        count: "exact",
+        ignoreDuplicates: false,
+      });
       if (error) errors.push(`chunk ${i}: ${error.message}`);
       else upserted += count ?? chunk.length;
     }

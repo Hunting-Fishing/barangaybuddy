@@ -20,16 +20,7 @@ import {
   type GroupEventRow,
   type GroupPromoRow,
 } from "@/lib/groups";
-import {
-  Calendar,
-  MapPin,
-  Trophy,
-  Users2,
-  CheckCircle2,
-  Clock,
-  Tag,
-  Settings,
-} from "lucide-react";
+import { Calendar, MapPin, Trophy, Users2, CheckCircle2, Clock, Tag, Settings } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/groups/$slug")({
@@ -62,13 +53,17 @@ export const Route = createFileRoute("/groups/$slug")({
   errorComponent: ({ reset }) => (
     <div className="p-10 text-center">
       <p>This group didn't load.</p>
-      <Button onClick={reset} className="mt-4">Try again</Button>
+      <Button onClick={reset} className="mt-4">
+        Try again
+      </Button>
     </div>
   ),
   notFoundComponent: () => (
     <div className="p-10 text-center">
       <p>Group not found.</p>
-      <Link to="/groups" className="mt-4 inline-block underline">Back to groups</Link>
+      <Link to="/groups" className="mt-4 inline-block underline">
+        Back to groups
+      </Link>
     </div>
   ),
 });
@@ -107,42 +102,40 @@ function GroupPage() {
 
   useEffect(() => {
     void loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group.id, user?.id]);
 
   async function loadAll() {
     const anyDb = supabase as any;
-    const [venuesRes, eventsRes, promosRes, activeCountRes, activeMembersRes] =
-      await Promise.all([
-        anyDb
-          .from("group_venues")
-          .select("id, status, business:businesses(id, name, slug, latitude, longitude, address)")
-          .eq("group_id", group.id)
-          .eq("status", "approved"),
-        anyDb
-          .from("group_events")
-          .select("*")
-          .eq("group_id", group.id)
-          .neq("status", "cancelled")
-          .order("starts_at", { ascending: true }),
-        anyDb
-          .from("group_promos")
-          .select("*")
-          .eq("group_id", group.id)
-          .or(`valid_until.is.null,valid_until.gte.${new Date().toISOString()}`)
-          .order("valid_from", { ascending: false }),
-        anyDb
-          .from("group_memberships")
-          .select("user_id", { count: "exact", head: true })
-          .eq("group_id", group.id)
-          .eq("status", "active"),
-        anyDb
-          .from("group_memberships")
-          .select("user_id, profile:profiles(id, display_name, avatar_url)")
-          .eq("group_id", group.id)
-          .eq("status", "active")
-          .limit(24),
-      ]);
+    const [venuesRes, eventsRes, promosRes, activeCountRes, activeMembersRes] = await Promise.all([
+      anyDb
+        .from("group_venues")
+        .select("id, status, business:businesses(id, name, slug, latitude, longitude, address)")
+        .eq("group_id", group.id)
+        .eq("status", "approved"),
+      anyDb
+        .from("group_events")
+        .select("*")
+        .eq("group_id", group.id)
+        .neq("status", "cancelled")
+        .order("starts_at", { ascending: true }),
+      anyDb
+        .from("group_promos")
+        .select("*")
+        .eq("group_id", group.id)
+        .or(`valid_until.is.null,valid_until.gte.${new Date().toISOString()}`)
+        .order("valid_from", { ascending: false }),
+      anyDb
+        .from("group_memberships")
+        .select("user_id", { count: "exact", head: true })
+        .eq("group_id", group.id)
+        .eq("status", "active"),
+      anyDb
+        .from("group_memberships")
+        .select("user_id, profile:profiles(id, display_name, avatar_url)")
+        .eq("group_id", group.id)
+        .eq("status", "active")
+        .limit(24),
+    ]);
 
     setVenues((venuesRes.data ?? []) as VenueWithBiz[]);
     setEvents((eventsRes.data ?? []) as GroupEventRow[]);
@@ -256,8 +249,7 @@ function GroupPage() {
                 {venuePins.length > 0 && <GroupVenueMap venues={venuePins} />}
                 {venues.length === 0 ? (
                   <Card className="p-6 text-center text-sm text-muted-foreground">
-                    No league venues yet. Business owners can request to join from their
-                    dashboard.
+                    No league venues yet. Business owners can request to join from their dashboard.
                   </Card>
                 ) : (
                   <div className="grid gap-3 md:grid-cols-2">

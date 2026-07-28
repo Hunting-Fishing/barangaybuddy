@@ -6,19 +6,14 @@ import type { AddBusinessFormState } from "@/lib/add-business-form";
 
 type Props = {
   form: AddBusinessFormState;
-  update: <K extends keyof AddBusinessFormState>(
-    key: K,
-    value: AddBusinessFormState[K],
-  ) => void;
+  update: <K extends keyof AddBusinessFormState>(key: K, value: AddBusinessFormState[K]) => void;
 };
 
 export function AddBusinessMediaSection({ form, update }: Props) {
   return (
     <Card className="p-5 md:p-6">
       <div>
-        <div className="text-xs font-bold uppercase tracking-wide text-primary">
-          Step 5
-        </div>
+        <div className="text-xs font-bold uppercase tracking-wide text-primary">Step 5</div>
         <h2 className="font-display text-xl font-bold">Photos optional</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Paste public image links now, or upload better photos later from the business dashboard.

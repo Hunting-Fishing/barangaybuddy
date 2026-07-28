@@ -40,7 +40,9 @@ function Home() {
 
     supabase
       .from("businesses")
-      .select("id, name, slug, type, cover_image_url, description, tags, barangay_code, barangays(name, cities_municipalities(name))")
+      .select(
+        "id, name, slug, type, cover_image_url, description, tags, barangay_code, barangays(name, cities_municipalities(name))",
+      )
       .eq("is_published", true)
       .order("created_at", { ascending: false })
       .limit(6)
@@ -72,8 +74,8 @@ function Home() {
               <span className="bg-gradient-sun bg-clip-text text-transparent">one network.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg text-primary-foreground/80">
-              Discover stores, services, restaurants and food vendors right in your barangay.
-              Track live fuel prices. Message owners directly. Built by Filipinos, for Filipinos.
+              Discover stores, services, restaurants and food vendors right in your barangay. Track
+              live fuel prices. Message owners directly. Built by Filipinos, for Filipinos.
             </p>
 
             <form
@@ -92,23 +94,36 @@ function Home() {
                   className="h-14 rounded-xl border-0 bg-background pl-12 text-base shadow-elegant"
                 />
               </div>
-              <Button size="lg" className="h-14 bg-sun text-sun-foreground hover:bg-sun/90 shadow-sun">
+              <Button
+                size="lg"
+                className="h-14 bg-sun text-sun-foreground hover:bg-sun/90 shadow-sun"
+              >
                 Search
               </Button>
             </form>
 
             <div className="mt-8 flex gap-8 text-primary-foreground/90">
               <div>
-                <div className="font-display text-3xl font-bold">{stats.barangays.toLocaleString()}</div>
-                <div className="text-xs uppercase tracking-widest text-primary-foreground/60">Barangays</div>
+                <div className="font-display text-3xl font-bold">
+                  {stats.barangays.toLocaleString()}
+                </div>
+                <div className="text-xs uppercase tracking-widest text-primary-foreground/60">
+                  Barangays
+                </div>
               </div>
               <div>
-                <div className="font-display text-3xl font-bold">{stats.businesses.toLocaleString()}+</div>
-                <div className="text-xs uppercase tracking-widest text-primary-foreground/60">Businesses</div>
+                <div className="font-display text-3xl font-bold">
+                  {stats.businesses.toLocaleString()}+
+                </div>
+                <div className="text-xs uppercase tracking-widest text-primary-foreground/60">
+                  Businesses
+                </div>
               </div>
               <div>
                 <div className="font-display text-3xl font-bold">17</div>
-                <div className="text-xs uppercase tracking-widest text-primary-foreground/60">Regions</div>
+                <div className="text-xs uppercase tracking-widest text-primary-foreground/60">
+                  Regions
+                </div>
               </div>
             </div>
           </div>
@@ -134,7 +149,11 @@ function Home() {
               Choose a category first, then pick the exact business type you need.
             </p>
           </div>
-          <Link to="/search" className="hidden text-sm font-medium text-primary hover:underline md:inline-flex">
+          <Link
+            to="/search"
+            search={{ q: "", types: [], customTypes: [], tags: [], category: undefined, page: 1 }}
+            className="hidden text-sm font-medium text-primary hover:underline md:inline-flex"
+          >
             Search all businesses <ArrowRight className="ml-1 inline h-4 w-4" />
           </Link>
         </div>
@@ -171,14 +190,23 @@ function Home() {
                 <Link2 className="h-7 w-7" />
               </div>
               <div className="flex-1">
-                <h2 className="font-display text-xl font-bold md:text-2xl">Add a Business from a link</h2>
+                <h2 className="font-display text-xl font-bold md:text-2xl">
+                  Add a Business from a link
+                </h2>
                 <p className="mt-1.5 max-w-2xl text-muted-foreground">
                   Paste a Google Maps link such as{" "}
-                  <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium">https://share.google/YsB3YFMjiv2Vw08LQ</code>{" "}
-                  or a Facebook Business page link. Our AI extracts name, location, products and features automatically.
+                  <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium">
+                    https://share.google/YsB3YFMjiv2Vw08LQ
+                  </code>{" "}
+                  or a Facebook Business page link. Our AI extracts name, location, products and
+                  features automatically.
                 </p>
               </div>
-              <Button size="lg" className="shrink-1 bg-sun text-sun-foreground hover:bg-sun/90 shadow-sun gap-2" asChild>
+              <Button
+                size="lg"
+                className="shrink-1 bg-sun text-sun-foreground hover:bg-sun/90 shadow-sun gap-2"
+                asChild
+              >
                 <Link to="/import">
                   <Sparkles className="h-4 w-4" /> Import Business
                 </Link>
@@ -198,15 +226,22 @@ function Home() {
                 <Card className="overflow-hidden transition-all hover:-translate-y-1 hover:shadow-elegant">
                   <div className="aspect-video bg-gradient-to-br from-secondary to-muted">
                     {b.cover_image_url && (
-                      <img src={b.cover_image_url} alt={b.name} className="h-full w-full object-cover" />
+                      <img
+                        src={b.cover_image_url}
+                        alt={b.name}
+                        className="h-full w-full object-cover"
+                      />
                     )}
                   </div>
                   <div className="p-5">
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <MapPin className="h-3 w-3" /> {b.barangays?.name}, {b.barangays?.cities_municipalities?.name}
+                      <MapPin className="h-3 w-3" /> {b.barangays?.name},{" "}
+                      {b.barangays?.cities_municipalities?.name}
                     </div>
                     <h3 className="mt-1 font-display text-lg font-bold">{b.name}</h3>
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{b.description}</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                      {b.description}
+                    </p>
                   </div>
                 </Card>
               </Link>
@@ -231,10 +266,19 @@ function Home() {
               </p>
             </div>
             <div className="flex items-end justify-end gap-3">
-              <Button size="lg" className="bg-sun text-sun-foreground hover:bg-sun/90 shadow-sun" asChild>
+              <Button
+                size="lg"
+                className="bg-sun text-sun-foreground hover:bg-sun/90 shadow-sun"
+                asChild
+              >
                 <Link to="/signup">Create free account</Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10" asChild>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
+                asChild
+              >
                 <Link to="/fuel">View fuel prices</Link>
               </Button>
             </div>

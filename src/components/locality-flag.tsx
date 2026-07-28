@@ -46,9 +46,7 @@ export function LocalityFlag({ src, name, className, bare = false }: Props) {
     <div
       className={cn(
         "flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl",
-        showImage
-          ? "bg-background ring-1 ring-border"
-          : "bg-gradient-sun shadow-sun",
+        showImage ? "bg-background ring-1 ring-border" : "bg-gradient-sun shadow-sun",
         className,
       )}
     >

@@ -5,14 +5,7 @@ import type { BusinessCategoryItem } from "@/lib/business-category-taxonomy";
 import type { BusinessCategoryPickerSuggestion } from "@/hooks/use-business-category-picker";
 import { cn } from "@/lib/utils";
 
-const QUICK_SEARCHES = [
-  "food",
-  "vehicle",
-  "delivery",
-  "construction",
-  "convenience",
-  "laundry",
-];
+const QUICK_SEARCHES = ["food", "vehicle", "delivery", "construction", "convenience", "laundry"];
 
 type Props = {
   query: string;
@@ -33,9 +26,7 @@ export function BusinessCategorySearch({
 }: Props) {
   return (
     <div className="mt-5">
-      <label className="mb-1.5 block text-sm font-medium">
-        Search categories quickly
-      </label>
+      <label className="mb-1.5 block text-sm font-medium">Search categories quickly</label>
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input

@@ -30,9 +30,7 @@ export function useBusinessCategoryPicker({
 }: Args) {
   const [query, setQuery] = useState("");
   const [groupQuery, setGroupQuery] = useState("");
-  const [activeGroupId, setActiveGroupId] = useState(
-    BUSINESS_CATEGORY_GROUPS[0]?.id ?? "",
-  );
+  const [activeGroupId, setActiveGroupId] = useState(BUSINESS_CATEGORY_GROUPS[0]?.id ?? "");
 
   const customTypeKeys = useMemo(
     () => new Set(customTypes.map((type) => type.toLowerCase())),
@@ -94,11 +92,7 @@ export function useBusinessCategoryPicker({
         };
       }),
     )
-      .filter(
-        (
-          result,
-        ): result is BusinessCategoryPickerSuggestion => result !== null,
-      )
+      .filter((result): result is BusinessCategoryPickerSuggestion => result !== null)
       .sort((a, b) => a.score - b.score || a.label.localeCompare(b.label))
       .slice(0, 8);
   }, [query]);
@@ -115,16 +109,12 @@ export function useBusinessCategoryPicker({
 
   const removeItem = (item: BusinessCategoryItem) => {
     if (item.businessType && item.businessType !== primaryType) {
-      onAdditionalTypesChange(
-        additionalTypes.filter((type) => type !== item.businessType),
-      );
+      onAdditionalTypesChange(additionalTypes.filter((type) => type !== item.businessType));
     }
 
     if (item.customType) {
       onCustomTypesChange(
-        customTypes.filter(
-          (type) => type.toLowerCase() !== item.customType!.toLowerCase(),
-        ),
+        customTypes.filter((type) => type.toLowerCase() !== item.customType!.toLowerCase()),
       );
     }
   };

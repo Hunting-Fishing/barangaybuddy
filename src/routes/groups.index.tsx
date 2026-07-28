@@ -51,8 +51,8 @@ function GroupsIndex() {
             Clubs, Leagues & Groups
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Join local leagues and interest groups. Members get free entry to events and
-            automatic discounts at partner venues nationwide.
+            Join local leagues and interest groups. Members get free entry to events and automatic
+            discounts at partner venues nationwide.
           </p>
         </div>
 
@@ -65,12 +65,7 @@ function GroupsIndex() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {groups.map((g) => (
-              <Link
-                key={g.id}
-                to="/groups/$slug"
-                params={{ slug: g.slug }}
-                className="group block"
-              >
+              <Link key={g.id} to="/groups/$slug" params={{ slug: g.slug }} className="group block">
                 <Card className="overflow-hidden transition-shadow hover:shadow-lg">
                   <div className="relative h-40 bg-gradient-sun">
                     {g.cover_image_url ? (
@@ -100,7 +95,9 @@ function GroupsIndex() {
                     <div className="mt-3 flex items-center justify-between text-sm">
                       <span className="inline-flex items-center gap-1.5 text-muted-foreground">
                         <Users2 className="h-4 w-4" />
-                        {g.membership_period_days === 365 ? "Yearly" : `${g.membership_period_days}d`}
+                        {g.membership_period_days === 365
+                          ? "Yearly"
+                          : `${g.membership_period_days}d`}
                       </span>
                       <span className="font-semibold text-foreground">
                         {g.membership_fee_php > 0

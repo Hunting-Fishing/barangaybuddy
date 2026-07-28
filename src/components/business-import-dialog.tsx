@@ -15,28 +15,113 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FeatureTagsPicker } from "@/components/feature-tags-picker";
 import { BUSINESS_TYPES, BUSINESS_TYPE_LABEL, type BusinessType } from "@/lib/business-types";
 import { toast } from "sonner";
 import {
-  Sparkles, Loader2, MapPin,
-  MapPin as GoogleIcon, Facebook, Instagram, Twitter, Music2, Linkedin, Youtube, Star, Globe,
+  Sparkles,
+  Loader2,
+  MapPin,
+  MapPin as GoogleIcon,
+  Facebook,
+  Instagram,
+  Twitter,
+  Music2,
+  Linkedin,
+  Youtube,
+  Star,
+  Globe,
 } from "lucide-react";
 
-type PlatformKey = "google" | "facebook" | "instagram" | "twitter" | "tiktok" | "linkedin" | "youtube" | "yelp" | "website";
-const PLATFORMS: { key: PlatformKey; label: string; icon: React.ComponentType<{ className?: string }>; placeholder: string; color: string }[] = [
-  { key: "google",    label: "Google (Maps / Business)", icon: GoogleIcon, placeholder: "Maps share link, g.page/…, or business.site URL", color: "text-[#4285F4]" },
-  { key: "facebook",  label: "Facebook",    icon: Facebook,   placeholder: "https://facebook.com/your-page", color: "text-[#1877F2]" },
-  { key: "instagram", label: "Instagram",   icon: Instagram,  placeholder: "https://instagram.com/handle",   color: "text-[#E4405F]" },
-  { key: "twitter",   label: "X / Twitter", icon: Twitter,    placeholder: "https://x.com/handle",           color: "text-foreground" },
-  { key: "tiktok",    label: "TikTok",      icon: Music2,     placeholder: "https://tiktok.com/@handle",     color: "text-foreground" },
-  { key: "linkedin",  label: "LinkedIn",    icon: Linkedin,   placeholder: "https://linkedin.com/company/…", color: "text-[#0A66C2]" },
-  { key: "youtube",   label: "YouTube",     icon: Youtube,    placeholder: "https://youtube.com/@channel",   color: "text-[#FF0000]" },
-  { key: "yelp",      label: "Yelp",        icon: Star,       placeholder: "https://yelp.com/biz/your-business", color: "text-[#D32323]" },
-  { key: "website",   label: "Website",     icon: Globe,      placeholder: "https://your-business.com",      color: "text-muted-foreground" },
+type PlatformKey =
+  | "google"
+  | "facebook"
+  | "instagram"
+  | "twitter"
+  | "tiktok"
+  | "linkedin"
+  | "youtube"
+  | "yelp"
+  | "website";
+const PLATFORMS: {
+  key: PlatformKey;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  placeholder: string;
+  color: string;
+}[] = [
+  {
+    key: "google",
+    label: "Google (Maps / Business)",
+    icon: GoogleIcon,
+    placeholder: "Maps share link, g.page/…, or business.site URL",
+    color: "text-[#4285F4]",
+  },
+  {
+    key: "facebook",
+    label: "Facebook",
+    icon: Facebook,
+    placeholder: "https://facebook.com/your-page",
+    color: "text-[#1877F2]",
+  },
+  {
+    key: "instagram",
+    label: "Instagram",
+    icon: Instagram,
+    placeholder: "https://instagram.com/handle",
+    color: "text-[#E4405F]",
+  },
+  {
+    key: "twitter",
+    label: "X / Twitter",
+    icon: Twitter,
+    placeholder: "https://x.com/handle",
+    color: "text-foreground",
+  },
+  {
+    key: "tiktok",
+    label: "TikTok",
+    icon: Music2,
+    placeholder: "https://tiktok.com/@handle",
+    color: "text-foreground",
+  },
+  {
+    key: "linkedin",
+    label: "LinkedIn",
+    icon: Linkedin,
+    placeholder: "https://linkedin.com/company/…",
+    color: "text-[#0A66C2]",
+  },
+  {
+    key: "youtube",
+    label: "YouTube",
+    icon: Youtube,
+    placeholder: "https://youtube.com/@channel",
+    color: "text-[#FF0000]",
+  },
+  {
+    key: "yelp",
+    label: "Yelp",
+    icon: Star,
+    placeholder: "https://yelp.com/biz/your-business",
+    color: "text-[#D32323]",
+  },
+  {
+    key: "website",
+    label: "Website",
+    icon: Globe,
+    placeholder: "https://your-business.com",
+    color: "text-muted-foreground",
+  },
 ];
 import { previewImport, commitImport, commitImportAsMine } from "@/lib/imports.functions";
 
@@ -75,7 +160,9 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
   const [importId, setImportId] = useState<string | null>(null);
   const [data, setData] = useState<Extracted | null>(null);
   const [brgySearch, setBrgySearch] = useState("");
-  const [brgyResults, setBrgyResults] = useState<{ code: string; name: string; cities_municipalities: { name: string } | null }[]>([]);
+  const [brgyResults, setBrgyResults] = useState<
+    { code: string; name: string; cities_municipalities: { name: string } | null }[]
+  >([]);
   const [brgyLabel, setBrgyLabel] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [importError, setImportError] = useState("");
@@ -130,11 +217,17 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
         email: e.email,
         website: e.website,
         hours: e.hours,
-        type: (BUSINESS_TYPES as readonly string[]).includes(e.type) ? (e.type as BusinessType) : "store",
-        additional_types: e.additional_types.filter((t): t is BusinessType => (BUSINESS_TYPES as readonly string[]).includes(t)),
+        type: (BUSINESS_TYPES as readonly string[]).includes(e.type)
+          ? (e.type as BusinessType)
+          : "store",
+        additional_types: e.additional_types.filter((t): t is BusinessType =>
+          (BUSINESS_TYPES as readonly string[]).includes(t),
+        ),
         custom_types: e.custom_types,
         tags: e.tags,
-        products: (e as { products?: { name: string; price: number | null; unit: string | null }[] }).products ?? [],
+        products:
+          (e as { products?: { name: string; price: number | null; unit: string | null }[] })
+            .products ?? [],
         services: (e as { services?: string[] }).services ?? [],
         barangay_code: e.barangay_code,
         cover_image_url: e.cover_image_url,
@@ -146,7 +239,10 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
           .select("name, cities_municipalities(name)")
           .eq("code", e.barangay_code)
           .maybeSingle();
-        if (b) setBrgyLabel(`${b.name}, ${(b as { cities_municipalities?: { name?: string } | null }).cities_municipalities?.name ?? ""}`);
+        if (b)
+          setBrgyLabel(
+            `${b.name}, ${(b as { cities_municipalities?: { name?: string } | null }).cities_municipalities?.name ?? ""}`,
+          );
       }
       setStep("review");
     } catch (err) {
@@ -209,7 +305,9 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
         toast.error(res.error);
         return;
       }
-      toast.success(mode === "mine" ? "Business published — it's yours!" : "Listing published as unclaimed.");
+      toast.success(
+        mode === "mine" ? "Business published — it's yours!" : "Listing published as unclaimed.",
+      );
       setOpen(false);
       reset();
       window.location.href = `/business/${res.slug}`;
@@ -219,7 +317,13 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) reset();
+      }}
+    >
       <DialogTrigger asChild>
         {trigger ?? (
           <Button className="gap-2">
@@ -229,22 +333,33 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-primary" /> Smart business import</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" /> Smart business import
+          </DialogTitle>
           <DialogDescription>
-            Paste any links you have — one per platform. AI reads them all and merges into one listing.
+            Paste any links you have — one per platform. AI reads them all and merges into one
+            listing.
           </DialogDescription>
         </DialogHeader>
 
         {step === "input" && (
           <form onSubmit={onPreview} className="grid gap-3">
             <div className="grid gap-2">
-              <Label>Business links <span className="text-xs font-normal text-muted-foreground">— fill any you have (max 6)</span></Label>
+              <Label>
+                Business links{" "}
+                <span className="text-xs font-normal text-muted-foreground">
+                  — fill any you have (max 6)
+                </span>
+              </Label>
               <div className="grid gap-2">
                 {PLATFORMS.map((p) => {
                   const Icon = p.icon;
                   return (
                     <div key={p.key} className="flex items-center gap-2">
-                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-secondary/40 ${p.color}`} title={p.label}>
+                      <div
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-secondary/40 ${p.color}`}
+                        title={p.label}
+                      >
                         <Icon className="h-4 w-4" />
                       </div>
                       <Input
@@ -259,9 +374,11 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
                 })}
               </div>
               <p className="text-xs text-muted-foreground">
-                <strong>Google:</strong> works with Maps share links, <code>g.page/…</code>, Business Profile, or <code>*.business.site</code> URLs — not directions links.
-                <br /><strong>Facebook:</strong> we also read the About / Contact tabs to pull address, phone, and hours.
-                Yelp and any other site go in the Website / Yelp row.
+                <strong>Google:</strong> works with Maps share links, <code>g.page/…</code>,
+                Business Profile, or <code>*.business.site</code> URLs — not directions links.
+                <br />
+                <strong>Facebook:</strong> we also read the About / Contact tabs to pull address,
+                phone, and hours. Yelp and any other site go in the Website / Yelp row.
               </p>
             </div>
             <div>
@@ -282,7 +399,8 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
               </div>
             )}
             <p className="text-xs text-muted-foreground">
-              Anyone can submit. Logged-out submissions become <strong>unclaimed listings</strong> the real owner can claim later.
+              Anyone can submit. Logged-out submissions become <strong>unclaimed listings</strong>{" "}
+              the real owner can claim later.
             </p>
           </form>
         )}
@@ -290,7 +408,9 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
         {step === "loading" && (
           <div className="flex flex-col items-center justify-center gap-3 py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Fetching → reading → matching to a barangay…</p>
+            <p className="text-sm text-muted-foreground">
+              Fetching → reading → matching to a barangay…
+            </p>
           </div>
         )}
 
@@ -299,26 +419,42 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
             <div className="grid gap-3 md:grid-cols-2">
               <div className="md:col-span-2">
                 <Label>Name</Label>
-                <Input value={data.name} onChange={(e) => setData({ ...data, name: e.target.value })} />
+                <Input
+                  value={data.name}
+                  onChange={(e) => setData({ ...data, name: e.target.value })}
+                />
               </div>
               <div>
                 <Label>Primary type</Label>
-                <Select value={data.type} onValueChange={(v) => setData({ ...data, type: v as BusinessType })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={data.type}
+                  onValueChange={(v) => setData({ ...data, type: v as BusinessType })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {BUSINESS_TYPES.map((t) => (
-                      <SelectItem key={t} value={t}>{BUSINESS_TYPE_LABEL[t]}</SelectItem>
+                      <SelectItem key={t} value={t}>
+                        {BUSINESS_TYPE_LABEL[t]}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Phone</Label>
-                <Input value={data.phone ?? ""} onChange={(e) => setData({ ...data, phone: e.target.value || null })} />
+                <Input
+                  value={data.phone ?? ""}
+                  onChange={(e) => setData({ ...data, phone: e.target.value || null })}
+                />
               </div>
               <div className="md:col-span-2">
                 <Label>Address</Label>
-                <Input value={data.address ?? ""} onChange={(e) => setData({ ...data, address: e.target.value || null })} />
+                <Input
+                  value={data.address ?? ""}
+                  onChange={(e) => setData({ ...data, address: e.target.value || null })}
+                />
               </div>
 
               <div className="md:col-span-2">
@@ -351,14 +487,21 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
                   <Label>AI-detected custom categories</Label>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {data.custom_types.map((c) => (
-                      <Badge key={c} variant="secondary">{c}</Badge>
+                      <Badge key={c} variant="secondary">
+                        {c}
+                      </Badge>
                     ))}
                   </div>
                 </div>
               )}
 
               <div className="md:col-span-2">
-                <Label>Features & amenities <span className="text-xs text-muted-foreground">— AI pre-selected what it found</span></Label>
+                <Label>
+                  Features & amenities{" "}
+                  <span className="text-xs text-muted-foreground">
+                    — AI pre-selected what it found
+                  </span>
+                </Label>
                 <div className="mt-2">
                   <FeatureTagsPicker
                     value={data.tags.map((t) => t.slug)}
@@ -370,7 +513,12 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
               </div>
 
               <div className="md:col-span-2">
-                <Label>Products <span className="text-xs text-muted-foreground">— AI pulled these from the source; edit or remove anything wrong</span></Label>
+                <Label>
+                  Products{" "}
+                  <span className="text-xs text-muted-foreground">
+                    — AI pulled these from the source; edit or remove anything wrong
+                  </span>
+                </Label>
                 <div className="mt-2 grid gap-2">
                   {data.products.map((p, i) => (
                     <div key={i} className="grid grid-cols-12 gap-2">
@@ -391,7 +539,10 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
                         placeholder="Price"
                         onChange={(e) => {
                           const next = [...data.products];
-                          next[i] = { ...next[i], price: e.target.value === "" ? null : Number(e.target.value) };
+                          next[i] = {
+                            ...next[i],
+                            price: e.target.value === "" ? null : Number(e.target.value),
+                          };
                           setData({ ...data, products: next });
                         }}
                       />
@@ -411,7 +562,12 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setData({ ...data, products: [...data.products, { name: "", price: null, unit: null }] })}
+                    onClick={() =>
+                      setData({
+                        ...data,
+                        products: [...data.products, { name: "", price: null, unit: null }],
+                      })
+                    }
                   >
                     + Add product
                   </Button>
@@ -419,14 +575,19 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
               </div>
 
               <div className="md:col-span-2">
-                <Label>Services <span className="text-xs text-muted-foreground">— one per line</span></Label>
+                <Label>
+                  Services <span className="text-xs text-muted-foreground">— one per line</span>
+                </Label>
                 <Textarea
                   rows={3}
                   value={data.services.join("\n")}
                   onChange={(e) =>
                     setData({
                       ...data,
-                      services: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean),
+                      services: e.target.value
+                        .split("\n")
+                        .map((s) => s.trim())
+                        .filter(Boolean),
                     })
                   }
                   placeholder="e.g. Haircut&#10;Catering&#10;Motorcycle repair"
@@ -444,7 +605,10 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
 
               <div className="md:col-span-2">
                 <Label className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5" /> Barangay {brgyLabel && <span className="text-xs text-muted-foreground">— Selected: {brgyLabel}</span>}
+                  <MapPin className="h-3.5 w-3.5" /> Barangay{" "}
+                  {brgyLabel && (
+                    <span className="text-xs text-muted-foreground">— Selected: {brgyLabel}</span>
+                  )}
                 </Label>
                 <Input
                   value={brgySearch}
@@ -464,7 +628,10 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
                         }}
                         className="block w-full px-3 py-2 text-left text-sm hover:bg-secondary"
                       >
-                        {b.name} <span className="text-muted-foreground">— {b.cities_municipalities?.name}</span>
+                        {b.name}{" "}
+                        <span className="text-muted-foreground">
+                          — {b.cities_municipalities?.name}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -473,7 +640,9 @@ export function BusinessImportDialog({ trigger }: { trigger?: React.ReactNode })
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-4">
-              <Button variant="ghost" onClick={() => setStep("input")}>Back</Button>
+              <Button variant="ghost" onClick={() => setStep("input")}>
+                Back
+              </Button>
               <Button variant="outline" disabled={submitting} onClick={() => publish("unclaimed")}>
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Publish as unclaimed"}
               </Button>

@@ -1,8 +1,4 @@
-import {
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { InventoryItem } from "@/lib/inventory";
 
 type Props = {

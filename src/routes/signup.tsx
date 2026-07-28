@@ -15,7 +15,10 @@ export const Route = createFileRoute("/signup")({
   head: () => ({
     meta: [
       { title: "Create account — BarangayHub" },
-      { name: "description", content: "Join BarangayHub free — list your business or discover your barangay." },
+      {
+        name: "description",
+        content: "Join BarangayHub free — list your business or discover your barangay.",
+      },
     ],
   }),
   component: SignupPage,
@@ -86,7 +89,9 @@ function SignupPage() {
               type="button"
               onClick={() => setRole("consumer")}
               className={`flex flex-col items-start gap-2 rounded-xl border-2 p-4 text-left transition-all ${
-                role === "consumer" ? "border-primary bg-primary/5" : "border-border hover:border-foreground/30"
+                role === "consumer"
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-foreground/30"
               }`}
             >
               <User className="h-5 w-5" />
@@ -97,12 +102,16 @@ function SignupPage() {
               type="button"
               onClick={() => setRole("owner")}
               className={`flex flex-col items-start gap-2 rounded-xl border-2 p-4 text-left transition-all ${
-                role === "owner" ? "border-primary bg-primary/5" : "border-border hover:border-foreground/30"
+                role === "owner"
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-foreground/30"
               }`}
             >
               <Store className="h-5 w-5" />
               <span className="font-medium">I have a business</span>
-              <span className="text-xs text-muted-foreground">List products, services & prices</span>
+              <span className="text-xs text-muted-foreground">
+                List products, services & prices
+              </span>
             </button>
           </div>
 
@@ -116,15 +125,32 @@ function SignupPage() {
           <form onSubmit={handle} className="space-y-4">
             <div>
               <Label htmlFor="dn">Display name</Label>
-              <Input id="dn" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+              <Input
+                id="dn"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                required
+              />
             </div>
             <div>
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
             <div>
               <Label htmlFor="pw">Password (min 8 chars)</Label>
-              <Input id="pw" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <Input
+                id="pw"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account…" : "Create account"}

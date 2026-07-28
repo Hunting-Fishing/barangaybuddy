@@ -116,7 +116,10 @@ export function BusinessMiniSite({ business, listings }: Props) {
             <div>
               <div className="flex flex-wrap gap-2">
                 {categories.slice(0, 4).map((category) => (
-                  <Badge key={category} className="bg-primary-foreground/15 text-primary-foreground">
+                  <Badge
+                    key={category}
+                    className="bg-primary-foreground/15 text-primary-foreground"
+                  >
                     {category}
                   </Badge>
                 ))}
@@ -130,9 +133,7 @@ export function BusinessMiniSite({ business, listings }: Props) {
                   />
                 )}
                 <div>
-                  <h1 className="font-display text-4xl font-bold md:text-6xl">
-                    {business.name}
-                  </h1>
+                  <h1 className="font-display text-4xl font-bold md:text-6xl">{business.name}</h1>
                   {place && (
                     <p className="mt-2 flex items-center gap-1.5 text-primary-foreground/80">
                       <MapPin className="h-4 w-4" /> {place}
@@ -155,10 +156,12 @@ export function BusinessMiniSite({ business, listings }: Props) {
                   </a>
                 </Button>
               )}
-              <Button variant="outline" className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10" asChild>
-                <a href="#products">
-                  View products
-                </a>
+              <Button
+                variant="outline"
+                className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
+                asChild
+              >
+                <a href="#products">View products</a>
               </Button>
             </div>
           </div>
@@ -168,19 +171,38 @@ export function BusinessMiniSite({ business, listings }: Props) {
       <main className="container mx-auto px-4 py-12">
         <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {business.address && (
-            <InfoCard icon={<MapPin className="h-5 w-5" />} label="Address" value={business.address} />
+            <InfoCard
+              icon={<MapPin className="h-5 w-5" />}
+              label="Address"
+              value={business.address}
+            />
           )}
           {business.hours && (
             <InfoCard icon={<Clock className="h-5 w-5" />} label="Hours" value={business.hours} />
           )}
           {business.contact_phone && (
-            <InfoCard icon={<Phone className="h-5 w-5" />} label="Phone" value={business.contact_phone} href={`tel:${business.contact_phone}`} />
+            <InfoCard
+              icon={<Phone className="h-5 w-5" />}
+              label="Phone"
+              value={business.contact_phone}
+              href={`tel:${business.contact_phone}`}
+            />
           )}
           {business.website && (
-            <InfoCard icon={<Globe className="h-5 w-5" />} label="Website" value="Open website" href={business.website} />
+            <InfoCard
+              icon={<Globe className="h-5 w-5" />}
+              label="Website"
+              value="Open website"
+              href={business.website}
+            />
           )}
           {business.contact_email && (
-            <InfoCard icon={<Mail className="h-5 w-5" />} label="Email" value={business.contact_email} href={`mailto:${business.contact_email}`} />
+            <InfoCard
+              icon={<Mail className="h-5 w-5" />}
+              label="Email"
+              value={business.contact_email}
+              href={`mailto:${business.contact_email}`}
+            />
           )}
         </section>
 
@@ -221,7 +243,10 @@ export function BusinessMiniSite({ business, listings }: Props) {
           ) : (
             <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {listings.map((listing) => (
-                <Card key={listing.id} className="overflow-hidden transition-all hover:-translate-y-1 hover:shadow-elegant">
+                <Card
+                  key={listing.id}
+                  className="overflow-hidden transition-all hover:-translate-y-1 hover:shadow-elegant"
+                >
                   <div className="aspect-video bg-muted">
                     {listing.image_url && (
                       <img

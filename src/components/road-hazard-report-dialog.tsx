@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- RoadSafe tables are introduced by this PR and are not in the generated Supabase types until the migration is applied and types are regenerated. */
 import { useState } from "react";
 import { AlertTriangle, Camera, LocateFixed } from "lucide-react";
 import { toast } from "sonner";

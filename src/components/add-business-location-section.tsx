@@ -8,10 +8,7 @@ import type { BarangayPickResult } from "@/hooks/use-add-business-form";
 
 type Props = {
   form: AddBusinessFormState;
-  update: <K extends keyof AddBusinessFormState>(
-    key: K,
-    value: AddBusinessFormState[K],
-  ) => void;
+  update: <K extends keyof AddBusinessFormState>(key: K, value: AddBusinessFormState[K]) => void;
   barangayResults: BarangayPickResult[];
   chooseBarangay: (barangay: BarangayPickResult) => void;
   profileBarangay: { code: string; label: string } | null;
@@ -45,12 +42,11 @@ export function AddBusinessLocationSection({
     <Card className="p-5 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-xs font-bold uppercase tracking-wide text-primary">
-            Step 3
-          </div>
+          <div className="text-xs font-bold uppercase tracking-wide text-primary">Step 3</div>
           <h2 className="font-display text-xl font-bold">Location</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Barangay is required. You can search by barangay name or by municipality/city, like Carrasi.
+            Barangay is required. You can search by barangay name or by municipality/city, like
+            Carrasi.
           </p>
         </div>
         <Button
@@ -115,12 +111,17 @@ export function AddBusinessLocationSection({
               id="barangay-search"
               value={form.barangay_search}
               onChange={(event) => update("barangay_search", event.target.value)}
-              placeholder={form.barangay_label ? "Change barangay…" : "Type barangay, city, or municipality name…"}
+              placeholder={
+                form.barangay_label
+                  ? "Change barangay…"
+                  : "Type barangay, city, or municipality name…"
+              }
               className="pl-9"
             />
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Tip: if you search a municipality like Carrasi, the form will show barangays inside that municipality.
+            Tip: if you search a municipality like Carrasi, the form will show barangays inside that
+            municipality.
           </p>
           {barangayResults.length > 0 && (
             <div className="mt-2 max-h-60 overflow-auto rounded-md border border-border bg-card">

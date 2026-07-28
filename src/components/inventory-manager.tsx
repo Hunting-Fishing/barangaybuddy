@@ -17,11 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { InventoryItemDialog } from "@/components/inventory-item-dialog";
-import {
-  calculateInventoryStats,
-  formatPeso,
-  type InventoryItem,
-} from "@/lib/inventory";
+import { calculateInventoryStats, formatPeso, type InventoryItem } from "@/lib/inventory";
 
 type Props = {
   businessId: string;
@@ -172,12 +168,7 @@ export function InventoryManager({ businessId }: Props) {
           <div>
             <h2 className="font-display text-xl font-bold">Inventory setup is finishing</h2>
             <p className="mt-1 text-sm">{setupError}</p>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-4 bg-white"
-              onClick={loadItems}
-            >
+            <Button type="button" variant="outline" className="mt-4 bg-white" onClick={loadItems}>
               Try loading inventory again
             </Button>
           </div>
@@ -275,7 +266,10 @@ export function InventoryManager({ businessId }: Props) {
                 const outOfStock = quantity <= 0;
 
                 return (
-                  <div key={item.id} className="grid gap-4 p-4 lg:grid-cols-[1fr_auto] lg:items-center">
+                  <div
+                    key={item.id}
+                    className="grid gap-4 p-4 lg:grid-cols-[1fr_auto] lg:items-center"
+                  >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-display text-lg font-bold">{item.name}</h3>
@@ -301,16 +295,32 @@ export function InventoryManager({ businessId }: Props) {
                       <div className="mt-3 grid gap-2 text-sm sm:grid-cols-4">
                         <Metric label="Qty" value={`${quantity.toLocaleString()} ${item.unit}`} />
                         <Metric label="Reorder at" value={String(item.reorder_point ?? 0)} />
-                        <Metric label="Cost/unit" value={formatPeso(Number(item.cost_per_unit ?? 0))} />
-                        <Metric label="Sell/unit" value={formatPeso(Number(item.sell_price ?? 0))} />
+                        <Metric
+                          label="Cost/unit"
+                          value={formatPeso(Number(item.cost_per_unit ?? 0))}
+                        />
+                        <Metric
+                          label="Sell/unit"
+                          value={formatPeso(Number(item.sell_price ?? 0))}
+                        />
                       </div>
                     </div>
 
                     <div className="flex flex-wrap gap-2 lg:justify-end">
-                      <Button size="sm" variant="outline" onClick={() => adjustStock(item, "in")} className="gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => adjustStock(item, "in")}
+                        className="gap-1"
+                      >
                         <ArrowUp className="h-3.5 w-3.5" /> Stock in
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => adjustStock(item, "out")} className="gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => adjustStock(item, "out")}
+                        className="gap-1"
+                      >
                         <ArrowDown className="h-3.5 w-3.5" /> Stock out
                       </Button>
                       <Button size="sm" onClick={() => openEditItem(item)} className="gap-1">

@@ -28,13 +28,9 @@ export function BusinessMap({ businesses }: { businesses: MapBusiness[] }) {
 
   useEffect(() => {
     if (!ref.current || mapRef.current) return;
-    const map = L.map(ref.current, { scrollWheelZoom: false }).setView(
-      [12.8797, 121.774],
-      5,
-    );
+    const map = L.map(ref.current, { scrollWheelZoom: false }).setView([12.8797, 121.774], 5);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
     }).addTo(map);
     mapRef.current = map;
@@ -53,8 +49,7 @@ export function BusinessMap({ businesses }: { businesses: MapBusiness[] }) {
     );
     valid.forEach((b) => {
       const color = TYPE_COLORS[b.type] ?? "#64748b";
-      const verified =
-        b.verified ?? (Boolean(b.hasFullAddress) && Boolean(b.hasCoverImage));
+      const verified = b.verified ?? (Boolean(b.hasFullAddress) && Boolean(b.hasCoverImage));
       // Verified: solid filled circle with white ring.
       // Pin-only: hollow ring with dashed border in the type color.
       const marker = verified
@@ -80,9 +75,7 @@ export function BusinessMap({ businesses }: { businesses: MapBusiness[] }) {
             <div style="margin-top:2px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
               <span style="text-transform:capitalize;color:#64748b;font-size:12px">${b.type.replace("_", " ")}</span>
               <span style="font-size:11px;padding:1px 6px;border-radius:999px;${
-                verified
-                  ? "background:#dcfce7;color:#15803d"
-                  : "background:#fef3c7;color:#92400e"
+                verified ? "background:#dcfce7;color:#15803d" : "background:#fef3c7;color:#92400e"
               }">${verified ? "Verified" : "Pin only"}</span>
             </div>
             <a style="display:inline-block;margin-top:6px" href="/business/${encodeURIComponent(b.slug)}">View page →</a>
@@ -144,7 +137,8 @@ export function BusinessMap({ businesses }: { businesses: MapBusiness[] }) {
 }
 
 function escapeHtml(s: string) {
-  return s.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!),
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
   );
 }

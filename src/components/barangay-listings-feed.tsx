@@ -13,12 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import {
-  computeUnitPrice,
-  formatPerEach,
-  formatPerUnit,
-  formatPrice,
-} from "@/lib/unit-price";
+import { computeUnitPrice, formatPerEach, formatPerUnit, formatPrice } from "@/lib/unit-price";
 import { Search, Sparkles, Navigation, ShieldCheck, MapPin } from "lucide-react";
 
 export interface FeedListing {
@@ -67,18 +62,13 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: "distance", label: "Nearest to me" },
 ];
 
-function haversineKm(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number },
-) {
+function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const R = 6371;
   const dLat = ((b.lat - a.lat) * Math.PI) / 180;
   const dLng = ((b.lng - a.lng) * Math.PI) / 180;
   const lat1 = (a.lat * Math.PI) / 180;
   const lat2 = (b.lat * Math.PI) / 180;
-  const s =
-    Math.sin(dLat / 2) ** 2 +
-    Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  const s = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
@@ -116,7 +106,7 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
     if (sort === "distance" && !geo && !geoLoading && !geoErr) {
       requestLocation();
     }
-  }, [sort]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sort]);
 
   const rows: Row[] = useMemo(
     () =>
@@ -129,9 +119,7 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
         const hasPhoto = !!l.business.cover_image_url;
         const verified = hasAddress && hasPhoto;
         const distanceKm =
-          geo && hasPin
-            ? haversineKm(geo, { lat: Number(lat), lng: Number(lng) })
-            : null;
+          geo && hasPin ? haversineKm(geo, { lat: Number(lat), lng: Number(lng) }) : null;
         return { ...l, ...up, distanceKm, verified, hasPin };
       }),
     [listings, geo],
@@ -148,9 +136,7 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
 
   const hiddenByVerification = useMemo(
     () =>
-      distanceMode && !includePinOnly
-        ? rows.filter((r) => !r.verified && r.hasPin).length
-        : 0,
+      distanceMode && !includePinOnly ? rows.filter((r) => !r.verified && r.hasPin).length : 0,
     [rows, distanceMode, includePinOnly],
   );
 
@@ -221,9 +207,7 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
     }
     const list = Array.from(map.values());
     if (sort === "best") {
-      list.sort(
-        (a, b) => b.items.length - a.items.length || a.label.localeCompare(b.label),
-      );
+      list.sort((a, b) => b.items.length - a.items.length || a.label.localeCompare(b.label));
     } else {
       list.sort((a, b) => {
         if (!a.items.length || !b.items.length) {
@@ -240,7 +224,8 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
       <Card className="p-8 text-center">
         <p className="font-display text-lg font-bold">No products listed in this barangay yet</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Business owners can post products with pack size and weight so neighbours can compare prices.
+          Business owners can post products with pack size and weight so neighbours can compare
+          prices.
         </p>
       </Card>
     );
@@ -300,7 +285,8 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
                 <MapPin className="h-3.5 w-3.5" /> Include pin-drop-only sellers
               </div>
               <p className="mt-0.5 text-muted-foreground">
-                Off by default. When on, sellers with a map pin but no full address are also shown — they're not verified yet.
+                Off by default. When on, sellers with a map pin but no full address are also shown —
+                they're not verified yet.
                 {hiddenByVerification > 0 && !includePinOnly && (
                   <span className="ml-1">({hiddenByVerification} currently hidden)</span>
                 )}
@@ -330,9 +316,7 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
                 onValueChange={(v) => setRadiusKm(v[0] ?? radiusKm)}
               />
               {hiddenByRadius > 0 && (
-                <span className="text-muted-foreground">
-                  {hiddenByRadius} hidden by radius
-                </span>
+                <span className="text-muted-foreground">{hiddenByRadius} hidden by radius</span>
               )}
             </div>
           )}
@@ -369,9 +353,7 @@ export function BarangayListingsFeed({ listings }: { listings: FeedListing[] }) 
         </div>
       )}
 
-      {groups.length === 0 && (
-        <p className="text-sm text-muted-foreground">No matches.</p>
-      )}
+      {groups.length === 0 && <p className="text-sm text-muted-foreground">No matches.</p>}
 
       <div className="space-y-8">
         {groups.map((g) => (
@@ -409,9 +391,7 @@ function ListingRow({
   showDistance: boolean;
 }) {
   const sizeLabel =
-    row.size_value && row.size_unit
-      ? `${row.size_value}${row.size_unit} each`
-      : null;
+    row.size_value && row.size_unit ? `${row.size_value}${row.size_unit} each` : null;
   const packLabel = row.pack_qty && row.pack_qty > 1 ? `${row.pack_qty}-pack` : null;
   const subtitle = [packLabel, sizeLabel].filter(Boolean).join(" · ");
 
@@ -433,9 +413,7 @@ function ListingRow({
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <div className="font-medium">{row.name}</div>
-            {subtitle && (
-              <div className="text-xs text-muted-foreground">{subtitle}</div>
-            )}
+            {subtitle && <div className="text-xs text-muted-foreground">{subtitle}</div>}
             <Link
               to="/business/$slug"
               params={{ slug: row.business.slug }}
@@ -443,9 +421,7 @@ function ListingRow({
             >
               {row.business.name}
             </Link>
-            {distLabel && (
-              <div className="mt-0.5 text-xs text-muted-foreground">{distLabel}</div>
-            )}
+            {distLabel && <div className="mt-0.5 text-xs text-muted-foreground">{distLabel}</div>}
           </div>
           <div className="text-right">
             <div className="font-display text-lg font-bold">{formatPrice(row.price)}</div>

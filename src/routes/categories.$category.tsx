@@ -41,10 +41,7 @@ type SuggestionRow = {
 
 type RpcError = { message: string };
 type RpcClient = {
-  rpc: (
-    fn: string,
-    args: Record<string, unknown>,
-  ) => Promise<{ error: RpcError | null }>;
+  rpc: (fn: string, args: Record<string, unknown>) => Promise<{ error: RpcError | null }>;
 };
 
 const rpcClient = supabase as unknown as RpcClient;
@@ -55,15 +52,12 @@ async function recordCategoryEvent(data: {
   label: string;
   action: "category_view" | "type_search";
 }) {
-  const { error } = await rpcClient.rpc(
-    "increment_business_category_interaction",
-    {
-      p_group_id: data.groupId,
-      p_item_id: data.itemId,
-      p_label: data.label,
-      p_action: data.action,
-    },
-  );
+  const { error } = await rpcClient.rpc("increment_business_category_interaction", {
+    p_group_id: data.groupId,
+    p_item_id: data.itemId,
+    p_label: data.label,
+    p_action: data.action,
+  });
 
   if (error) console.error(error.message);
 }
@@ -93,9 +87,7 @@ function CategoryPage() {
     if (!group) return;
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-    const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as
-      | string
-      | undefined;
+    const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
 
     if (!supabaseUrl || !publishableKey) return;
 
@@ -114,11 +106,7 @@ function CategoryPage() {
       ? ((await interactionRes.json()) as InteractionRow[])
       : [];
 
-    setCounts(
-      Object.fromEntries(
-        interactionRows.map((row) => [row.item_id, Number(row.count)]),
-      ),
-    );
+    setCounts(Object.fromEntries(interactionRows.map((row) => [row.item_id, Number(row.count)])));
 
     const suggestionRes = await fetch(
       `${supabaseUrl}/rest/v1/business_category_suggestions?select=suggestion,suggestion_count&group_id=eq.${encodeURIComponent(
@@ -200,7 +188,12 @@ function CategoryPage() {
             </Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
-            <Link to="/search">Search businesses</Link>
+            <Link
+              to="/search"
+              search={{ q: "", types: [], customTypes: [], tags: [], category: undefined, page: 1 }}
+            >
+              Search businesses
+            </Link>
           </Button>
         </div>
 
@@ -214,12 +207,8 @@ function CategoryPage() {
                 <div className="text-xs font-bold uppercase tracking-widest text-primary-foreground/70">
                   Browse category
                 </div>
-                <h1 className="mt-1 font-display text-4xl font-bold md:text-5xl">
-                  {group.label}
-                </h1>
-                <p className="mt-3 max-w-2xl text-primary-foreground/80">
-                  {group.description}
-                </p>
+                <h1 className="mt-1 font-display text-4xl font-bold md:text-5xl">{group.label}</h1>
+                <p className="mt-3 max-w-2xl text-primary-foreground/80">{group.description}</p>
               </div>
             </div>
 
@@ -227,7 +216,9 @@ function CategoryPage() {
               <Link
                 to="/search"
                 search={{
+                  q: "",
                   types: businessTypes,
+                  customTypes: [],
                   tags: [],
                   category: group.id,
                   page: 1,
@@ -281,7 +272,8 @@ function CategoryPage() {
               <div>
                 <h2 className="font-display text-2xl font-bold">Choose a business type</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Tap the exact type users would search for. These choices route to Search with filters already selected.
+                  Tap the exact type users would search for. These choices route to Search with
+                  filters already selected.
                 </p>
               </div>
               <div className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs text-secondary-foreground">
@@ -311,9 +303,7 @@ function CategoryPage() {
 
             {suggestions.length > 0 && (
               <Card className="p-5">
-                <h2 className="font-display text-lg font-bold">
-                  Top missing-type suggestions
-                </h2>
+                <h2 className="font-display text-lg font-bold">Top missing-type suggestions</h2>
                 <div className="mt-3 space-y-2">
                   {suggestions.map((suggestion) => (
                     <div

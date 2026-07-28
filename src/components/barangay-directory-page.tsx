@@ -12,10 +12,7 @@ import {
 import { BarangayDirectoryFilters } from "@/components/barangay-directory-filters";
 import { BarangayDirectoryResults } from "@/components/barangay-directory-results";
 import { useBarangayDirectory } from "@/hooks/use-barangay-directory";
-import type {
-  BarangaySearch,
-  TakeAmount,
-} from "@/lib/barangay-directory";
+import type { BarangaySearch, TakeAmount } from "@/lib/barangay-directory";
 
 type Props = {
   search: BarangaySearch;
@@ -23,11 +20,7 @@ type Props = {
   resetFilters: (take: TakeAmount) => void;
 };
 
-export function BarangayDirectoryPage({
-  search,
-  setSearch,
-  resetFilters,
-}: Props) {
+export function BarangayDirectoryPage({ search, setSearch, resetFilters }: Props) {
   const directory = useBarangayDirectory({ search, setSearch });
 
   return (
@@ -48,11 +41,10 @@ export function BarangayDirectoryPage({
           </BreadcrumbList>
         </Breadcrumb>
 
-        <h1 className="mt-6 font-display text-4xl font-bold md:text-5xl">
-          Barangay directory
-        </h1>
+        <h1 className="mt-6 font-display text-4xl font-bold md:text-5xl">Barangay directory</h1>
         <p className="mt-2 text-muted-foreground">
-          Search 42,042 barangays across the Philippines. Browse by first letter, then narrow by region, province, or name.
+          Search 42,042 barangays across the Philippines. Browse by first letter, then narrow by
+          region, province, or name.
         </p>
 
         <BarangayDirectoryFilters

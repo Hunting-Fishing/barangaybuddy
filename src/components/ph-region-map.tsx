@@ -14,7 +14,13 @@ type Hotspot = {
 // Coordinates aligned to the label positions on the map image
 const HOTSPOTS: Hotspot[] = [
   { slug: "region-i", short: "I", name: "Ilocos Region", x: 26, y: 18 },
-  { slug: "cordillera-administrative-region", short: "CAR", name: "Cordillera Administrative Region", x: 26, y: 25 },
+  {
+    slug: "cordillera-administrative-region",
+    short: "CAR",
+    name: "Cordillera Administrative Region",
+    x: 26,
+    y: 25,
+  },
   { slug: "region-ii", short: "II", name: "Cagayan Valley", x: 57, y: 19 },
   { slug: "region-iii", short: "III", name: "Central Luzon", x: 25, y: 35 },
   { slug: "national-capital-region", short: "NCR", name: "National Capital Region", x: 26, y: 40 },
@@ -29,7 +35,13 @@ const HOTSPOTS: Hotspot[] = [
   { slug: "region-xiii", short: "XIII", name: "Caraga", x: 80, y: 60 },
   { slug: "region-xi", short: "XI", name: "Davao Region", x: 75, y: 82 },
   { slug: "region-xii", short: "XII", name: "SOCCSKSARGEN", x: 55, y: 82 },
-  { slug: "bangsamoro-autonomous-region-in-muslim-mindanao", short: "BARMM", name: "BARMM", x: 45, y: 78 },
+  {
+    slug: "bangsamoro-autonomous-region-in-muslim-mindanao",
+    short: "BARMM",
+    name: "BARMM",
+    x: 45,
+    y: 78,
+  },
 ];
 
 export function PhRegionMap({ selected }: { selected?: string }) {
@@ -67,7 +79,8 @@ export function PhRegionMap({ selected }: { selected?: string }) {
         })}
       </div>
       <p className="mt-3 text-center text-xs text-muted-foreground">
-        Tap a region label on the map to open that region page, or scroll down to select one manually.
+        Tap a region label on the map to open that region page, or scroll down to select one
+        manually.
       </p>
     </div>
   );

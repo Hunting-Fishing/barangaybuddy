@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- Vehicle profiles are introduced by this PR and are not in the generated Supabase types until the migration is applied and types are regenerated. */
 import { useEffect, useState } from "react";
 import { CarFront, Save } from "lucide-react";
 import { toast } from "sonner";

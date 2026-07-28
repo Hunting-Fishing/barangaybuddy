@@ -60,11 +60,10 @@ function AddBusinessPage() {
               <Store className="h-3.5 w-3.5" />
               Owner setup
             </div>
-            <h1 className="mt-3 font-display text-4xl font-bold md:text-5xl">
-              Add your business
-            </h1>
+            <h1 className="mt-3 font-display text-4xl font-bold md:text-5xl">Add your business</h1>
             <p className="mt-2 max-w-2xl text-muted-foreground">
-              Create a claimed listing that customers can find by barangay, category, features, and search.
+              Create a claimed listing that customers can find by barangay, category, features, and
+              search.
             </p>
           </div>
         </div>

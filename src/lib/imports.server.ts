@@ -10,14 +10,7 @@ const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const FIRECRAWL_API = "https://api.firecrawl.dev/v2";
 
 export type Source =
-  | "google"
-  | "facebook"
-  | "instagram"
-  | "twitter"
-  | "tiktok"
-  | "linkedin"
-  | "youtube"
-  | "website";
+  "google" | "facebook" | "instagram" | "twitter" | "tiktok" | "linkedin" | "youtube" | "website";
 
 function getHost(url: string) {
   try {
@@ -38,29 +31,46 @@ async function socialFallbackText(url: string): Promise<string | null> {
     const path = decodeURIComponent(u.pathname).replace(/^\/+|\/+$/g, "");
     if (host.includes("facebook.com")) {
       const profileId = u.searchParams.get("id");
-      let slug = path.split("/").filter(Boolean).find((part) => part !== "profile.php" && part !== "p" && !part.includes("php"));
+      let slug = path
+        .split("/")
+        .filter(Boolean)
+        .find((part) => part !== "profile.php" && part !== "p" && !part.includes("php"));
       try {
         const res = await fetch(url, {
           redirect: "follow",
           headers: {
-            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
+            "User-Agent":
+              "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
             "Accept-Language": "en-US,en;q=0.9",
           },
         });
         const finalUrl = new URL(res.url || url);
         const next = finalUrl.searchParams.get("next");
         const resolved = next ? new URL(next) : finalUrl;
-        slug = decodeURIComponent(resolved.pathname)
-          .split("/")
-          .filter(Boolean)
-          .find((part) => part !== "profile.php" && part !== "p" && part !== "login.php" && !part.includes("php")) ?? slug;
+        slug =
+          decodeURIComponent(resolved.pathname)
+            .split("/")
+            .filter(Boolean)
+            .find(
+              (part) =>
+                part !== "profile.php" &&
+                part !== "p" &&
+                part !== "login.php" &&
+                !part.includes("php"),
+            ) ?? slug;
       } catch {
         // Keep the original URL-derived fallback.
       }
       const name = titleFromSlug(slug ?? "");
-      if (name || profileId) return `Facebook public business link. Name from URL: ${name || "unknown"}. Facebook page id: ${profileId ?? "unknown"}. URL: ${url}`;
+      if (name || profileId)
+        return `Facebook public business link. Name from URL: ${name || "unknown"}. Facebook page id: ${profileId ?? "unknown"}. URL: ${url}`;
     }
-    if (host.includes("instagram.com") || host === "x.com" || host.includes("twitter.com") || host.includes("tiktok.com")) {
+    if (
+      host.includes("instagram.com") ||
+      host === "x.com" ||
+      host.includes("twitter.com") ||
+      host.includes("tiktok.com")
+    ) {
       const handle = path.split("/").filter(Boolean)[0]?.replace(/^@/, "");
       if (handle) return `${host} public profile link. Handle: ${handle}. URL: ${url}`;
     }
@@ -104,13 +114,24 @@ export function detectSource(url: string): Source | null {
       host.endsWith(".g.page") ||
       host === "posts.gle" ||
       host.endsWith(".business.site")
-    ) return "google";
-    if (host.includes("facebook.") || host === "fb.com" || host === "m.facebook.com" || host === "fb.me") return "facebook";
+    )
+      return "google";
+    if (
+      host.includes("facebook.") ||
+      host === "fb.com" ||
+      host === "m.facebook.com" ||
+      host === "fb.me"
+    )
+      return "facebook";
     if (host === "instagram.com" || host.endsWith(".instagram.com")) return "instagram";
-    if (host === "twitter.com" || host === "x.com" || host === "mobile.twitter.com") return "twitter";
-    if (host === "tiktok.com" || host.endsWith(".tiktok.com") || host === "vm.tiktok.com") return "tiktok";
-    if (host === "linkedin.com" || host.endsWith(".linkedin.com") || host === "lnkd.in") return "linkedin";
-    if (host === "youtube.com" || host.endsWith(".youtube.com") || host === "youtu.be") return "youtube";
+    if (host === "twitter.com" || host === "x.com" || host === "mobile.twitter.com")
+      return "twitter";
+    if (host === "tiktok.com" || host.endsWith(".tiktok.com") || host === "vm.tiktok.com")
+      return "tiktok";
+    if (host === "linkedin.com" || host.endsWith(".linkedin.com") || host === "lnkd.in")
+      return "linkedin";
+    if (host === "youtube.com" || host.endsWith(".youtube.com") || host === "youtu.be")
+      return "youtube";
     // Fall back to generic website scrape for any other valid URL
     return "website";
   } catch {
@@ -124,7 +145,13 @@ export async function fetchScrape(url: string): Promise<{ markdown: string; raw:
   const key = process.env.FIRECRAWL_API_KEY;
   if (!key) throw new Error("Firecrawl connector is not linked");
 
-  const host = (() => { try { return new URL(url).hostname; } catch { return ""; } })();
+  const host = (() => {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return "";
+    }
+  })();
   const isFacebook = /(^|\.)facebook\.com$|^fb\.(com|me)$/i.test(host);
 
   async function scrapeOne(target: string): Promise<string> {
@@ -148,7 +175,10 @@ export async function fetchScrape(url: string): Promise<{ markdown: string; raw:
 
   // For Facebook, also try About / Contact mbasic pages — these hold address, phone, hours, description.
   function facebookVariants(input: string): string[] {
-    const base = input.replace(/:\/\/(www\.|m\.|web\.|mbasic\.)?facebook\.com/i, "://mbasic.facebook.com");
+    const base = input.replace(
+      /:\/\/(www\.|m\.|web\.|mbasic\.)?facebook\.com/i,
+      "://mbasic.facebook.com",
+    );
     const clean = base.replace(/\/+$/, "");
     return [
       clean,
@@ -217,7 +247,9 @@ function extractPlaceQuery(url: string): { textQuery?: string; placeId?: string 
     const q = u.searchParams.get("q") || u.searchParams.get("query");
     if (q) return { textQuery: q };
     // Plus Code in the URL anywhere (e.g. "5Q4J+X5W Brgy, Piddig, Ilocos Norte")
-    const plus = decodeURIComponent(url).match(/[2-9C-HJ-XR][2-9C-HJ-XR]{1,7}\+[2-9C-HJ-XR]{2,3}(?:[^&#]*)?/);
+    const plus = decodeURIComponent(url).match(
+      /[2-9C-HJ-XR][2-9C-HJ-XR]{1,7}\+[2-9C-HJ-XR]{2,3}(?:[^&#]*)?/,
+    );
     if (plus) return { textQuery: plus[0].trim() };
     return { textQuery: url.slice(0, 200) };
   } catch {
@@ -341,10 +373,21 @@ const SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: [
-    "name", "description", "address", "latitude", "longitude",
-    "phone", "email", "website", "hours",
-    "type", "additional_types", "custom_types",
-    "tags", "products", "services",
+    "name",
+    "description",
+    "address",
+    "latitude",
+    "longitude",
+    "phone",
+    "email",
+    "website",
+    "hours",
+    "type",
+    "additional_types",
+    "custom_types",
+    "tags",
+    "products",
+    "services",
   ],
   properties: {
     name: { type: "string" },
@@ -404,7 +447,6 @@ export async function geminiExtract(args: {
     args.hint ? `Operator hint: ${args.hint}` : "",
     args.textHint ? `Key snippets:\n${args.textHint.slice(0, 14000)}` : "",
     `Raw payload (truncated):\n${JSON.stringify(args.payload).slice(0, 6000)}`,
-
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -426,8 +468,10 @@ export async function geminiExtract(args: {
   });
   if (!res.ok) {
     const body = await res.text();
-    if (res.status === 429) throw new Error("AI is rate limited right now — please try again in a minute.");
-    if (res.status === 402) throw new Error("AI credits exhausted. Add credits in Settings → Workspace → Usage.");
+    if (res.status === 429)
+      throw new Error("AI is rate limited right now — please try again in a minute.");
+    if (res.status === 402)
+      throw new Error("AI credits exhausted. Add credits in Settings → Workspace → Usage.");
     throw new Error(`AI gateway error [${res.status}]: ${body}`);
   }
   const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
@@ -464,21 +508,20 @@ function toSlug(input: string): string {
     .slice(0, 40);
 }
 
-export async function persistCatalogGrowth(extracted: ExtractedBusiness): Promise<{ tags: string[]; customTypes: string[] }> {
+export async function persistCatalogGrowth(
+  extracted: ExtractedBusiness,
+): Promise<{ tags: string[]; customTypes: string[] }> {
   // tags
   const tagRows = extracted.tags
     .map((t) => ({ slug: toSlug(t.slug || t.label), label: t.label.trim().slice(0, 60) }))
     .filter((t) => t.slug.length >= 2);
   const uniqTagRows = Array.from(new Map(tagRows.map((t) => [t.slug, t])).values());
   if (uniqTagRows.length > 0) {
-    await supabaseAdmin
-      .from("tag_catalog")
-      .upsert(
-        uniqTagRows.map((t) => ({ slug: t.slug, label: t.label, usage_count: 1, source: "gemini" })),
-        { onConflict: "slug", ignoreDuplicates: true },
-      );
+    await supabaseAdmin.from("tag_catalog").upsert(
+      uniqTagRows.map((t) => ({ slug: t.slug, label: t.label, usage_count: 1, source: "gemini" })),
+      { onConflict: "slug", ignoreDuplicates: true },
+    );
   }
-
 
   // custom types
   const customRows = extracted.custom_types
@@ -486,12 +529,15 @@ export async function persistCatalogGrowth(extracted: ExtractedBusiness): Promis
     .filter((t) => t.slug.length >= 2);
   const uniqCustomRows = Array.from(new Map(customRows.map((t) => [t.slug, t])).values());
   if (uniqCustomRows.length > 0) {
-    await supabaseAdmin
-      .from("custom_type_catalog")
-      .upsert(
-        uniqCustomRows.map((t) => ({ slug: t.slug, label: t.label, usage_count: 1, source: "gemini" })),
-        { onConflict: "slug", ignoreDuplicates: true },
-      );
+    await supabaseAdmin.from("custom_type_catalog").upsert(
+      uniqCustomRows.map((t) => ({
+        slug: t.slug,
+        label: t.label,
+        usage_count: 1,
+        source: "gemini",
+      })),
+      { onConflict: "slug", ignoreDuplicates: true },
+    );
   }
 
   return { tags: uniqTagRows.map((t) => t.slug), customTypes: uniqCustomRows.map((t) => t.label) };
@@ -505,7 +551,10 @@ export async function resolveBarangay(args: {
   lng: number | null;
 }): Promise<string | null> {
   if (!args.address) return null;
-  const parts = args.address.split(",").map((s) => s.trim()).filter(Boolean);
+  const parts = args.address
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   if (parts.length === 0) return null;
   // Try each part as a barangay name (most addresses put barangay early)
   for (const p of parts.slice(0, 3)) {

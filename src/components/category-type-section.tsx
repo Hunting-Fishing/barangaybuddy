@@ -9,13 +9,7 @@ type Props = {
   onSelect: (item: BusinessCategoryItem) => void;
 };
 
-export function CategoryTypeSection({
-  title,
-  items,
-  counts,
-  categoryId,
-  onSelect,
-}: Props) {
+export function CategoryTypeSection({ title, items, counts, categoryId, onSelect }: Props) {
   if (items.length === 0) return null;
 
   return (

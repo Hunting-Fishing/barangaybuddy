@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  * One-time scraper: resolves an official flag / seal image for every region,
  * province and city/municipality in the database, uploads each PNG to the
@@ -32,7 +31,8 @@ const LEVEL = [...args].find((a) => a.startsWith("--level="))?.split("=")[1];
 const LIMIT_ARG = [...args].find((a) => a.startsWith("--limit="))?.split("=")[1];
 const LIMIT = LIMIT_ARG ? Number(LIMIT_ARG) : Infinity;
 
-const UA = "BarangayHub-FlagScraper/1.0 (https://barangayhub.lovable.app; contact@barangayhub.local)";
+const UA =
+  "BarangayHub-FlagScraper/1.0 (https://barangayhub.lovable.app; contact@barangayhub.local)";
 const COMMONS_API = "https://commons.wikimedia.org/w/api.php";
 const ENWIKI_API = "https://en.wikipedia.org/w/api.php";
 
@@ -53,7 +53,13 @@ async function rateLimitedFetch(url: string, init?: RequestInit, attempt = 0): P
 
 type Level = "regions" | "provinces" | "cities";
 
-type Row = { code: string; slug: string; name: string; flag_url: string | null; province_name?: string | null };
+type Row = {
+  code: string;
+  slug: string;
+  name: string;
+  flag_url: string | null;
+  province_name?: string | null;
+};
 
 // Build the list of candidate Wikipedia article titles to try, ranked by
 // likelihood. First match with an infobox image wins.
@@ -124,8 +130,7 @@ function candidateTitles(level: Level, name: string, province?: string | null): 
 // Search the page's images for a likely flag/seal file.
 async function findInfoboxImageOnPage(title: string): Promise<string | null> {
   // Step 1: get all image filenames on the page
-  const imagesUrl =
-    `${ENWIKI_API}?action=query&format=json&prop=images&imlimit=50&redirects=1&titles=${encodeURIComponent(title)}&origin=*`;
+  const imagesUrl = `${ENWIKI_API}?action=query&format=json&prop=images&imlimit=50&redirects=1&titles=${encodeURIComponent(title)}&origin=*`;
   const res = await rateLimitedFetch(imagesUrl);
   if (!res.ok) return null;
   const json: any = await res.json();
@@ -159,8 +164,7 @@ async function findInfoboxImageOnPage(title: string): Promise<string | null> {
 
 // Resolve a File:Whatever.svg to an actual raster URL via Commons imageinfo.
 async function fileToRasterUrl(fileTitle: string): Promise<string | null> {
-  const url =
-    `${COMMONS_API}?action=query&format=json&prop=imageinfo&iiprop=url|mime&iiurlwidth=512&titles=${encodeURIComponent(fileTitle)}&origin=*`;
+  const url = `${COMMONS_API}?action=query&format=json&prop=imageinfo&iiprop=url|mime&iiurlwidth=512&titles=${encodeURIComponent(fileTitle)}&origin=*`;
   const res = await rateLimitedFetch(url);
   if (!res.ok) return null;
   const json: any = await res.json();
@@ -172,7 +176,11 @@ async function fileToRasterUrl(fileTitle: string): Promise<string | null> {
   return info.thumburl ?? info.url ?? null;
 }
 
-async function resolveFlag(level: Level, name: string, province?: string | null): Promise<{ url: string; via: string } | null> {
+async function resolveFlag(
+  level: Level,
+  name: string,
+  province?: string | null,
+): Promise<{ url: string; via: string } | null> {
   for (const title of candidateTitles(level, name, province)) {
     const file = await findInfoboxImageOnPage(title);
     if (!file) continue;
@@ -227,7 +235,8 @@ async function processLevel(level: Level, table: string) {
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     try {
-      const province = level === "cities" ? provinceMap.get(row.province_code ?? "") ?? null : null;
+      const province =
+        level === "cities" ? (provinceMap.get(row.province_code ?? "") ?? null) : null;
       const found = await resolveFlag(level, row.name, province);
       if (!found) {
         misses.push({ level, slug: row.slug, name: row.name, reason: "no candidate image" });
@@ -236,7 +245,10 @@ async function processLevel(level: Level, table: string) {
       }
       const buf = await downloadAndNormalize(found.url);
       const publicUrl = await uploadFlag(level, row.slug, buf);
-      const { error: upErr } = await supabase.from(table).update({ flag_url: publicUrl }).eq("code", row.code);
+      const { error: upErr } = await supabase
+        .from(table)
+        .update({ flag_url: publicUrl })
+        .eq("code", row.code);
       if (upErr) throw upErr;
       ok++;
       process.stdout.write(`  ✓ [${i + 1}/${rows.length}] ${row.name}\n`);

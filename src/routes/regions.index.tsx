@@ -10,7 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Search as SearchIcon, X } from "lucide-react";
 import { LocalityFlag } from "@/components/locality-flag";
 import { PhRegionMap } from "@/components/ph-region-map";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
 
 const searchSchema = z.object({
@@ -42,7 +49,10 @@ export const Route = createFileRoute("/regions/")({
   head: () => ({
     meta: [
       { title: "Browse all regions — BarangayHub" },
-      { name: "description", content: "Browse businesses across all 17 regions of the Philippines." },
+      {
+        name: "description",
+        content: "Browse businesses across all 17 regions of the Philippines.",
+      },
     ],
   }),
   component: Regions,
@@ -50,7 +60,7 @@ export const Route = createFileRoute("/regions/")({
 
 function Regions() {
   const { region: selected, q } = Route.useSearch();
-  const navigate = useNavigate({ from: "/regions" });
+  const navigate = useNavigate({ from: "/regions/" });
   const location = useLocation();
   const { data: regions } = useSuspenseQuery(regionsQueryOptions());
   const refs = useRef<Record<string, HTMLAnchorElement | null>>({});
@@ -59,7 +69,7 @@ function Regions() {
   const query = (q ?? "").trim().toLowerCase();
   const filtered = useMemo(
     () => (query ? regions.filter((r) => r.name.toLowerCase().includes(query)) : regions),
-    [regions, query]
+    [regions, query],
   );
 
   // Keep URL highlight in sync with search results: if the currently selected
@@ -99,13 +109,21 @@ function Regions() {
       <main className="container mx-auto px-4 py-12">
         <Breadcrumb>
           <BreadcrumbList>
-            <BreadcrumbItem><BreadcrumbLink asChild><Link to="/">Home</Link></BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/">Home</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
             <BreadcrumbSeparator />
-            <BreadcrumbItem><BreadcrumbPage>Regions</BreadcrumbPage></BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbPage>Regions</BreadcrumbPage>
+            </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
         <h1 className="mt-6 font-display text-4xl font-bold md:text-5xl">All regions</h1>
-        <p className="mt-2 text-muted-foreground">17 regions · 86 provinces · 1,647 cities & municipalities · 42,042 barangays</p>
+        <p className="mt-2 text-muted-foreground">
+          17 regions · 86 provinces · 1,647 cities & municipalities · 42,042 barangays
+        </p>
         <div className="mt-10" ref={mapRef}>
           <PhRegionMap selected={selected} />
         </div>
@@ -156,13 +174,15 @@ function Regions() {
                 key={r.code}
                 to="/regions/$region"
                 params={{ region: r.slug }}
-                ref={(el) => { refs.current[r.slug] = el; }}
+                ref={(el) => {
+                  refs.current[r.slug] = el;
+                }}
                 id={r.slug}
               >
                 <Card
                   className={cn(
                     "flex items-center gap-4 p-5 transition-all hover:-translate-y-1 hover:shadow-elegant",
-                    isActive && "ring-2 ring-primary shadow-elegant -translate-y-1"
+                    isActive && "ring-2 ring-primary shadow-elegant -translate-y-1",
                   )}
                 >
                   <LocalityFlag src={r.flag_url} name={r.name} />

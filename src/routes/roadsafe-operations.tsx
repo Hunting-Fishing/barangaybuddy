@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- RoadSafe tables require generated Supabase types after deployment. */
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import {

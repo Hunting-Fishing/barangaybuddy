@@ -16,12 +16,10 @@ import {
 export type BarangayPickResult = {
   code: string;
   name: string;
-  cities_municipalities:
-    | {
-        name: string;
-        provinces?: { name: string } | null;
-      }
-    | null;
+  cities_municipalities: {
+    name: string;
+    provinces?: { name: string } | null;
+  } | null;
 };
 
 type ProfileBarangay = {
@@ -53,9 +51,7 @@ function uniqueBarangays(rows: BarangayPickResult[]) {
 export function useAddBusinessForm() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState<AddBusinessFormState>(() =>
-    createInitialAddBusinessForm(),
-  );
+  const [form, setForm] = useState<AddBusinessFormState>(() => createInitialAddBusinessForm());
   const [barangayResults, setBarangayResults] = useState<BarangayPickResult[]>([]);
   const [profileBarangay, setProfileBarangay] = useState<ProfileBarangay | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -74,12 +70,10 @@ export function useAddBusinessForm() {
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        const row = data as
-          | {
-              barangay_code: string | null;
-              barangays?: BarangayPickResult | null;
-            }
-          | null;
+        const row = data as {
+          barangay_code: string | null;
+          barangays?: BarangayPickResult | null;
+        } | null;
 
         if (!row?.barangay_code || !row.barangays) return;
 
@@ -110,28 +104,24 @@ export function useAddBusinessForm() {
     }
 
     const timeout = window.setTimeout(async () => {
-      const barangaySelect =
-        "code, name, cities_municipalities(name, provinces(name))";
+      const barangaySelect = "code, name, cities_municipalities(name, provinces(name))";
 
-      const [{ data: directBarangays }, { data: matchingCities }] =
-        await Promise.all([
-          supabase
-            .from("barangays")
-            .select(barangaySelect)
-            .ilike("name", `%${query}%`)
-            .order("name")
-            .limit(15),
-          supabase
-            .from("cities_municipalities")
-            .select("code, name, provinces(name)")
-            .ilike("name", `%${query}%`)
-            .order("name")
-            .limit(8),
-        ]);
+      const [{ data: directBarangays }, { data: matchingCities }] = await Promise.all([
+        supabase
+          .from("barangays")
+          .select(barangaySelect)
+          .ilike("name", `%${query}%`)
+          .order("name")
+          .limit(15),
+        supabase
+          .from("cities_municipalities")
+          .select("code, name, provinces(name)")
+          .ilike("name", `%${query}%`)
+          .order("name")
+          .limit(8),
+      ]);
 
-      const cityCodes = ((matchingCities ?? []) as CitySearchResult[]).map(
-        (city) => city.code,
-      );
+      const cityCodes = ((matchingCities ?? []) as CitySearchResult[]).map((city) => city.code);
 
       let cityBarangays: BarangayPickResult[] = [];
       if (cityCodes.length > 0) {
@@ -156,10 +146,7 @@ export function useAddBusinessForm() {
     return () => window.clearTimeout(timeout);
   }, [form.barangay_search]);
 
-  function update<K extends keyof AddBusinessFormState>(
-    key: K,
-    value: AddBusinessFormState[K],
-  ) {
+  function update<K extends keyof AddBusinessFormState>(key: K, value: AddBusinessFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
@@ -201,7 +188,7 @@ export function useAddBusinessForm() {
     const displayName =
       typeof user.user_metadata?.display_name === "string"
         ? user.user_metadata.display_name
-        : user.email?.split("@")[0] ?? "BarangayHub user";
+        : (user.email?.split("@")[0] ?? "BarangayHub user");
 
     const { error } = await supabase.from("profiles").upsert(
       {

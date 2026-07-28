@@ -3,10 +3,7 @@ import { ArrowRight, Lightbulb } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { BUSINESS_TYPE_LABEL } from "@/lib/business-types";
-import type {
-  BusinessCategoryGroup,
-  BusinessCategoryItem,
-} from "@/lib/business-category-taxonomy";
+import type { BusinessCategoryGroup, BusinessCategoryItem } from "@/lib/business-category-taxonomy";
 
 type Props = {
   group: BusinessCategoryGroup;
@@ -29,7 +26,8 @@ export function SearchCategoryGuidance({ group, items, onSelect }: Props) {
               Try a more specific {group.label.toLowerCase()} type
             </h2>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              If the broad category has no businesses yet, users can still choose exact types like Empanada vendor, Sisig vendor, or Buffet restaurant.
+              If the broad category has no businesses yet, users can still choose exact types like
+              Empanada vendor, Sisig vendor, or Buffet restaurant.
             </p>
           </div>
         </div>
@@ -41,6 +39,7 @@ export function SearchCategoryGuidance({ group, items, onSelect }: Props) {
             key={item.id}
             to="/search"
             search={{
+              q: "",
               types: item.businessType ? [item.businessType] : [],
               customTypes: item.customType ? [item.customType] : [],
               tags: [],
@@ -59,9 +58,7 @@ export function SearchCategoryGuidance({ group, items, onSelect }: Props) {
               {item.customType && <Badge className="text-[10px]">{item.customType}</Badge>}
             </div>
             <h3 className="mt-3 font-display font-bold">{item.label}</h3>
-            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-              {item.description}
-            </p>
+            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
             <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary">
               Search this type
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />

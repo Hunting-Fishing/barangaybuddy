@@ -7,10 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { InventoryDialogField } from "@/components/inventory-dialog-field";
-import {
-  INVENTORY_UNITS,
-  type InventoryFormState,
-} from "@/lib/inventory";
+import { INVENTORY_UNITS, type InventoryFormState } from "@/lib/inventory";
 import type { InventoryFormUpdate } from "@/hooks/use-inventory-item-dialog";
 
 type Props = {
@@ -31,10 +28,7 @@ export function InventoryItemStockTab({ form, update }: Props) {
             onChange={(event) => update("quantity", event.target.value)}
           />
         </InventoryDialogField>
-        <InventoryDialogField
-          label="Reorder Point"
-          help="Minimum quantity before reordering"
-        >
+        <InventoryDialogField label="Reorder Point" help="Minimum quantity before reordering">
           <Input
             type="number"
             step="0.01"
