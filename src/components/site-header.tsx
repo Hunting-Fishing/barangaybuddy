@@ -15,6 +15,8 @@ import {
   ExternalLink,
   Bell,
   Trophy,
+  Sparkles,
+  UsersRound,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -86,20 +88,47 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
-          <Link to="/regions" className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+          <Link
+            to="/regions"
+            className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
             Browse
           </Link>
-          <Link to="/barangays" className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+          <Link
+            to="/barangays"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
             <Home className="h-4 w-4" /> Barangays
           </Link>
-          <Link to="/search" className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+          <Link
+            to="/search"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
             <Search className="h-4 w-4" /> Search
           </Link>
-          <Link to="/fuel" className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+          <Link
+            to="/fuel"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
             <Fuel className="h-4 w-4" /> Fuel Buddy
           </Link>
-          <Link to="/groups" className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+          <Link
+            to="/groups"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
             <Trophy className="h-4 w-4" /> Leagues
+          </Link>
+          <Link
+            to="/spotlight"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            <Sparkles className="h-4 w-4" /> Spotlight
+          </Link>
+          <Link
+            to="/family"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            <UsersRound className="h-4 w-4" /> Family
           </Link>
         </nav>
 
@@ -142,6 +171,12 @@ export function SiteHeader() {
                 <DropdownMenuItem onClick={() => navigate({ to: "/messages" })}>
                   <MessageSquare className="mr-2 h-4 w-4" /> Messages
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate({ to: "/spotlight/submit" })}>
+                  <Sparkles className="mr-2 h-4 w-4" /> Audition for Spotlight
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate({ to: "/family" })}>
+                  <UsersRound className="mr-2 h-4 w-4" /> Family account
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate({ to: "/roadsafe-notifications" })}>
                   <Bell className="mr-2 h-4 w-4" /> Safety alerts
                 </DropdownMenuItem>
@@ -161,7 +196,11 @@ export function SiteHeader() {
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/login">Sign in</Link>
               </Button>
-              <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90" asChild>
+              <Button
+                size="sm"
+                className="bg-foreground text-background hover:bg-foreground/90"
+                asChild
+              >
                 <Link to="/signup">Join free</Link>
               </Button>
             </>

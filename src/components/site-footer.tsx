@@ -19,16 +19,51 @@ export function SiteFooter() {
         <div>
           <h4 className="font-display text-sm font-bold">Discover</h4>
           <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            <li><Link to="/regions" className="hover:text-foreground">Browse by region</Link></li>
-            <li><Link to="/search" className="hover:text-foreground">Search businesses</Link></li>
-            <li><Link to="/fuel" className="hover:text-foreground">Fuel prices</Link></li>
+            <li>
+              <Link to="/regions" className="hover:text-foreground">
+                Browse by region
+              </Link>
+            </li>
+            <li>
+              <Link to="/search" className="hover:text-foreground">
+                Search businesses
+              </Link>
+            </li>
+            <li>
+              <Link to="/fuel" className="hover:text-foreground">
+                Fuel prices
+              </Link>
+            </li>
+            <li>
+              <Link to="/spotlight" className="hover:text-foreground">
+                Spotlight Network
+              </Link>
+            </li>
+            <li>
+              <Link to="/spotlight/leaderboard" className="hover:text-foreground">
+                Talent leaderboard
+              </Link>
+            </li>
+            <li>
+              <Link to="/family" className="hover:text-foreground">
+                Family account
+              </Link>
+            </li>
           </ul>
         </div>
         <div>
           <h4 className="font-display text-sm font-bold">For Businesses</h4>
           <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            <li><Link to="/signup" className="hover:text-foreground">List your business</Link></li>
-            <li><Link to="/dashboard" className="hover:text-foreground">Owner dashboard</Link></li>
+            <li>
+              <Link to="/signup" className="hover:text-foreground">
+                List your business
+              </Link>
+            </li>
+            <li>
+              <Link to="/dashboard" className="hover:text-foreground">
+                Owner dashboard
+              </Link>
+            </li>
           </ul>
         </div>
         <div>

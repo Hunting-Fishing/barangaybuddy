@@ -9,94 +9,53 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as SearchRouteImport } from './routes/search'
-import { Route as RoadsafeOperationsRouteImport } from './routes/roadsafe-operations'
-import { Route as RoadsafeNotificationsRouteImport } from './routes/roadsafe-notifications'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as MessagesRouteImport } from './routes/messages'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as ImportRouteImport } from './routes/import'
-import { Route as FuelRouteImport } from './routes/fuel'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as AddBusinessRouteImport } from './routes/add-business'
-import { Route as MiniSiteSlugRouteImport } from './routes/$miniSiteSlug'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as RegionsIndexRouteImport } from './routes/regions.index'
-import { Route as GroupsIndexRouteImport } from './routes/groups.index'
-import { Route as BarangaysIndexRouteImport } from './routes/barangays.index'
-import { Route as RegionsRegionRouteImport } from './routes/regions.$region'
-import { Route as ProvincesProvinceRouteImport } from './routes/provinces.$province'
-import { Route as MessagesConversationIdRouteImport } from './routes/messages.$conversationId'
-import { Route as InventoryBusinessIdRouteImport } from './routes/inventory.$businessId'
-import { Route as GroupsSlugRouteImport } from './routes/groups.$slug'
-import { Route as CitiesCityRouteImport } from './routes/cities.$city'
-import { Route as CategoriesCategoryRouteImport } from './routes/categories.$category'
-import { Route as BusinessSlugRouteImport } from './routes/business.$slug'
+import { Route as MiniSiteSlugRouteImport } from './routes/$miniSiteSlug'
+import { Route as AddBusinessRouteImport } from './routes/add-business'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as FamilyRouteImport } from './routes/family'
+import { Route as FuelRouteImport } from './routes/fuel'
+import { Route as ImportRouteImport } from './routes/import'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as MessagesRouteImport } from './routes/messages'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as RoadsafeNotificationsRouteImport } from './routes/roadsafe-notifications'
+import { Route as RoadsafeOperationsRouteImport } from './routes/roadsafe-operations'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ApiRoadsafeRouteRouteImport } from './routes/api/roadsafe/route'
-import { Route as GroupsSlugManageRouteImport } from './routes/groups.$slug.manage'
-import { Route as DashboardBusinessIdRouteImport } from './routes/dashboard.business.$id'
+import { Route as BarangaysIndexRouteImport } from './routes/barangays.index'
+import { Route as BusinessSlugRouteImport } from './routes/business.$slug'
+import { Route as CategoriesCategoryRouteImport } from './routes/categories.$category'
+import { Route as CitiesCityRouteImport } from './routes/cities.$city'
+import { Route as GroupsIndexRouteImport } from './routes/groups.index'
+import { Route as GroupsSlugRouteImport } from './routes/groups.$slug'
+import { Route as InventoryBusinessIdRouteImport } from './routes/inventory.$businessId'
+import { Route as MessagesConversationIdRouteImport } from './routes/messages.$conversationId'
+import { Route as ProvincesProvinceRouteImport } from './routes/provinces.$province'
+import { Route as RegionsIndexRouteImport } from './routes/regions.index'
+import { Route as RegionsRegionRouteImport } from './routes/regions.$region'
+import { Route as SpotlightIndexRouteImport } from './routes/spotlight.index'
+import { Route as SpotlightAdminRouteImport } from './routes/spotlight.admin'
+import { Route as SpotlightLeaderboardRouteImport } from './routes/spotlight.leaderboard'
+import { Route as SpotlightSponsorsRouteImport } from './routes/spotlight.sponsors'
+import { Route as SpotlightStarOfTheMonthRouteImport } from './routes/spotlight.star-of-the-month'
+import { Route as SpotlightSubmitRouteImport } from './routes/spotlight.submit'
 import { Route as BarangaysCityBarangayRouteImport } from './routes/barangays.$city.$barangay'
-import { Route as DashboardBusinessIdInventoryRouteImport } from './routes/dashboard.business.$id.inventory'
-import { Route as ApiPublicHooksRoadsafeIngestRouteImport } from './routes/api/public/hooks/roadsafe-ingest'
-import { Route as ApiPublicHooksRoadsafeDeliverRouteImport } from './routes/api/public/hooks/roadsafe-deliver'
-import { Route as ApiPublicHooksFuelSyncRouteImport } from './routes/api/public/hooks/fuel-sync'
-import { Route as ApiPublicHooksFuelStationsSyncRouteImport } from './routes/api/public/hooks/fuel-stations-sync'
+import { Route as DashboardBusinessIdRouteImport } from './routes/dashboard.business.$id'
+import { Route as GroupsSlugManageRouteImport } from './routes/groups.$slug.manage'
+import { Route as SpotlightBookSlugRouteImport } from './routes/spotlight.book.$slug'
+import { Route as SpotlightTalentSlugRouteImport } from './routes/spotlight.talent.$slug'
 import { Route as ApiPublicHooksBusinessOsmSyncRouteImport } from './routes/api/public/hooks/business-osm-sync'
+import { Route as ApiPublicHooksFuelStationsSyncRouteImport } from './routes/api/public/hooks/fuel-stations-sync'
+import { Route as ApiPublicHooksFuelSyncRouteImport } from './routes/api/public/hooks/fuel-sync'
+import { Route as ApiPublicHooksRoadsafeDeliverRouteImport } from './routes/api/public/hooks/roadsafe-deliver'
+import { Route as ApiPublicHooksRoadsafeIngestRouteImport } from './routes/api/public/hooks/roadsafe-ingest'
+import { Route as DashboardBusinessIdInventoryRouteImport } from './routes/dashboard.business.$id.inventory'
 
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SearchRoute = SearchRouteImport.update({
-  id: '/search',
-  path: '/search',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RoadsafeOperationsRoute = RoadsafeOperationsRouteImport.update({
-  id: '/roadsafe-operations',
-  path: '/roadsafe-operations',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RoadsafeNotificationsRoute = RoadsafeNotificationsRouteImport.update({
-  id: '/roadsafe-notifications',
-  path: '/roadsafe-notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MessagesRoute = MessagesRouteImport.update({
-  id: '/messages',
-  path: '/messages',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ImportRoute = ImportRouteImport.update({
-  id: '/import',
-  path: '/import',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FuelRoute = FuelRouteImport.update({
-  id: '/fuel',
-  path: '/fuel',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AddBusinessRoute = AddBusinessRouteImport.update({
-  id: '/add-business',
-  path: '/add-business',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MiniSiteSlugRoute = MiniSiteSlugRouteImport.update({
@@ -104,64 +63,64 @@ const MiniSiteSlugRoute = MiniSiteSlugRouteImport.update({
   path: '/$miniSiteSlug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AddBusinessRoute = AddBusinessRouteImport.update({
+  id: '/add-business',
+  path: '/add-business',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RegionsIndexRoute = RegionsIndexRouteImport.update({
-  id: '/regions/',
-  path: '/regions/',
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GroupsIndexRoute = GroupsIndexRouteImport.update({
-  id: '/groups/',
-  path: '/groups/',
+const FamilyRoute = FamilyRouteImport.update({
+  id: '/family',
+  path: '/family',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BarangaysIndexRoute = BarangaysIndexRouteImport.update({
-  id: '/barangays/',
-  path: '/barangays/',
+const FuelRoute = FuelRouteImport.update({
+  id: '/fuel',
+  path: '/fuel',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RegionsRegionRoute = RegionsRegionRouteImport.update({
-  id: '/regions/$region',
-  path: '/regions/$region',
+const ImportRoute = ImportRouteImport.update({
+  id: '/import',
+  path: '/import',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProvincesProvinceRoute = ProvincesProvinceRouteImport.update({
-  id: '/provinces/$province',
-  path: '/provinces/$province',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MessagesConversationIdRoute = MessagesConversationIdRouteImport.update({
-  id: '/$conversationId',
-  path: '/$conversationId',
-  getParentRoute: () => MessagesRoute,
-} as any)
-const InventoryBusinessIdRoute = InventoryBusinessIdRouteImport.update({
-  id: '/inventory/$businessId',
-  path: '/inventory/$businessId',
+const MessagesRoute = MessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GroupsSlugRoute = GroupsSlugRouteImport.update({
-  id: '/groups/$slug',
-  path: '/groups/$slug',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CitiesCityRoute = CitiesCityRouteImport.update({
-  id: '/cities/$city',
-  path: '/cities/$city',
+const RoadsafeNotificationsRoute = RoadsafeNotificationsRouteImport.update({
+  id: '/roadsafe-notifications',
+  path: '/roadsafe-notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CategoriesCategoryRoute = CategoriesCategoryRouteImport.update({
-  id: '/categories/$category',
-  path: '/categories/$category',
+const RoadsafeOperationsRoute = RoadsafeOperationsRouteImport.update({
+  id: '/roadsafe-operations',
+  path: '/roadsafe-operations',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BusinessSlugRoute = BusinessSlugRouteImport.update({
-  id: '/business/$slug',
-  path: '/business/$slug',
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiRoadsafeRouteRoute = ApiRoadsafeRouteRouteImport.update({
@@ -169,37 +128,126 @@ const ApiRoadsafeRouteRoute = ApiRoadsafeRouteRouteImport.update({
   path: '/api/roadsafe',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GroupsSlugManageRoute = GroupsSlugManageRouteImport.update({
-  id: '/manage',
-  path: '/manage',
-  getParentRoute: () => GroupsSlugRoute,
+const BarangaysIndexRoute = BarangaysIndexRouteImport.update({
+  id: '/barangays/',
+  path: '/barangays/',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardBusinessIdRoute = DashboardBusinessIdRouteImport.update({
-  id: '/business/$id',
-  path: '/business/$id',
-  getParentRoute: () => DashboardRoute,
+const BusinessSlugRoute = BusinessSlugRouteImport.update({
+  id: '/business/$slug',
+  path: '/business/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CategoriesCategoryRoute = CategoriesCategoryRouteImport.update({
+  id: '/categories/$category',
+  path: '/categories/$category',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CitiesCityRoute = CitiesCityRouteImport.update({
+  id: '/cities/$city',
+  path: '/cities/$city',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GroupsIndexRoute = GroupsIndexRouteImport.update({
+  id: '/groups/',
+  path: '/groups/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GroupsSlugRoute = GroupsSlugRouteImport.update({
+  id: '/groups/$slug',
+  path: '/groups/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventoryBusinessIdRoute = InventoryBusinessIdRouteImport.update({
+  id: '/inventory/$businessId',
+  path: '/inventory/$businessId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesConversationIdRoute = MessagesConversationIdRouteImport.update({
+  id: '/$conversationId',
+  path: '/$conversationId',
+  getParentRoute: () => MessagesRoute,
+} as any)
+const ProvincesProvinceRoute = ProvincesProvinceRouteImport.update({
+  id: '/provinces/$province',
+  path: '/provinces/$province',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegionsIndexRoute = RegionsIndexRouteImport.update({
+  id: '/regions/',
+  path: '/regions/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegionsRegionRoute = RegionsRegionRouteImport.update({
+  id: '/regions/$region',
+  path: '/regions/$region',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SpotlightIndexRoute = SpotlightIndexRouteImport.update({
+  id: '/spotlight/',
+  path: '/spotlight/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SpotlightAdminRoute = SpotlightAdminRouteImport.update({
+  id: '/spotlight/admin',
+  path: '/spotlight/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SpotlightLeaderboardRoute = SpotlightLeaderboardRouteImport.update({
+  id: '/spotlight/leaderboard',
+  path: '/spotlight/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SpotlightSponsorsRoute = SpotlightSponsorsRouteImport.update({
+  id: '/spotlight/sponsors',
+  path: '/spotlight/sponsors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SpotlightStarOfTheMonthRoute = SpotlightStarOfTheMonthRouteImport.update({
+  id: '/spotlight/star-of-the-month',
+  path: '/spotlight/star-of-the-month',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SpotlightSubmitRoute = SpotlightSubmitRouteImport.update({
+  id: '/spotlight/submit',
+  path: '/spotlight/submit',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BarangaysCityBarangayRoute = BarangaysCityBarangayRouteImport.update({
   id: '/barangays/$city/$barangay',
   path: '/barangays/$city/$barangay',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardBusinessIdInventoryRoute =
-  DashboardBusinessIdInventoryRouteImport.update({
-    id: '/inventory',
-    path: '/inventory',
-    getParentRoute: () => DashboardBusinessIdRoute,
-  } as any)
-const ApiPublicHooksRoadsafeIngestRoute =
-  ApiPublicHooksRoadsafeIngestRouteImport.update({
-    id: '/api/public/hooks/roadsafe-ingest',
-    path: '/api/public/hooks/roadsafe-ingest',
+const DashboardBusinessIdRoute = DashboardBusinessIdRouteImport.update({
+  id: '/business/$id',
+  path: '/business/$id',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const GroupsSlugManageRoute = GroupsSlugManageRouteImport.update({
+  id: '/manage',
+  path: '/manage',
+  getParentRoute: () => GroupsSlugRoute,
+} as any)
+const SpotlightBookSlugRoute = SpotlightBookSlugRouteImport.update({
+  id: '/spotlight/book/$slug',
+  path: '/spotlight/book/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SpotlightTalentSlugRoute = SpotlightTalentSlugRouteImport.update({
+  id: '/spotlight/talent/$slug',
+  path: '/spotlight/talent/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicHooksBusinessOsmSyncRoute =
+  ApiPublicHooksBusinessOsmSyncRouteImport.update({
+    id: '/api/public/hooks/business-osm-sync',
+    path: '/api/public/hooks/business-osm-sync',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicHooksRoadsafeDeliverRoute =
-  ApiPublicHooksRoadsafeDeliverRouteImport.update({
-    id: '/api/public/hooks/roadsafe-deliver',
-    path: '/api/public/hooks/roadsafe-deliver',
+const ApiPublicHooksFuelStationsSyncRoute =
+  ApiPublicHooksFuelStationsSyncRouteImport.update({
+    id: '/api/public/hooks/fuel-stations-sync',
+    path: '/api/public/hooks/fuel-stations-sync',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksFuelSyncRoute = ApiPublicHooksFuelSyncRouteImport.update({
@@ -207,17 +255,23 @@ const ApiPublicHooksFuelSyncRoute = ApiPublicHooksFuelSyncRouteImport.update({
   path: '/api/public/hooks/fuel-sync',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicHooksFuelStationsSyncRoute =
-  ApiPublicHooksFuelStationsSyncRouteImport.update({
-    id: '/api/public/hooks/fuel-stations-sync',
-    path: '/api/public/hooks/fuel-stations-sync',
+const ApiPublicHooksRoadsafeDeliverRoute =
+  ApiPublicHooksRoadsafeDeliverRouteImport.update({
+    id: '/api/public/hooks/roadsafe-deliver',
+    path: '/api/public/hooks/roadsafe-deliver',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicHooksBusinessOsmSyncRoute =
-  ApiPublicHooksBusinessOsmSyncRouteImport.update({
-    id: '/api/public/hooks/business-osm-sync',
-    path: '/api/public/hooks/business-osm-sync',
+const ApiPublicHooksRoadsafeIngestRoute =
+  ApiPublicHooksRoadsafeIngestRouteImport.update({
+    id: '/api/public/hooks/roadsafe-ingest',
+    path: '/api/public/hooks/roadsafe-ingest',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const DashboardBusinessIdInventoryRoute =
+  DashboardBusinessIdInventoryRouteImport.update({
+    id: '/inventory',
+    path: '/inventory',
+    getParentRoute: () => DashboardBusinessIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -225,6 +279,7 @@ export interface FileRoutesByFullPath {
   '/$miniSiteSlug': typeof MiniSiteSlugRoute
   '/add-business': typeof AddBusinessRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/family': typeof FamilyRoute
   '/fuel': typeof FuelRoute
   '/import': typeof ImportRoute
   '/login': typeof LoginRoute
@@ -243,12 +298,20 @@ export interface FileRoutesByFullPath {
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
+  '/spotlight/admin': typeof SpotlightAdminRoute
+  '/spotlight/leaderboard': typeof SpotlightLeaderboardRoute
+  '/spotlight/sponsors': typeof SpotlightSponsorsRoute
+  '/spotlight/star-of-the-month': typeof SpotlightStarOfTheMonthRoute
+  '/spotlight/submit': typeof SpotlightSubmitRoute
   '/barangays/': typeof BarangaysIndexRoute
   '/groups/': typeof GroupsIndexRoute
   '/regions/': typeof RegionsIndexRoute
+  '/spotlight/': typeof SpotlightIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
   '/groups/$slug/manage': typeof GroupsSlugManageRoute
+  '/spotlight/book/$slug': typeof SpotlightBookSlugRoute
+  '/spotlight/talent/$slug': typeof SpotlightTalentSlugRoute
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
@@ -261,6 +324,7 @@ export interface FileRoutesByTo {
   '/$miniSiteSlug': typeof MiniSiteSlugRoute
   '/add-business': typeof AddBusinessRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/family': typeof FamilyRoute
   '/fuel': typeof FuelRoute
   '/import': typeof ImportRoute
   '/login': typeof LoginRoute
@@ -279,12 +343,20 @@ export interface FileRoutesByTo {
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
+  '/spotlight/admin': typeof SpotlightAdminRoute
+  '/spotlight/leaderboard': typeof SpotlightLeaderboardRoute
+  '/spotlight/sponsors': typeof SpotlightSponsorsRoute
+  '/spotlight/star-of-the-month': typeof SpotlightStarOfTheMonthRoute
+  '/spotlight/submit': typeof SpotlightSubmitRoute
   '/barangays': typeof BarangaysIndexRoute
   '/groups': typeof GroupsIndexRoute
   '/regions': typeof RegionsIndexRoute
+  '/spotlight': typeof SpotlightIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
   '/groups/$slug/manage': typeof GroupsSlugManageRoute
+  '/spotlight/book/$slug': typeof SpotlightBookSlugRoute
+  '/spotlight/talent/$slug': typeof SpotlightTalentSlugRoute
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
@@ -298,6 +370,7 @@ export interface FileRoutesById {
   '/$miniSiteSlug': typeof MiniSiteSlugRoute
   '/add-business': typeof AddBusinessRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/family': typeof FamilyRoute
   '/fuel': typeof FuelRoute
   '/import': typeof ImportRoute
   '/login': typeof LoginRoute
@@ -316,12 +389,20 @@ export interface FileRoutesById {
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
+  '/spotlight/admin': typeof SpotlightAdminRoute
+  '/spotlight/leaderboard': typeof SpotlightLeaderboardRoute
+  '/spotlight/sponsors': typeof SpotlightSponsorsRoute
+  '/spotlight/star-of-the-month': typeof SpotlightStarOfTheMonthRoute
+  '/spotlight/submit': typeof SpotlightSubmitRoute
   '/barangays/': typeof BarangaysIndexRoute
   '/groups/': typeof GroupsIndexRoute
   '/regions/': typeof RegionsIndexRoute
+  '/spotlight/': typeof SpotlightIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
   '/groups/$slug/manage': typeof GroupsSlugManageRoute
+  '/spotlight/book/$slug': typeof SpotlightBookSlugRoute
+  '/spotlight/talent/$slug': typeof SpotlightTalentSlugRoute
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
@@ -336,6 +417,7 @@ export interface FileRouteTypes {
     | '/$miniSiteSlug'
     | '/add-business'
     | '/dashboard'
+    | '/family'
     | '/fuel'
     | '/import'
     | '/login'
@@ -354,12 +436,20 @@ export interface FileRouteTypes {
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
+    | '/spotlight/admin'
+    | '/spotlight/leaderboard'
+    | '/spotlight/sponsors'
+    | '/spotlight/star-of-the-month'
+    | '/spotlight/submit'
     | '/barangays/'
     | '/groups/'
     | '/regions/'
+    | '/spotlight/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
     | '/groups/$slug/manage'
+    | '/spotlight/book/$slug'
+    | '/spotlight/talent/$slug'
     | '/api/public/hooks/business-osm-sync'
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
@@ -372,6 +462,7 @@ export interface FileRouteTypes {
     | '/$miniSiteSlug'
     | '/add-business'
     | '/dashboard'
+    | '/family'
     | '/fuel'
     | '/import'
     | '/login'
@@ -390,12 +481,20 @@ export interface FileRouteTypes {
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
+    | '/spotlight/admin'
+    | '/spotlight/leaderboard'
+    | '/spotlight/sponsors'
+    | '/spotlight/star-of-the-month'
+    | '/spotlight/submit'
     | '/barangays'
     | '/groups'
     | '/regions'
+    | '/spotlight'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
     | '/groups/$slug/manage'
+    | '/spotlight/book/$slug'
+    | '/spotlight/talent/$slug'
     | '/api/public/hooks/business-osm-sync'
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
@@ -408,6 +507,7 @@ export interface FileRouteTypes {
     | '/$miniSiteSlug'
     | '/add-business'
     | '/dashboard'
+    | '/family'
     | '/fuel'
     | '/import'
     | '/login'
@@ -426,12 +526,20 @@ export interface FileRouteTypes {
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
+    | '/spotlight/admin'
+    | '/spotlight/leaderboard'
+    | '/spotlight/sponsors'
+    | '/spotlight/star-of-the-month'
+    | '/spotlight/submit'
     | '/barangays/'
     | '/groups/'
     | '/regions/'
+    | '/spotlight/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
     | '/groups/$slug/manage'
+    | '/spotlight/book/$slug'
+    | '/spotlight/talent/$slug'
     | '/api/public/hooks/business-osm-sync'
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
@@ -445,6 +553,7 @@ export interface RootRouteChildren {
   MiniSiteSlugRoute: typeof MiniSiteSlugRoute
   AddBusinessRoute: typeof AddBusinessRoute
   DashboardRoute: typeof DashboardRouteWithChildren
+  FamilyRoute: typeof FamilyRoute
   FuelRoute: typeof FuelRoute
   ImportRoute: typeof ImportRoute
   LoginRoute: typeof LoginRoute
@@ -462,10 +571,18 @@ export interface RootRouteChildren {
   InventoryBusinessIdRoute: typeof InventoryBusinessIdRoute
   ProvincesProvinceRoute: typeof ProvincesProvinceRoute
   RegionsRegionRoute: typeof RegionsRegionRoute
+  SpotlightAdminRoute: typeof SpotlightAdminRoute
+  SpotlightLeaderboardRoute: typeof SpotlightLeaderboardRoute
+  SpotlightSponsorsRoute: typeof SpotlightSponsorsRoute
+  SpotlightStarOfTheMonthRoute: typeof SpotlightStarOfTheMonthRoute
+  SpotlightSubmitRoute: typeof SpotlightSubmitRoute
   BarangaysIndexRoute: typeof BarangaysIndexRoute
   GroupsIndexRoute: typeof GroupsIndexRoute
   RegionsIndexRoute: typeof RegionsIndexRoute
+  SpotlightIndexRoute: typeof SpotlightIndexRoute
   BarangaysCityBarangayRoute: typeof BarangaysCityBarangayRoute
+  SpotlightBookSlugRoute: typeof SpotlightBookSlugRoute
+  SpotlightTalentSlugRoute: typeof SpotlightTalentSlugRoute
   ApiPublicHooksBusinessOsmSyncRoute: typeof ApiPublicHooksBusinessOsmSyncRoute
   ApiPublicHooksFuelStationsSyncRoute: typeof ApiPublicHooksFuelStationsSyncRoute
   ApiPublicHooksFuelSyncRoute: typeof ApiPublicHooksFuelSyncRoute
@@ -475,81 +592,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/search': {
-      id: '/search'
-      path: '/search'
-      fullPath: '/search'
-      preLoaderRoute: typeof SearchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/roadsafe-operations': {
-      id: '/roadsafe-operations'
-      path: '/roadsafe-operations'
-      fullPath: '/roadsafe-operations'
-      preLoaderRoute: typeof RoadsafeOperationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/roadsafe-notifications': {
-      id: '/roadsafe-notifications'
-      path: '/roadsafe-notifications'
-      fullPath: '/roadsafe-notifications'
-      preLoaderRoute: typeof RoadsafeNotificationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/messages': {
-      id: '/messages'
-      path: '/messages'
-      fullPath: '/messages'
-      preLoaderRoute: typeof MessagesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/import': {
-      id: '/import'
-      path: '/import'
-      fullPath: '/import'
-      preLoaderRoute: typeof ImportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/fuel': {
-      id: '/fuel'
-      path: '/fuel'
-      fullPath: '/fuel'
-      preLoaderRoute: typeof FuelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/add-business': {
-      id: '/add-business'
-      path: '/add-business'
-      fullPath: '/add-business'
-      preLoaderRoute: typeof AddBusinessRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$miniSiteSlug': {
@@ -559,88 +606,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MiniSiteSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/add-business': {
+      id: '/add-business'
+      path: '/add-business'
+      fullPath: '/add-business'
+      preLoaderRoute: typeof AddBusinessRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/regions/': {
-      id: '/regions/'
-      path: '/regions'
-      fullPath: '/regions/'
-      preLoaderRoute: typeof RegionsIndexRouteImport
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/groups/': {
-      id: '/groups/'
-      path: '/groups'
-      fullPath: '/groups/'
-      preLoaderRoute: typeof GroupsIndexRouteImport
+    '/family': {
+      id: '/family'
+      path: '/family'
+      fullPath: '/family'
+      preLoaderRoute: typeof FamilyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/barangays/': {
-      id: '/barangays/'
-      path: '/barangays'
-      fullPath: '/barangays/'
-      preLoaderRoute: typeof BarangaysIndexRouteImport
+    '/fuel': {
+      id: '/fuel'
+      path: '/fuel'
+      fullPath: '/fuel'
+      preLoaderRoute: typeof FuelRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/regions/$region': {
-      id: '/regions/$region'
-      path: '/regions/$region'
-      fullPath: '/regions/$region'
-      preLoaderRoute: typeof RegionsRegionRouteImport
+    '/import': {
+      id: '/import'
+      path: '/import'
+      fullPath: '/import'
+      preLoaderRoute: typeof ImportRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/provinces/$province': {
-      id: '/provinces/$province'
-      path: '/provinces/$province'
-      fullPath: '/provinces/$province'
-      preLoaderRoute: typeof ProvincesProvinceRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/messages/$conversationId': {
-      id: '/messages/$conversationId'
-      path: '/$conversationId'
-      fullPath: '/messages/$conversationId'
-      preLoaderRoute: typeof MessagesConversationIdRouteImport
-      parentRoute: typeof MessagesRoute
-    }
-    '/inventory/$businessId': {
-      id: '/inventory/$businessId'
-      path: '/inventory/$businessId'
-      fullPath: '/inventory/$businessId'
-      preLoaderRoute: typeof InventoryBusinessIdRouteImport
+    '/messages': {
+      id: '/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof MessagesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/groups/$slug': {
-      id: '/groups/$slug'
-      path: '/groups/$slug'
-      fullPath: '/groups/$slug'
-      preLoaderRoute: typeof GroupsSlugRouteImport
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/cities/$city': {
-      id: '/cities/$city'
-      path: '/cities/$city'
-      fullPath: '/cities/$city'
-      preLoaderRoute: typeof CitiesCityRouteImport
+    '/roadsafe-notifications': {
+      id: '/roadsafe-notifications'
+      path: '/roadsafe-notifications'
+      fullPath: '/roadsafe-notifications'
+      preLoaderRoute: typeof RoadsafeNotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/categories/$category': {
-      id: '/categories/$category'
-      path: '/categories/$category'
-      fullPath: '/categories/$category'
-      preLoaderRoute: typeof CategoriesCategoryRouteImport
+    '/roadsafe-operations': {
+      id: '/roadsafe-operations'
+      path: '/roadsafe-operations'
+      fullPath: '/roadsafe-operations'
+      preLoaderRoute: typeof RoadsafeOperationsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/business/$slug': {
-      id: '/business/$slug'
-      path: '/business/$slug'
-      fullPath: '/business/$slug'
-      preLoaderRoute: typeof BusinessSlugRouteImport
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/roadsafe': {
@@ -650,19 +697,124 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiRoadsafeRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/groups/$slug/manage': {
-      id: '/groups/$slug/manage'
-      path: '/manage'
-      fullPath: '/groups/$slug/manage'
-      preLoaderRoute: typeof GroupsSlugManageRouteImport
-      parentRoute: typeof GroupsSlugRoute
+    '/barangays/': {
+      id: '/barangays/'
+      path: '/barangays'
+      fullPath: '/barangays/'
+      preLoaderRoute: typeof BarangaysIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/dashboard/business/$id': {
-      id: '/dashboard/business/$id'
-      path: '/business/$id'
-      fullPath: '/dashboard/business/$id'
-      preLoaderRoute: typeof DashboardBusinessIdRouteImport
-      parentRoute: typeof DashboardRoute
+    '/business/$slug': {
+      id: '/business/$slug'
+      path: '/business/$slug'
+      fullPath: '/business/$slug'
+      preLoaderRoute: typeof BusinessSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/categories/$category': {
+      id: '/categories/$category'
+      path: '/categories/$category'
+      fullPath: '/categories/$category'
+      preLoaderRoute: typeof CategoriesCategoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cities/$city': {
+      id: '/cities/$city'
+      path: '/cities/$city'
+      fullPath: '/cities/$city'
+      preLoaderRoute: typeof CitiesCityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/groups/': {
+      id: '/groups/'
+      path: '/groups'
+      fullPath: '/groups/'
+      preLoaderRoute: typeof GroupsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/groups/$slug': {
+      id: '/groups/$slug'
+      path: '/groups/$slug'
+      fullPath: '/groups/$slug'
+      preLoaderRoute: typeof GroupsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventory/$businessId': {
+      id: '/inventory/$businessId'
+      path: '/inventory/$businessId'
+      fullPath: '/inventory/$businessId'
+      preLoaderRoute: typeof InventoryBusinessIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages/$conversationId': {
+      id: '/messages/$conversationId'
+      path: '/$conversationId'
+      fullPath: '/messages/$conversationId'
+      preLoaderRoute: typeof MessagesConversationIdRouteImport
+      parentRoute: typeof MessagesRoute
+    }
+    '/provinces/$province': {
+      id: '/provinces/$province'
+      path: '/provinces/$province'
+      fullPath: '/provinces/$province'
+      preLoaderRoute: typeof ProvincesProvinceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/regions/': {
+      id: '/regions/'
+      path: '/regions'
+      fullPath: '/regions/'
+      preLoaderRoute: typeof RegionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/regions/$region': {
+      id: '/regions/$region'
+      path: '/regions/$region'
+      fullPath: '/regions/$region'
+      preLoaderRoute: typeof RegionsRegionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/spotlight/': {
+      id: '/spotlight/'
+      path: '/spotlight'
+      fullPath: '/spotlight/'
+      preLoaderRoute: typeof SpotlightIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/spotlight/admin': {
+      id: '/spotlight/admin'
+      path: '/spotlight/admin'
+      fullPath: '/spotlight/admin'
+      preLoaderRoute: typeof SpotlightAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/spotlight/leaderboard': {
+      id: '/spotlight/leaderboard'
+      path: '/spotlight/leaderboard'
+      fullPath: '/spotlight/leaderboard'
+      preLoaderRoute: typeof SpotlightLeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/spotlight/sponsors': {
+      id: '/spotlight/sponsors'
+      path: '/spotlight/sponsors'
+      fullPath: '/spotlight/sponsors'
+      preLoaderRoute: typeof SpotlightSponsorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/spotlight/star-of-the-month': {
+      id: '/spotlight/star-of-the-month'
+      path: '/spotlight/star-of-the-month'
+      fullPath: '/spotlight/star-of-the-month'
+      preLoaderRoute: typeof SpotlightStarOfTheMonthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/spotlight/submit': {
+      id: '/spotlight/submit'
+      path: '/spotlight/submit'
+      fullPath: '/spotlight/submit'
+      preLoaderRoute: typeof SpotlightSubmitRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/barangays/$city/$barangay': {
       id: '/barangays/$city/$barangay'
@@ -671,32 +823,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BarangaysCityBarangayRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard/business/$id/inventory': {
-      id: '/dashboard/business/$id/inventory'
-      path: '/inventory'
-      fullPath: '/dashboard/business/$id/inventory'
-      preLoaderRoute: typeof DashboardBusinessIdInventoryRouteImport
-      parentRoute: typeof DashboardBusinessIdRoute
+    '/dashboard/business/$id': {
+      id: '/dashboard/business/$id'
+      path: '/business/$id'
+      fullPath: '/dashboard/business/$id'
+      preLoaderRoute: typeof DashboardBusinessIdRouteImport
+      parentRoute: typeof DashboardRoute
     }
-    '/api/public/hooks/roadsafe-ingest': {
-      id: '/api/public/hooks/roadsafe-ingest'
-      path: '/api/public/hooks/roadsafe-ingest'
-      fullPath: '/api/public/hooks/roadsafe-ingest'
-      preLoaderRoute: typeof ApiPublicHooksRoadsafeIngestRouteImport
+    '/groups/$slug/manage': {
+      id: '/groups/$slug/manage'
+      path: '/manage'
+      fullPath: '/groups/$slug/manage'
+      preLoaderRoute: typeof GroupsSlugManageRouteImport
+      parentRoute: typeof GroupsSlugRoute
+    }
+    '/spotlight/book/$slug': {
+      id: '/spotlight/book/$slug'
+      path: '/spotlight/book/$slug'
+      fullPath: '/spotlight/book/$slug'
+      preLoaderRoute: typeof SpotlightBookSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/roadsafe-deliver': {
-      id: '/api/public/hooks/roadsafe-deliver'
-      path: '/api/public/hooks/roadsafe-deliver'
-      fullPath: '/api/public/hooks/roadsafe-deliver'
-      preLoaderRoute: typeof ApiPublicHooksRoadsafeDeliverRouteImport
+    '/spotlight/talent/$slug': {
+      id: '/spotlight/talent/$slug'
+      path: '/spotlight/talent/$slug'
+      fullPath: '/spotlight/talent/$slug'
+      preLoaderRoute: typeof SpotlightTalentSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/fuel-sync': {
-      id: '/api/public/hooks/fuel-sync'
-      path: '/api/public/hooks/fuel-sync'
-      fullPath: '/api/public/hooks/fuel-sync'
-      preLoaderRoute: typeof ApiPublicHooksFuelSyncRouteImport
+    '/api/public/hooks/business-osm-sync': {
+      id: '/api/public/hooks/business-osm-sync'
+      path: '/api/public/hooks/business-osm-sync'
+      fullPath: '/api/public/hooks/business-osm-sync'
+      preLoaderRoute: typeof ApiPublicHooksBusinessOsmSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/fuel-stations-sync': {
@@ -706,12 +865,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksFuelStationsSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/business-osm-sync': {
-      id: '/api/public/hooks/business-osm-sync'
-      path: '/api/public/hooks/business-osm-sync'
-      fullPath: '/api/public/hooks/business-osm-sync'
-      preLoaderRoute: typeof ApiPublicHooksBusinessOsmSyncRouteImport
+    '/api/public/hooks/fuel-sync': {
+      id: '/api/public/hooks/fuel-sync'
+      path: '/api/public/hooks/fuel-sync'
+      fullPath: '/api/public/hooks/fuel-sync'
+      preLoaderRoute: typeof ApiPublicHooksFuelSyncRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/roadsafe-deliver': {
+      id: '/api/public/hooks/roadsafe-deliver'
+      path: '/api/public/hooks/roadsafe-deliver'
+      fullPath: '/api/public/hooks/roadsafe-deliver'
+      preLoaderRoute: typeof ApiPublicHooksRoadsafeDeliverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/roadsafe-ingest': {
+      id: '/api/public/hooks/roadsafe-ingest'
+      path: '/api/public/hooks/roadsafe-ingest'
+      fullPath: '/api/public/hooks/roadsafe-ingest'
+      preLoaderRoute: typeof ApiPublicHooksRoadsafeIngestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/business/$id/inventory': {
+      id: '/dashboard/business/$id/inventory'
+      path: '/inventory'
+      fullPath: '/dashboard/business/$id/inventory'
+      preLoaderRoute: typeof DashboardBusinessIdInventoryRouteImport
+      parentRoute: typeof DashboardBusinessIdRoute
     }
   }
 }
@@ -768,6 +948,7 @@ const rootRouteChildren: RootRouteChildren = {
   MiniSiteSlugRoute: MiniSiteSlugRoute,
   AddBusinessRoute: AddBusinessRoute,
   DashboardRoute: DashboardRouteWithChildren,
+  FamilyRoute: FamilyRoute,
   FuelRoute: FuelRoute,
   ImportRoute: ImportRoute,
   LoginRoute: LoginRoute,
@@ -785,10 +966,18 @@ const rootRouteChildren: RootRouteChildren = {
   InventoryBusinessIdRoute: InventoryBusinessIdRoute,
   ProvincesProvinceRoute: ProvincesProvinceRoute,
   RegionsRegionRoute: RegionsRegionRoute,
+  SpotlightAdminRoute: SpotlightAdminRoute,
+  SpotlightLeaderboardRoute: SpotlightLeaderboardRoute,
+  SpotlightSponsorsRoute: SpotlightSponsorsRoute,
+  SpotlightStarOfTheMonthRoute: SpotlightStarOfTheMonthRoute,
+  SpotlightSubmitRoute: SpotlightSubmitRoute,
   BarangaysIndexRoute: BarangaysIndexRoute,
   GroupsIndexRoute: GroupsIndexRoute,
   RegionsIndexRoute: RegionsIndexRoute,
+  SpotlightIndexRoute: SpotlightIndexRoute,
   BarangaysCityBarangayRoute: BarangaysCityBarangayRoute,
+  SpotlightBookSlugRoute: SpotlightBookSlugRoute,
+  SpotlightTalentSlugRoute: SpotlightTalentSlugRoute,
   ApiPublicHooksBusinessOsmSyncRoute: ApiPublicHooksBusinessOsmSyncRoute,
   ApiPublicHooksFuelStationsSyncRoute: ApiPublicHooksFuelStationsSyncRoute,
   ApiPublicHooksFuelSyncRoute: ApiPublicHooksFuelSyncRoute,
@@ -798,3 +987,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
