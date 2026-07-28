@@ -7,6 +7,15 @@ const input = z.object({
   status: z.enum(["pending", "needs_changes", "approved", "rejected", "featured"]),
   moderationNotes: z.string().max(2000).optional(),
   score: z.number().min(0).max(100).optional(),
+  rubric: z
+    .object({
+      talent: z.number().int().min(0).max(100),
+      originality: z.number().int().min(0).max(100),
+      presentation: z.number().int().min(0).max(100),
+      barangayAppeal: z.number().int().min(0).max(100),
+      bookingPotential: z.number().int().min(0).max(100),
+    })
+    .optional(),
 });
 export const moderateSpotlightSubmission = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -63,11 +72,24 @@ export const moderateSpotlightSubmission = createServerFn({ method: "POST" })
       })
       .eq("id", data.submissionId);
     if (error) throw error;
-    if (data.score !== undefined) {
-      const { error: scoreError } = await supabaseAdmin
+    if (data.score !== undefined || data.rubric) {
+      const { error: scoreError } = await (supabaseAdmin as any)
         .from("spotlight_judge_scores")
         .upsert(
-          { submission_id: data.submissionId, judge_id: context.userId, score: data.score },
+          {
+            submission_id: data.submissionId,
+            judge_id: context.userId,
+            score: data.score ?? 0,
+            ...(data.rubric
+              ? {
+                  talent: data.rubric.talent,
+                  originality: data.rubric.originality,
+                  presentation: data.rubric.presentation,
+                  barangay_appeal: data.rubric.barangayAppeal,
+                  booking_potential: data.rubric.bookingPotential,
+                }
+              : {}),
+          },
           { onConflict: "submission_id,judge_id" },
         );
       if (scoreError) throw scoreError;

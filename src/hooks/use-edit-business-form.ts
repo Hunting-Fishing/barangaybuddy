@@ -84,15 +84,8 @@ function uniqueBarangays(rows: BarangayPickResult[]) {
   });
 }
 
-export function useEditBusinessForm({
-  business,
-  open,
-  onOpenChange,
-  onSaved,
-}: Args) {
-  const [form, setForm] = useState<AddBusinessFormState>(() =>
-    createEditForm(business),
-  );
+export function useEditBusinessForm({ business, open, onOpenChange, onSaved }: Args) {
+  const [form, setForm] = useState<AddBusinessFormState>(() => createEditForm(business));
   const [barangayResults, setBarangayResults] = useState<BarangayPickResult[]>([]);
   const [saving, setSaving] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -110,28 +103,24 @@ export function useEditBusinessForm({
     }
 
     const timeout = window.setTimeout(async () => {
-      const barangaySelect =
-        "code, name, cities_municipalities(name, provinces(name))";
+      const barangaySelect = "code, name, cities_municipalities(name, provinces(name))";
 
-      const [{ data: directBarangays }, { data: matchingCities }] =
-        await Promise.all([
-          supabase
-            .from("barangays")
-            .select(barangaySelect)
-            .ilike("name", `%${query}%`)
-            .order("name")
-            .limit(15),
-          supabase
-            .from("cities_municipalities")
-            .select("code, name, provinces(name)")
-            .ilike("name", `%${query}%`)
-            .order("name")
-            .limit(8),
-        ]);
+      const [{ data: directBarangays }, { data: matchingCities }] = await Promise.all([
+        supabase
+          .from("barangays")
+          .select(barangaySelect)
+          .ilike("name", `%${query}%`)
+          .order("name")
+          .limit(15),
+        supabase
+          .from("cities_municipalities")
+          .select("code, name, provinces(name)")
+          .ilike("name", `%${query}%`)
+          .order("name")
+          .limit(8),
+      ]);
 
-      const cityCodes = ((matchingCities ?? []) as CitySearchResult[]).map(
-        (city) => city.code,
-      );
+      const cityCodes = ((matchingCities ?? []) as CitySearchResult[]).map((city) => city.code);
 
       let cityBarangays: BarangayPickResult[] = [];
       if (cityCodes.length > 0) {
@@ -156,10 +145,7 @@ export function useEditBusinessForm({
     return () => window.clearTimeout(timeout);
   }, [form.barangay_search]);
 
-  function update<K extends keyof AddBusinessFormState>(
-    key: K,
-    value: AddBusinessFormState[K],
-  ) {
+  function update<K extends keyof AddBusinessFormState>(key: K, value: AddBusinessFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
@@ -231,9 +217,7 @@ export function useEditBusinessForm({
       .update({
         name: parsed.data.name,
         type: parsed.data.type,
-        additional_types: parsed.data.additional_types.filter(
-          (type) => type !== parsed.data.type,
-        ),
+        additional_types: parsed.data.additional_types.filter((type) => type !== parsed.data.type),
         custom_types: dedupeCaseInsensitive(parsed.data.custom_types),
         tags: dedupeCaseInsensitive(parsed.data.tags),
         description: parsed.data.description || null,

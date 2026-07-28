@@ -25,9 +25,7 @@ export function BusinessCategoryGroupSelector({
     <div className="mt-6">
       <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="text-xs font-bold uppercase tracking-wide text-primary">
-            Step 1
-          </div>
+          <div className="text-xs font-bold uppercase tracking-wide text-primary">Step 1</div>
           <h4 className="font-display text-lg font-bold">Pick a category group</h4>
           <p className="mt-0.5 text-xs text-muted-foreground">
             Search broad groups like food, billiards, transport, repairs, resort, or market.

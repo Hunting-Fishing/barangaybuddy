@@ -1,9 +1,6 @@
 import { Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { InventoryItemAdditionalTab } from "@/components/inventory-item-additional-tab";
 import { InventoryItemBasicTab } from "@/components/inventory-item-basic-tab";
@@ -13,10 +10,7 @@ import { InventoryItemPricingTab } from "@/components/inventory-item-pricing-tab
 import { InventoryItemStockTab } from "@/components/inventory-item-stock-tab";
 import { InventoryItemTabList } from "@/components/inventory-item-tab-list";
 import { InventoryItemTaxTab } from "@/components/inventory-item-tax-tab";
-import {
-  useInventoryItemDialog,
-  type InventoryDialogTab,
-} from "@/hooks/use-inventory-item-dialog";
+import { useInventoryItemDialog, type InventoryDialogTab } from "@/hooks/use-inventory-item-dialog";
 import type { InventoryItem } from "@/lib/inventory";
 
 type Props = {
@@ -27,13 +21,7 @@ type Props = {
   onSaved: () => void;
 };
 
-export function InventoryItemDialog({
-  businessId,
-  item,
-  open,
-  onOpenChange,
-  onSaved,
-}: Props) {
+export function InventoryItemDialog({ businessId, item, open, onOpenChange, onSaved }: Props) {
   const dialog = useInventoryItemDialog({
     businessId,
     item,
@@ -45,10 +33,7 @@ export function InventoryItemDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] max-w-5xl overflow-y-auto p-0">
-        <InventoryItemDialogHeader
-          item={item}
-          completedSections={dialog.completedSections}
-        />
+        <InventoryItemDialogHeader item={item} completedSections={dialog.completedSections} />
 
         <form onSubmit={dialog.save} className="p-5">
           <Tabs

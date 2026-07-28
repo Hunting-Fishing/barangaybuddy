@@ -5,8 +5,24 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Store, Briefcase, UtensilsCrossed, Coffee, Fuel, ShoppingBasket, MapPin, ShieldAlert } from "lucide-react";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
+  Store,
+  Briefcase,
+  UtensilsCrossed,
+  Coffee,
+  Fuel,
+  ShoppingBasket,
+  MapPin,
+  ShieldAlert,
+} from "lucide-react";
 import { BusinessMap, type MapBusiness } from "@/components/business-map";
 import { BarangayListingsFeed, type FeedListing } from "@/components/barangay-listings-feed";
 import { RoadSafePanel } from "@/components/roadsafe-panel";
@@ -33,18 +49,39 @@ function BrgyPage() {
 
   useEffect(() => {
     (async () => {
-      const { data: c } = await supabase.from("cities_municipalities").select("code,name,province_code").eq("slug", city).maybeSingle();
+      const { data: c } = await supabase
+        .from("cities_municipalities")
+        .select("code,name,province_code")
+        .eq("slug", city)
+        .maybeSingle();
       if (!c) return;
-      const { data: b } = await supabase.from("barangays").select("*").eq("city_code", c.code).eq("slug", barangay).maybeSingle();
+      const { data: b } = await supabase
+        .from("barangays")
+        .select("*")
+        .eq("city_code", c.code)
+        .eq("slug", barangay)
+        .maybeSingle();
       setBrgy(b ? { ...b, city_name: c.name } : null);
-      const { data: p } = await supabase.from("provinces").select("name,slug,region_code").eq("code", c.province_code).maybeSingle();
+      const { data: p } = await supabase
+        .from("provinces")
+        .select("name,slug,region_code")
+        .eq("code", c.province_code)
+        .maybeSingle();
       setProvince(p);
       if (p) {
-        const { data: r } = await supabase.from("regions").select("name,slug").eq("code", p.region_code).maybeSingle();
+        const { data: r } = await supabase
+          .from("regions")
+          .select("name,slug")
+          .eq("code", p.region_code)
+          .maybeSingle();
         setRegion(r);
       }
       if (b) {
-        const { data: biz } = await supabase.from("businesses").select("*").eq("barangay_code", b.code).eq("is_published", true);
+        const { data: biz } = await supabase
+          .from("businesses")
+          .select("*")
+          .eq("barangay_code", b.code)
+          .eq("is_published", true);
         const list = biz ?? [];
         setBusinesses(list);
 
@@ -52,7 +89,9 @@ function BrgyPage() {
         if (ids.length) {
           const { data: ll } = await supabase
             .from("listings")
-            .select("id,name,normalized_name,description,price,pack_qty,size_value,size_unit,image_url,in_stock,category,business_id,updated_at,stock_checked_at")
+            .select(
+              "id,name,normalized_name,description,price,pack_qty,size_value,size_unit,image_url,in_stock,category,business_id,updated_at,stock_checked_at",
+            )
             .in("business_id", ids);
           const byId = new Map(list.map((x: any) => [x.id, x]));
           const feed: FeedListing[] = (ll ?? []).map((l: any) => {
@@ -116,15 +155,53 @@ function BrgyPage() {
       <main className="container mx-auto px-4 py-12">
         <Breadcrumb>
           <BreadcrumbList>
-            <BreadcrumbItem><BreadcrumbLink asChild><Link to="/">Home</Link></BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/">Home</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
             <BreadcrumbSeparator />
-            <BreadcrumbItem><BreadcrumbLink asChild><Link to="/regions">Regions</Link></BreadcrumbLink></BreadcrumbItem>
-            {region && (<><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbLink asChild><Link to="/regions/$region" params={{ region: region.slug }}>{region.name}</Link></BreadcrumbLink></BreadcrumbItem></>)}
-            {province && (<><BreadcrumbSeparator /><BreadcrumbItem><BreadcrumbLink asChild><Link to="/provinces/$province" params={{ province: province.slug }}>{province.name}</Link></BreadcrumbLink></BreadcrumbItem></>)}
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/regions">Regions</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            {region && (
+              <>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/regions/$region" params={{ region: region.slug }}>
+                      {region.name}
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+              </>
+            )}
+            {province && (
+              <>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/provinces/$province" params={{ province: province.slug }}>
+                      {province.name}
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+              </>
+            )}
             <BreadcrumbSeparator />
-            <BreadcrumbItem><BreadcrumbLink asChild><Link to="/cities/$city" params={{ city }}>{brgy?.city_name ?? "…"}</Link></BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/cities/$city" params={{ city }}>
+                  {brgy?.city_name ?? "…"}
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
             <BreadcrumbSeparator />
-            <BreadcrumbItem><BreadcrumbPage>Barangay {brgy?.name ?? "…"}</BreadcrumbPage></BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbPage>Barangay {brgy?.name ?? "…"}</BreadcrumbPage>
+            </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
         <h1 className="mt-6 font-display text-4xl font-bold md:text-5xl">Barangay {brgy?.name}</h1>
@@ -137,7 +214,8 @@ function BrgyPage() {
             <BusinessMap businesses={mapBusinesses} />
           ) : (
             <Card className="p-6 text-sm text-muted-foreground">
-              <MapPin className="mb-2 inline h-4 w-4" /> No businesses have pinned their location yet.
+              <MapPin className="mb-2 inline h-4 w-4" /> No businesses have pinned their location
+              yet.
             </Card>
           )}
           {unpinned.length > 0 && (
@@ -184,19 +262,31 @@ function BrgyPage() {
           {TYPES.map(({ type }) => (
             <TabsContent key={type} value={type} className="mt-6">
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {businesses.filter((b) => b.type === type).map((b) => (
-                  <Link key={b.id} to="/business/$slug" params={{ slug: b.slug }}>
-                    <Card className="overflow-hidden transition-all hover:-translate-y-1 hover:shadow-elegant">
-                      {b.cover_image_url && <img src={b.cover_image_url} alt={b.name} className="aspect-video w-full object-cover" />}
-                      <div className="p-5">
-                        <h3 className="font-display font-bold">{b.name}</h3>
-                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{b.description}</p>
-                      </div>
-                    </Card>
-                  </Link>
-                ))}
+                {businesses
+                  .filter((b) => b.type === type)
+                  .map((b) => (
+                    <Link key={b.id} to="/business/$slug" params={{ slug: b.slug }}>
+                      <Card className="overflow-hidden transition-all hover:-translate-y-1 hover:shadow-elegant">
+                        {b.cover_image_url && (
+                          <img
+                            src={b.cover_image_url}
+                            alt={b.name}
+                            className="aspect-video w-full object-cover"
+                          />
+                        )}
+                        <div className="p-5">
+                          <h3 className="font-display font-bold">{b.name}</h3>
+                          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                            {b.description}
+                          </p>
+                        </div>
+                      </Card>
+                    </Link>
+                  ))}
                 {businesses.filter((b) => b.type === type).length === 0 && (
-                  <p className="col-span-full text-sm text-muted-foreground">No listings yet — be the first!</p>
+                  <p className="col-span-full text-sm text-muted-foreground">
+                    No listings yet — be the first!
+                  </p>
                 )}
               </div>
             </TabsContent>

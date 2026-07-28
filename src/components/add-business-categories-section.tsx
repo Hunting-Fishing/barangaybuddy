@@ -14,9 +14,7 @@ export function AddBusinessCategoriesSection({ form, setForm }: Props) {
   return (
     <Card className="p-5 md:p-6">
       <div>
-        <div className="text-xs font-bold uppercase tracking-wide text-primary">
-          Step 2
-        </div>
+        <div className="text-xs font-bold uppercase tracking-wide text-primary">Step 2</div>
         <h2 className="font-display text-xl font-bold">Categories & features</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Add extra categories and amenities so your business appears in better searches.

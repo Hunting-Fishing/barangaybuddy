@@ -95,8 +95,8 @@ export function GroupJoinDialog({
         <DialogHeader>
           <DialogTitle>Join {group.name}</DialogTitle>
           <DialogDescription>
-            {formatPhp(group.membership_fee_php)} for {group.membership_period_days} days of
-            member perks.
+            {formatPhp(group.membership_fee_php)} for {group.membership_period_days} days of member
+            perks.
           </DialogDescription>
         </DialogHeader>
 

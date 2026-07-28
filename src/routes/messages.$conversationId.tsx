@@ -20,7 +20,9 @@ function Thread() {
   const [body, setBody] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { if (!loading && !user) nav({ to: "/login" }); }, [user, loading, nav]);
+  useEffect(() => {
+    if (!loading && !user) nav({ to: "/login" });
+  }, [user, loading, nav]);
 
   useEffect(() => {
     if (!user) return;
@@ -33,21 +35,36 @@ function Thread() {
 
     const ch = supabase
       .channel(`conv:${conversationId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` }, (payload) => {
-        setMessages((m) => [...m, payload.new]);
-      })
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          setMessages((m) => [...m, payload.new]);
+        },
+      )
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => {
+      supabase.removeChannel(ch);
+    };
   }, [conversationId, user]);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
     if (!body.trim() || !user) return;
     const text = body.trim().slice(0, 2000);
     setBody("");
-    const { error } = await supabase.from("messages").insert({ conversation_id: conversationId, sender_id: user.id, body: text });
+    const { error } = await supabase
+      .from("messages")
+      .insert({ conversation_id: conversationId, sender_id: user.id, body: text });
     if (error) console.error(error);
   }
 
@@ -57,9 +74,14 @@ function Thread() {
       <main className="container mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-8">
         <div className="flex-1 space-y-2 overflow-y-auto">
           {messages.map((m) => (
-            <Card key={m.id} className={`max-w-[75%] p-3 ${m.sender_id === user?.id ? "ml-auto bg-primary text-primary-foreground" : ""}`}>
+            <Card
+              key={m.id}
+              className={`max-w-[75%] p-3 ${m.sender_id === user?.id ? "ml-auto bg-primary text-primary-foreground" : ""}`}
+            >
               <p className="text-sm whitespace-pre-wrap">{m.body}</p>
-              <div className={`mt-1 text-[10px] ${m.sender_id === user?.id ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+              <div
+                className={`mt-1 text-[10px] ${m.sender_id === user?.id ? "text-primary-foreground/60" : "text-muted-foreground"}`}
+              >
                 {new Date(m.created_at).toLocaleTimeString()}
               </div>
             </Card>
@@ -67,8 +89,15 @@ function Thread() {
           <div ref={endRef} />
         </div>
         <form onSubmit={send} className="mt-4 flex gap-2">
-          <Input value={body} onChange={(e) => setBody(e.target.value)} placeholder="Type a message…" maxLength={2000} />
-          <Button type="submit"><Send className="h-4 w-4" /></Button>
+          <Input
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder="Type a message…"
+            maxLength={2000}
+          />
+          <Button type="submit">
+            <Send className="h-4 w-4" />
+          </Button>
         </form>
       </main>
     </div>

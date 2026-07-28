@@ -21,11 +21,7 @@ export function AddBusinessPreview({ form }: Props) {
       <Card className="overflow-hidden">
         <div className="aspect-video bg-gradient-to-br from-secondary to-muted">
           {form.cover_image_url ? (
-            <img
-              src={form.cover_image_url}
-              alt=""
-              className="h-full w-full object-cover"
-            />
+            <img src={form.cover_image_url} alt="" className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full items-center justify-center text-muted-foreground">
               <Sparkles className="h-8 w-8" />
@@ -40,9 +36,7 @@ export function AddBusinessPreview({ form }: Props) {
                 {category}
               </Badge>
             ))}
-            {categories.length > 4 && (
-              <Badge variant="outline">+{categories.length - 4}</Badge>
-            )}
+            {categories.length > 4 && <Badge variant="outline">+{categories.length - 4}</Badge>}
           </div>
 
           <h2 className="mt-3 font-display text-2xl font-bold">
@@ -61,9 +55,7 @@ export function AddBusinessPreview({ form }: Props) {
           )}
 
           {form.description && (
-            <p className="mt-3 line-clamp-4 text-sm text-muted-foreground">
-              {form.description}
-            </p>
+            <p className="mt-3 line-clamp-4 text-sm text-muted-foreground">{form.description}</p>
           )}
 
           {form.tags.length > 0 && (
@@ -90,7 +82,8 @@ export function AddBusinessPreview({ form }: Props) {
               Published as claimed
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              After saving, this business is yours and you can add listings, prices, services, and images.
+              After saving, this business is yours and you can add listings, prices, services, and
+              images.
             </p>
           </div>
         </div>

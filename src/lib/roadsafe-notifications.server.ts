@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- Integration tables are added by this PR and enter generated types after migration deployment. */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 type QueueItem = {

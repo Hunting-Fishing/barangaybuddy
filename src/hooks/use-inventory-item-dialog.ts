@@ -48,17 +48,9 @@ function cleanLinks(links: InventoryLink[]) {
     .slice(0, 12);
 }
 
-export function useInventoryItemDialog({
-  businessId,
-  item,
-  open,
-  onOpenChange,
-  onSaved,
-}: Args) {
+export function useInventoryItemDialog({ businessId, item, open, onOpenChange, onSaved }: Args) {
   const [tab, setTab] = useState<InventoryDialogTab>("basic");
-  const [form, setForm] = useState<InventoryFormState>(() =>
-    createInventoryForm(item),
-  );
+  const [form, setForm] = useState<InventoryFormState>(() => createInventoryForm(item));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -99,10 +91,7 @@ export function useInventoryItemDialog({
   const canGoPrevious = tabIndex > 0;
   const canGoNext = tabIndex < INVENTORY_ITEM_DIALOG_TAB_VALUES.length - 1;
 
-  function update<K extends keyof InventoryFormState>(
-    key: K,
-    value: InventoryFormState[K],
-  ) {
+  function update<K extends keyof InventoryFormState>(key: K, value: InventoryFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
@@ -145,21 +134,14 @@ export function useInventoryItemDialog({
       return savedItem.listing_id;
     }
 
-    const { data, error } = await db
-      .from("listings")
-      .insert(listingPayload)
-      .select("id")
-      .single();
+    const { data, error } = await db.from("listings").insert(listingPayload).select("id").single();
 
     if (error || !data) {
       toast.error(error?.message ?? "Could not publish this item to the store.");
       return null;
     }
 
-    await db
-      .from("inventory_items")
-      .update({ listing_id: data.id })
-      .eq("id", savedItem.id);
+    await db.from("inventory_items").update({ listing_id: data.id }).eq("id", savedItem.id);
 
     return data.id as string;
   }
@@ -225,17 +207,8 @@ export function useInventoryItemDialog({
     };
 
     const result = item
-      ? await db
-          .from("inventory_items")
-          .update(payload)
-          .eq("id", item.id)
-          .select("*")
-          .single()
-      : await db
-          .from("inventory_items")
-          .insert(payload)
-          .select("*")
-          .single();
+      ? await db.from("inventory_items").update(payload).eq("id", item.id).select("*").single()
+      : await db.from("inventory_items").insert(payload).select("*").single();
 
     if (result.error || !result.data) {
       setSaving(false);

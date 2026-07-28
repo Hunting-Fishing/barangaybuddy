@@ -46,9 +46,7 @@ export const Route = createFileRoute("/search")({
   head: () => ({ meta: [{ title: "Search businesses — BarangayHub" }] }),
   validateSearch: (s: Record<string, unknown>) => ({
     q: typeof s.q === "string" ? s.q : "",
-    types: parseStringArray(s.types).filter((x) =>
-      BUSINESS_TYPES.includes(x as BusinessType),
-    ),
+    types: parseStringArray(s.types).filter((x) => BUSINESS_TYPES.includes(x as BusinessType)),
     customTypes: parseStringArray(s.customTypes).filter((x) => x.length > 0),
     tags: parseStringArray(s.tags),
     category: typeof s.category === "string" ? s.category : undefined,
@@ -59,28 +57,18 @@ export const Route = createFileRoute("/search")({
 
 type RpcError = { message: string };
 type RpcClient = {
-  rpc: (
-    fn: string,
-    args: Record<string, unknown>,
-  ) => Promise<{ error: RpcError | null }>;
+  rpc: (fn: string, args: Record<string, unknown>) => Promise<{ error: RpcError | null }>;
 };
 
 const rpcClient = supabase as unknown as RpcClient;
 
-async function recordCategoryEvent(data: {
-  groupId: string;
-  itemId: string;
-  label: string;
-}) {
-  const { error } = await rpcClient.rpc(
-    "increment_business_category_interaction",
-    {
-      p_group_id: data.groupId,
-      p_item_id: data.itemId,
-      p_label: data.label,
-      p_action: "type_search",
-    },
-  );
+async function recordCategoryEvent(data: { groupId: string; itemId: string; label: string }) {
+  const { error } = await rpcClient.rpc("increment_business_category_interaction", {
+    p_group_id: data.groupId,
+    p_item_id: data.itemId,
+    p_label: data.label,
+    p_action: "type_search",
+  });
 
   if (error) console.error(error.message);
 }
@@ -109,10 +97,18 @@ function SearchPage() {
   const [showFilters, setShowFilters] = useState(false);
 
   // Sync URL changes (back/forward) into local state
-  useEffect(() => { setQ(urlQ); }, [urlQ]);
-  useEffect(() => { setTypes(urlTypes as BusinessType[]); }, [urlTypes]);
-  useEffect(() => { setCustomTypes(urlCustomTypes); }, [urlCustomTypes]);
-  useEffect(() => { setTags(urlTags); }, [urlTags]);
+  useEffect(() => {
+    setQ(urlQ);
+  }, [urlQ]);
+  useEffect(() => {
+    setTypes(urlTypes as BusinessType[]);
+  }, [urlTypes]);
+  useEffect(() => {
+    setCustomTypes(urlCustomTypes);
+  }, [urlCustomTypes]);
+  useEffect(() => {
+    setTags(urlTags);
+  }, [urlTags]);
 
   // Sync URL <- filter state (debounced); reset page to 1 on filter change
   useEffect(() => {
@@ -130,10 +126,10 @@ function SearchPage() {
       });
     }, 200);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, types, customTypes, tags]);
 
-  const hasFilter = q.trim().length > 0 || types.length > 0 || customTypes.length > 0 || tags.length > 0;
+  const hasFilter =
+    q.trim().length > 0 || types.length > 0 || customTypes.length > 0 || tags.length > 0;
 
   const selectedCategoryGroup = useMemo(
     () =>
@@ -148,15 +144,14 @@ function SearchPage() {
   const relatedCategoryItems = useMemo(() => {
     if (!selectedCategoryGroup) return [];
 
-    const selectedCustomKeys = new Set(
-      customTypes.map((customType) => customType.toLowerCase()),
-    );
+    const selectedCustomKeys = new Set(customTypes.map((customType) => customType.toLowerCase()));
 
     if (types.length > 0) {
       return selectedCategoryGroup.items
         .filter((item) => {
           if (!item.businessType || !types.includes(item.businessType)) return false;
-          if (item.customType && selectedCustomKeys.has(item.customType.toLowerCase())) return false;
+          if (item.customType && selectedCustomKeys.has(item.customType.toLowerCase()))
+            return false;
 
           // When the user searched a broad type like "Food vendor", show the
           // specific subtypes under that broad type: Empanada, Sisig, Turon, etc.
@@ -167,18 +162,15 @@ function SearchPage() {
 
     if (customTypes.length > 0) {
       const selectedItems = selectedCategoryGroup.items.filter(
-        (item) =>
-          item.customType &&
-          selectedCustomKeys.has(item.customType.toLowerCase()),
+        (item) => item.customType && selectedCustomKeys.has(item.customType.toLowerCase()),
       );
-      const siblingTypes = new Set(
-        selectedItems.map((item) => item.businessType).filter(Boolean),
-      );
+      const siblingTypes = new Set(selectedItems.map((item) => item.businessType).filter(Boolean));
 
       return selectedCategoryGroup.items
         .filter((item) => {
           if (!item.businessType || !siblingTypes.has(item.businessType)) return false;
-          if (item.customType && selectedCustomKeys.has(item.customType.toLowerCase())) return false;
+          if (item.customType && selectedCustomKeys.has(item.customType.toLowerCase()))
+            return false;
           return true;
         })
         .slice(0, 12);
@@ -189,7 +181,13 @@ function SearchPage() {
 
   // Build a stable filter signature so the fetch effect knows when filters truly changed
   const filterKey = useMemo(
-    () => JSON.stringify({ q: q.trim(), types: [...types].sort(), customTypes: [...customTypes].sort(), tags: [...tags].sort() }),
+    () =>
+      JSON.stringify({
+        q: q.trim(),
+        types: [...types].sort(),
+        customTypes: [...customTypes].sort(),
+        tags: [...tags].sort(),
+      }),
     [q, types, customTypes, tags],
   );
 
@@ -242,7 +240,6 @@ function SearchPage() {
       setLoading(false);
     }, 250);
     return () => clearTimeout(handle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterKey]);
 
   const canLoadMore = !loading && !loadingMore && results.length < totalCount;
@@ -269,7 +266,17 @@ function SearchPage() {
       },
       replace: true,
     });
-  }, [canLoadMore, results.length, buildQuery, navigate, searchParams, q, types, customTypes, tags]);
+  }, [
+    canLoadMore,
+    results.length,
+    buildQuery,
+    navigate,
+    searchParams,
+    q,
+    types,
+    customTypes,
+    tags,
+  ]);
 
   // Infinite scroll sentinel
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -309,6 +316,7 @@ function SearchPage() {
         types: [],
         customTypes: [],
         tags: [],
+        category: undefined,
         page: 1,
       },
       replace: true,
@@ -332,10 +340,7 @@ function SearchPage() {
         <div className="mb-4 flex flex-wrap items-center gap-2">
           {selectedCategoryGroup ? (
             <Button variant="ghost" size="sm" asChild className="gap-2">
-              <Link
-                to="/categories/$category"
-                params={{ category: selectedCategoryGroup.id }}
-              >
+              <Link to="/categories/$category" params={{ category: selectedCategoryGroup.id }}>
                 <ArrowLeft className="h-4 w-4" /> Back to {selectedCategoryGroup.label}
               </Link>
             </Button>
@@ -378,7 +383,10 @@ function SearchPage() {
             {types.map((t) => (
               <Badge key={`t-${t}`} variant="secondary" className="gap-1">
                 {BUSINESS_TYPE_LABEL[t]}
-                <button onClick={() => setTypes(types.filter((x) => x !== t))} aria-label={`Remove ${BUSINESS_TYPE_LABEL[t]}`}>
+                <button
+                  onClick={() => setTypes(types.filter((x) => x !== t))}
+                  aria-label={`Remove ${BUSINESS_TYPE_LABEL[t]}`}
+                >
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
@@ -387,7 +395,10 @@ function SearchPage() {
               <Badge key={`custom-${type}`} className="gap-1">
                 {type}
                 <span className="text-[10px] uppercase opacity-70">specific</span>
-                <button onClick={() => setCustomTypes(customTypes.filter((x) => x !== type))} aria-label={`Remove ${type}`}>
+                <button
+                  onClick={() => setCustomTypes(customTypes.filter((x) => x !== type))}
+                  aria-label={`Remove ${type}`}
+                >
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
@@ -395,7 +406,10 @@ function SearchPage() {
             {tags.map((s) => (
               <Badge key={`tag-${s}`} className="gap-1">
                 {tagLabel(s)}
-                <button onClick={() => setTags(tags.filter((x) => x !== s))} aria-label={`Remove ${tagLabel(s)}`}>
+                <button
+                  onClick={() => setTags(tags.filter((x) => x !== s))}
+                  aria-label={`Remove ${tagLabel(s)}`}
+                >
                   <X className="h-3 w-3" />
                 </button>
               </Badge>
@@ -407,7 +421,9 @@ function SearchPage() {
           {showFilters && (
             <aside className="space-y-5">
               <Card className="p-4">
-                <h3 className="font-display text-sm font-bold uppercase tracking-wide text-muted-foreground">Categories</h3>
+                <h3 className="font-display text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                  Categories
+                </h3>
                 <div className="mt-3 grid max-h-72 grid-cols-1 gap-1.5 overflow-auto sm:grid-cols-2 lg:grid-cols-1">
                   {BUSINESS_TYPES.map((t) => {
                     const checked = types.includes(t);
@@ -415,7 +431,9 @@ function SearchPage() {
                       <label key={t} className="flex cursor-pointer items-center gap-2 text-sm">
                         <Checkbox
                           checked={checked}
-                          onCheckedChange={(c) => setTypes(c ? [...types, t] : types.filter((x) => x !== t))}
+                          onCheckedChange={(c) =>
+                            setTypes(c ? [...types, t] : types.filter((x) => x !== t))
+                          }
                         />
                         {BUSINESS_TYPE_LABEL[t]}
                       </label>
@@ -425,24 +443,42 @@ function SearchPage() {
               </Card>
 
               <Card className="p-4">
-                <h3 className="font-display text-sm font-bold uppercase tracking-wide text-muted-foreground">Features</h3>
+                <h3 className="font-display text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                  Features
+                </h3>
                 <div className="relative mt-3">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input value={tagQ} onChange={(e) => setTagQ(e.target.value)} placeholder="Search features…" className="pl-9" />
+                  <Input
+                    value={tagQ}
+                    onChange={(e) => setTagQ(e.target.value)}
+                    placeholder="Search features…"
+                    className="pl-9"
+                  />
                 </div>
                 <div className="mt-3 max-h-96 space-y-3 overflow-auto">
-                  {filteredTagGroups.length === 0 && <p className="text-sm text-muted-foreground">No matches.</p>}
+                  {filteredTagGroups.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No matches.</p>
+                  )}
                   {filteredTagGroups.map((g) => (
                     <div key={g.id}>
-                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g.label}</div>
+                      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {g.label}
+                      </div>
                       <div className="mt-1.5 grid grid-cols-1 gap-1">
                         {g.tags.map((tag) => {
                           const checked = tags.includes(tag.slug);
                           return (
-                            <label key={tag.slug} className="flex cursor-pointer items-center gap-2 text-sm">
+                            <label
+                              key={tag.slug}
+                              className="flex cursor-pointer items-center gap-2 text-sm"
+                            >
                               <Checkbox
                                 checked={checked}
-                                onCheckedChange={(c) => setTags(c ? [...tags, tag.slug] : tags.filter((x) => x !== tag.slug))}
+                                onCheckedChange={(c) =>
+                                  setTags(
+                                    c ? [...tags, tag.slug] : tags.filter((x) => x !== tag.slug),
+                                  )
+                                }
                               />
                               {tag.label}
                             </label>
@@ -473,7 +509,9 @@ function SearchPage() {
                     No businesses listed for this exact search yet
                   </h2>
                   <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-                    This does not mean the category is missing. It means no one has listed a matching business yet. You can try a more specific type or add/import a business for this category.
+                    This does not mean the category is missing. It means no one has listed a
+                    matching business yet. You can try a more specific type or add/import a business
+                    for this category.
                   </p>
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
                     {selectedCategoryGroup && (
@@ -514,7 +552,9 @@ function SearchPage() {
               {results.map((b: any) => {
                 const cats: string[] = [
                   BUSINESS_TYPE_LABEL[b.type as BusinessType] ?? b.type,
-                  ...(b.additional_types ?? []).map((t: BusinessType) => BUSINESS_TYPE_LABEL[t] ?? t),
+                  ...(b.additional_types ?? []).map(
+                    (t: BusinessType) => BUSINESS_TYPE_LABEL[t] ?? t,
+                  ),
                   ...(b.custom_types ?? []),
                 ];
                 const place = b.barangays?.name
@@ -525,19 +565,38 @@ function SearchPage() {
                     <Card className="overflow-hidden p-5 transition-all hover:-translate-y-1 hover:shadow-elegant">
                       {b.cover_image_url && (
                         <div className="-mx-5 -mt-5 mb-4 h-32 overflow-hidden">
-                          <img src={b.cover_image_url} alt="" className="h-full w-full object-cover" />
+                          <img
+                            src={b.cover_image_url}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
                         </div>
                       )}
-                      <div className="text-xs uppercase text-muted-foreground line-clamp-1">{cats.join(" · ")}</div>
+                      <div className="text-xs uppercase text-muted-foreground line-clamp-1">
+                        {cats.join(" · ")}
+                      </div>
                       <h3 className="mt-1 font-display text-lg font-bold">{b.name}</h3>
                       {place && <p className="mt-0.5 text-xs text-muted-foreground">{place}</p>}
-                      {b.description && <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">{b.description}</p>}
+                      {b.description && (
+                        <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                          {b.description}
+                        </p>
+                      )}
                       {Array.isArray(b.tags) && b.tags.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-1">
                           {b.tags.slice(0, 5).map((t: string) => (
-                            <span key={t} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-secondary-foreground">{tagLabel(t)}</span>
+                            <span
+                              key={t}
+                              className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-secondary-foreground"
+                            >
+                              {tagLabel(t)}
+                            </span>
                           ))}
-                          {b.tags.length > 5 && <span className="text-[10px] text-muted-foreground">+{b.tags.length - 5}</span>}
+                          {b.tags.length > 5 && (
+                            <span className="text-[10px] text-muted-foreground">
+                              +{b.tags.length - 5}
+                            </span>
+                          )}
                         </div>
                       )}
                     </Card>
@@ -556,7 +615,9 @@ function SearchPage() {
                 ) : results.length >= totalCount ? (
                   <p className="text-xs text-muted-foreground">You’ve reached the end.</p>
                 ) : (
-                  <Button variant="outline" size="sm" onClick={loadMore}>Load more</Button>
+                  <Button variant="outline" size="sm" onClick={loadMore}>
+                    Load more
+                  </Button>
                 )}
               </div>
             )}

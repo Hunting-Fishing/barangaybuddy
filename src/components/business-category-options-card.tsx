@@ -2,10 +2,7 @@ import { Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BusinessCategoryIcon } from "@/components/business-category-icon";
-import type {
-  BusinessCategoryGroup,
-  BusinessCategoryItem,
-} from "@/lib/business-category-taxonomy";
+import type { BusinessCategoryGroup, BusinessCategoryItem } from "@/lib/business-category-taxonomy";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -31,13 +28,9 @@ export function BusinessCategoryOptionsCard({
             <BusinessCategoryIcon icon={activeGroup.icon} className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xs font-bold uppercase tracking-wide text-primary">
-              Step 2
-            </div>
+            <div className="text-xs font-bold uppercase tracking-wide text-primary">Step 2</div>
             <h4 className="font-display text-lg font-bold">{activeGroup.label}</h4>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              {activeGroup.description}
-            </p>
+            <p className="mt-0.5 text-sm text-muted-foreground">{activeGroup.description}</p>
           </div>
           <span className="hidden rounded-full bg-secondary px-3 py-1 text-xs text-secondary-foreground sm:inline-flex">
             {activeGroup.items.length} options

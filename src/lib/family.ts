@@ -44,6 +44,33 @@ export type MinorBooking = {
   guardian_approved_at: string | null;
   status: string;
 };
+export function canManageChild(
+  relationships: GuardianRelationship[],
+  guardianId: string,
+  childId: string,
+) {
+  return relationships.some(
+    (r) =>
+      r.guardian_account_id === guardianId &&
+      r.child_member_id === childId &&
+      r.status === "verified",
+  );
+}
+export function canApproveMinorAction(
+  relationships: GuardianRelationship[],
+  guardianId: string,
+  childId: string,
+  action: "spotlight" | "booking" | "live_event" | "transportation",
+) {
+  const relationship = relationships.find(
+    (r) =>
+      r.guardian_account_id === guardianId &&
+      r.child_member_id === childId &&
+      r.status === "verified",
+  );
+  if (!relationship) return false;
+  return action === "spotlight" || relationship.is_primary;
+}
 export async function loadFamily(userId: string) {
   const [
     { data: children, error },

@@ -71,7 +71,6 @@ function ManageGroup() {
       return;
     }
     void init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user?.id, slug]);
 
   async function init() {
@@ -97,10 +96,7 @@ function ManageGroup() {
         .eq("group_id", g.id)
         .eq("user_id", user!.id)
         .maybeSingle();
-      isAdmin =
-        gm &&
-        (gm.role === "admin" || gm.role === "owner") &&
-        gm.status === "active";
+      isAdmin = gm && (gm.role === "admin" || gm.role === "owner") && gm.status === "active";
     }
     setAuthorized(isAdmin);
     if (isAdmin) void loadLists(g.id);
@@ -223,7 +219,14 @@ function ManageGroup() {
       created_by: user!.id,
     });
     if (error) return toast.error(error.message);
-    setNewPromo({ title: "", description: "", discount_percent: "", discount_amount_php: "", valid_until: "", code: "" });
+    setNewPromo({
+      title: "",
+      description: "",
+      discount_percent: "",
+      discount_amount_php: "",
+      valid_until: "",
+      code: "",
+    });
     toast.success("Promo created.");
     void loadLists(group.id);
   }
@@ -238,9 +241,7 @@ function ManageGroup() {
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <SiteHeader />
-        <main className="container mx-auto flex-1 px-4 py-10 text-muted-foreground">
-          Loading…
-        </main>
+        <main className="container mx-auto flex-1 px-4 py-10 text-muted-foreground">Loading…</main>
       </div>
     );
   }
@@ -276,12 +277,8 @@ function ManageGroup() {
 
         <Tabs defaultValue="members" className="mt-6">
           <TabsList>
-            <TabsTrigger value="members">
-              Pending members ({pendingMembers.length})
-            </TabsTrigger>
-            <TabsTrigger value="venues">
-              Pending venues ({pendingVenues.length})
-            </TabsTrigger>
+            <TabsTrigger value="members">Pending members ({pendingMembers.length})</TabsTrigger>
+            <TabsTrigger value="venues">Pending venues ({pendingVenues.length})</TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="promos">Promos</TabsTrigger>
           </TabsList>
@@ -446,9 +443,7 @@ function ManageGroup() {
                     min={0}
                     max={100}
                     value={newPromo.discount_percent}
-                    onChange={(e) =>
-                      setNewPromo({ ...newPromo, discount_percent: e.target.value })
-                    }
+                    onChange={(e) => setNewPromo({ ...newPromo, discount_percent: e.target.value })}
                   />
                 </div>
                 <div>

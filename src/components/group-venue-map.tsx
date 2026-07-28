@@ -17,13 +17,9 @@ export function GroupVenueMap({ venues }: { venues: VenuePin[] }) {
 
   useEffect(() => {
     if (!ref.current || mapRef.current) return;
-    const map = L.map(ref.current, { scrollWheelZoom: false }).setView(
-      [12.8797, 121.774],
-      5,
-    );
+    const map = L.map(ref.current, { scrollWheelZoom: false }).setView([12.8797, 121.774], 5);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
     }).addTo(map);
     mapRef.current = map;
@@ -37,9 +33,7 @@ export function GroupVenueMap({ venues }: { venues: VenuePin[] }) {
     const map = mapRef.current;
     if (!map) return;
     const layer = L.layerGroup().addTo(map);
-    const valid = venues.filter(
-      (v) => Number.isFinite(v.latitude) && Number.isFinite(v.longitude),
-    );
+    const valid = venues.filter((v) => Number.isFinite(v.latitude) && Number.isFinite(v.longitude));
     valid.forEach((v) => {
       const marker = L.circleMarker([v.latitude, v.longitude], {
         radius: 11,
@@ -89,7 +83,8 @@ export function GroupVenueMap({ venues }: { venues: VenuePin[] }) {
 }
 
 function escapeHtml(s: string) {
-  return s.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!),
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
   );
 }

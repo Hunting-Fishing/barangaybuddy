@@ -58,7 +58,9 @@ function ResetPage() {
                   minLength={8}
                 />
               </div>
-              <Button type="submit" className="w-full">Update password</Button>
+              <Button type="submit" className="w-full">
+                Update password
+              </Button>
             </form>
           ) : (
             <form onSubmit={sendReset} className="mt-6 space-y-4">
@@ -72,7 +74,9 @@ function ResetPage() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full">Send reset link</Button>
+              <Button type="submit" className="w-full">
+                Send reset link
+              </Button>
             </form>
           )}
         </Card>

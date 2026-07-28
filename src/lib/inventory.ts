@@ -140,14 +140,7 @@ export const INVENTORY_SUBCATEGORIES: Record<string, string[]> = {
     "Water/LPG",
     "General merchandise",
   ],
-  "Dry goods": [
-    "Clothing",
-    "Footwear",
-    "Bags",
-    "School supplies",
-    "Textiles",
-    "Ukay-ukay",
-  ],
+  "Dry goods": ["Clothing", "Footwear", "Bags", "School supplies", "Textiles", "Ukay-ukay"],
   Hardware: [
     "Tools",
     "Paint",

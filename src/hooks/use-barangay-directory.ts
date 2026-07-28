@@ -14,10 +14,7 @@ type UseBarangayDirectoryArgs = {
   setSearch: (next: Partial<BarangaySearch>) => void;
 };
 
-export function useBarangayDirectory({
-  search,
-  setSearch,
-}: UseBarangayDirectoryArgs) {
+export function useBarangayDirectory({ search, setSearch }: UseBarangayDirectoryArgs) {
   const { q, region, province, letter, take } = search;
   const selectedTake: TakeAmount = take ?? 25;
   const [draft, setDraft] = useState(q ?? "");
@@ -43,10 +40,7 @@ export function useBarangayDirectory({
   const { data: regions = [], isLoading: regionsLoading } = useQuery({
     queryKey: ["regions-list"],
     queryFn: async (): Promise<Region[]> => {
-      const { data, error } = await supabase
-        .from("regions")
-        .select("code,slug,name")
-        .order("name");
+      const { data, error } = await supabase.from("regions").select("code,slug,name").order("name");
 
       if (error) throw new Error(error.message);
       return data ?? [];
@@ -68,10 +62,7 @@ export function useBarangayDirectory({
     staleTime: 60 * 60 * 1000,
   });
 
-  const selectedRegion = useMemo(
-    () => regions.find((r) => r.slug === region),
-    [regions, region],
-  );
+  const selectedRegion = useMemo(() => regions.find((r) => r.slug === region), [regions, region]);
 
   const selectedProvince = useMemo(
     () => provinces.find((p) => p.slug === province),
@@ -80,9 +71,7 @@ export function useBarangayDirectory({
 
   const filteredProvinces = useMemo(
     () =>
-      selectedRegion
-        ? provinces.filter((p) => p.region_code === selectedRegion.code)
-        : provinces,
+      selectedRegion ? provinces.filter((p) => p.region_code === selectedRegion.code) : provinces,
     [provinces, selectedRegion],
   );
 
@@ -162,13 +151,9 @@ export function useBarangayDirectory({
         .in("code", neededCityCodes);
 
       const cityMap = new Map((cities ?? []).map((city) => [city.code, city]));
-      const neededProvinceCodes = [
-        ...new Set((cities ?? []).map((city) => city.province_code)),
-      ];
+      const neededProvinceCodes = [...new Set((cities ?? []).map((city) => city.province_code))];
       const provinceMap = new Map(
-        provinces
-          .filter((p) => neededProvinceCodes.includes(p.code))
-          .map((p) => [p.code, p]),
+        provinces.filter((p) => neededProvinceCodes.includes(p.code)).map((p) => [p.code, p]),
       );
       const regionMap = new Map(regions.map((r) => [r.code, r]));
 

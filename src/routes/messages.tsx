@@ -15,7 +15,9 @@ function Inbox() {
   const nav = useNavigate();
   const [convs, setConvs] = useState<any[]>([]);
 
-  useEffect(() => { if (!loading && !user) nav({ to: "/login" }); }, [user, loading, nav]);
+  useEffect(() => {
+    if (!loading && !user) nav({ to: "/login" });
+  }, [user, loading, nav]);
 
   useEffect(() => {
     if (!user) return;
@@ -38,7 +40,9 @@ function Inbox() {
             <Link key={c.id} to="/messages/$conversationId" params={{ conversationId: c.id }}>
               <Card className="p-4 transition-all hover:shadow-elegant">
                 <div className="font-medium">{c.businesses?.name}</div>
-                <div className="text-xs text-muted-foreground">{new Date(c.last_message_at).toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">
+                  {new Date(c.last_message_at).toLocaleString()}
+                </div>
               </Card>
             </Link>
           ))}

@@ -10,17 +10,10 @@ type Props = {
   totalRetailValue: number;
 };
 
-export function InventoryItemPricingTab({
-  form,
-  update,
-  costPerUnit,
-  totalRetailValue,
-}: Props) {
+export function InventoryItemPricingTab({ form, update, costPerUnit, totalRetailValue }: Props) {
   return (
     <div className="rounded-xl border border-border p-5">
-      <h3 className="font-display text-xl font-bold text-emerald-700">
-        Pricing Information
-      </h3>
+      <h3 className="font-display text-xl font-bold text-emerald-700">Pricing Information</h3>
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <InventoryDialogField
           label="Total Cost (All Units)"
@@ -34,10 +27,7 @@ export function InventoryItemPricingTab({
             placeholder="500.00"
           />
         </InventoryDialogField>
-        <InventoryDialogField
-          label="Sell Price Per Unit"
-          help="Price per unit, piece, pack, or kg"
-        >
+        <InventoryDialogField label="Sell Price Per Unit" help="Price per unit, piece, pack, or kg">
           <Input
             type="number"
             step="0.01"

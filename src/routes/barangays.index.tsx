@@ -19,8 +19,7 @@ export const Route = createFileRoute("/barangays/")({
       { property: "og:title", content: "Barangay directory — BarangayHub" },
       {
         property: "og:description",
-        content:
-          "Search 42,000+ Philippine barangays by name and filter by region or province.",
+        content: "Search 42,000+ Philippine barangays by name and filter by region or province.",
       },
     ],
   }),
@@ -29,7 +28,7 @@ export const Route = createFileRoute("/barangays/")({
 
 function BarangaysIndex() {
   const search = Route.useSearch();
-  const navigate = useNavigate({ from: "/barangays" });
+  const navigate = useNavigate({ from: "/barangays/" });
 
   const setSearch = (next: Partial<BarangaySearch>) => {
     navigate({
@@ -39,14 +38,13 @@ function BarangaysIndex() {
   };
 
   const resetFilters = (take: TakeAmount) => {
-    navigate({ search: { take }, replace: true });
+    navigate({
+      search: { q: undefined, region: undefined, province: undefined, letter: undefined, take },
+      replace: true,
+    });
   };
 
   return (
-    <BarangayDirectoryPage
-      search={search}
-      setSearch={setSearch}
-      resetFilters={resetFilters}
-    />
+    <BarangayDirectoryPage search={search} setSearch={setSearch} resetFilters={resetFilters} />
   );
 }

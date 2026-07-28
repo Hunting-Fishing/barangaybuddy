@@ -16,10 +16,7 @@ type Props = {
 
 type RpcError = { message: string };
 type RpcClient = {
-  rpc: (
-    fn: string,
-    args: Record<string, unknown>,
-  ) => Promise<{ error: RpcError | null }>;
+  rpc: (fn: string, args: Record<string, unknown>) => Promise<{ error: RpcError | null }>;
 };
 
 const rpcClient = supabase as unknown as RpcClient;
@@ -33,11 +30,7 @@ function normalizeSuggestion(value: string) {
     .slice(0, 80);
 }
 
-export function CategorySuggestionForm({
-  groupId,
-  groupLabel,
-  onSubmitted,
-}: Props) {
+export function CategorySuggestionForm({ groupId, groupLabel, onSubmitted }: Props) {
   const [suggestion, setSuggestion] = useState("");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -58,16 +51,13 @@ export function CategorySuggestionForm({
     }
 
     setSubmitting(true);
-    const { error } = await rpcClient.rpc(
-      "upsert_business_category_suggestion",
-      {
-        p_group_id: groupId,
-        p_group_label: groupLabel,
-        p_suggestion: suggestion.trim(),
-        p_normalized_suggestion: normalized,
-        p_note: note.trim() || null,
-      },
-    );
+    const { error } = await rpcClient.rpc("upsert_business_category_suggestion", {
+      p_group_id: groupId,
+      p_group_label: groupLabel,
+      p_suggestion: suggestion.trim(),
+      p_normalized_suggestion: normalized,
+      p_note: note.trim() || null,
+    });
     setSubmitting(false);
 
     if (error) {
@@ -90,7 +80,8 @@ export function CategorySuggestionForm({
         <div>
           <h2 className="font-display text-lg font-bold">Missing a type?</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Suggest a business type that belongs under {groupLabel}. Repeated suggestions are counted so we know what to add next.
+            Suggest a business type that belongs under {groupLabel}. Repeated suggestions are
+            counted so we know what to add next.
           </p>
         </div>
       </div>

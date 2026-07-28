@@ -39,8 +39,9 @@ type OsmElement = {
 };
 
 function esc(s: string) {
-  return s.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&", "<": "<", ">": ">", '"': "&quot;", "'": "&#39;" }[c]!),
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&", "<": "<", ">": ">", '"': "&quot;", "'": "&#39;" })[c]!,
   );
 }
 
@@ -57,7 +58,10 @@ function buildOsmAddress(tags: Record<string, string>) {
 }
 
 function normalizeName(name: string) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 export function FuelMap() {
@@ -133,11 +137,7 @@ out center tags;`;
           if (typeof lat !== "number" || typeof lon !== "number") return null;
 
           const tags = element.tags ?? {};
-          const name =
-            tags.name ||
-            tags.brand ||
-            tags.operator ||
-            "Fuel station";
+          const name = tags.name || tags.brand || tags.operator || "Fuel station";
 
           return {
             id: `osm:${element.type}:${element.id}`,
@@ -181,7 +181,10 @@ out center tags;`;
   // Init map
   useEffect(() => {
     if (!ref.current || mapRef.current) return;
-    const map = L.map(ref.current, { scrollWheelZoom: true, preferCanvas: true }).setView([12.8797, 121.774], 6);
+    const map = L.map(ref.current, { scrollWheelZoom: true, preferCanvas: true }).setView(
+      [12.8797, 121.774],
+      6,
+    );
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
@@ -213,7 +216,11 @@ out center tags;`;
           map[p.station_id] ??= [];
           // keep only latest per fuel_type
           if (!map[p.station_id].some((e) => e.fuel_type === p.fuel_type)) {
-            map[p.station_id].push({ fuel_type: p.fuel_type, price: Number(p.price), reported_at: p.reported_at });
+            map[p.station_id].push({
+              fuel_type: p.fuel_type,
+              price: Number(p.price),
+              reported_at: p.reported_at,
+            });
           }
         });
         setPricesByStation(map);
@@ -221,10 +228,7 @@ out center tags;`;
     })();
   }, []);
 
-  const allStations = useMemo(
-    () => [...stations, ...osmStations],
-    [stations, osmStations],
-  );
+  const allStations = useMemo(() => [...stations, ...osmStations], [stations, osmStations]);
 
   // Render markers
   useEffect(() => {
@@ -242,7 +246,8 @@ out center tags;`;
           ? `<div style="margin-top:6px;display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:12px">
             ${latest
               .map(
-                (p) => `<span style="color:#64748b">${FUEL_LABELS[p.fuel_type] ?? p.fuel_type}</span><strong style="text-align:right">₱${p.price.toFixed(2)}</strong>`,
+                (p) =>
+                  `<span style="color:#64748b">${FUEL_LABELS[p.fuel_type] ?? p.fuel_type}</span><strong style="text-align:right">₱${p.price.toFixed(2)}</strong>`,
               )
               .join("")}
           </div>`
@@ -344,15 +349,23 @@ out center tags;`;
             {searching || loadingOsmNearby ? "Searching…" : "Search"}
           </Button>
         </form>
-        <Button type="button" size="sm" variant="outline" onClick={locateMe} disabled={loadingOsmNearby}>
-          <Locate className="mr-1 h-4 w-4" /> {loadingOsmNearby ? "Loading nearby…" : "Use my location"}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={locateMe}
+          disabled={loadingOsmNearby}
+        >
+          <Locate className="mr-1 h-4 w-4" />{" "}
+          {loadingOsmNearby ? "Loading nearby…" : "Use my location"}
         </Button>
       </div>
       <div className="overflow-hidden rounded-xl border border-border">
         <div ref={ref} className="h-[460px] w-full" />
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-card px-4 py-2 text-xs text-muted-foreground">
           <span>
-            {stations.length} BarangayHub stations · {osmStations.length} nearby OSM stations · {withPrice} with community prices
+            {stations.length} BarangayHub stations · {osmStations.length} nearby OSM stations ·{" "}
+            {withPrice} with community prices
           </span>
           <span>Green = BarangayHub station · Orange = nearby OpenStreetMap station.</span>
         </div>

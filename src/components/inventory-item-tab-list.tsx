@@ -1,11 +1,4 @@
-import {
-  BarChart3,
-  Box,
-  Calculator,
-  DollarSign,
-  FileText,
-  Info,
-} from "lucide-react";
+import { BarChart3, Box, Calculator, DollarSign, FileText, Info } from "lucide-react";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { InventoryDialogTab } from "@/hooks/use-inventory-item-dialog";
 

@@ -66,7 +66,10 @@ type OsmElement = {
 };
 
 function slugify(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function buildAddress(t: Record<string, string>): string | null {
@@ -94,14 +97,18 @@ function mapType(t: Record<string, string>): string | null {
   if (shop === "hardware" || shop === "doityourself") return "hardware";
   if (shop === "laundry" || amenity === "laundry") return "laundry";
   if (shop === "hairdresser" || shop === "beauty" || shop === "barber") return "salon";
-  if (shop === "car_repair" || amenity === "car_repair" || shop === "motorcycle_repair") return "repair_shop";
+  if (shop === "car_repair" || amenity === "car_repair" || shop === "motorcycle_repair")
+    return "repair_shop";
   if (shop === "convenience" || shop === "supermarket" || shop === "grocery") return "store";
   if (shop === "agrarian" || shop === "farm") return "agri_supply";
 
   if (amenity && /^(restaurant|fast_food|cafe|bar|pub|food_court|ice_cream)$/.test(amenity)) {
     return "restaurant";
   }
-  if (amenity && /^(clinic|hospital|dentist|doctors|veterinary|bank|atm|post_office|car_wash)$/.test(amenity)) {
+  if (
+    amenity &&
+    /^(clinic|hospital|dentist|doctors|veterinary|bank|atm|post_office|car_wash)$/.test(amenity)
+  ) {
     return "service";
   }
   if (office) return "service";
@@ -183,7 +190,13 @@ export async function runBusinessOsmSync(): Promise<{
           seenSlug.add(slug);
 
           const extraTags: string[] = [];
-          if (tags.cuisine) extraTags.push(...tags.cuisine.split(";").map((s) => s.trim()).filter(Boolean));
+          if (tags.cuisine)
+            extraTags.push(
+              ...tags.cuisine
+                .split(";")
+                .map((s) => s.trim())
+                .filter(Boolean),
+            );
           if (tags.brand) extraTags.push(tags.brand);
 
           allRows.push({
@@ -219,7 +232,7 @@ export async function runBusinessOsmSync(): Promise<{
       const chunk = allRows.slice(i, i + chunkSize);
       const { error, count } = await supabaseAdmin
         .from("businesses")
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         .upsert(chunk as any, {
           onConflict: "imported_from,import_source_id",
           count: "exact",

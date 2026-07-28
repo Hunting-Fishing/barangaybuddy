@@ -42,16 +42,17 @@ export const Route = createFileRoute("/spotlight/admin")({ component: Page });
 function Page() {
   const { user, isAdmin, loading } = useAuth(),
     nav = useNavigate();
-  const [tab, setTab] = useState<"auditions" | "sponsors" | "bookings">("auditions"),
+  const [tab, setTab] = useState<"auditions" | "votes" | "sponsors" | "bookings">("auditions"),
     [submissions, setSubmissions] = useState<Submission[]>([]),
     [sponsors, setSponsors] = useState<Inquiry[]>([]),
     [bookings, setBookings] = useState<Inquiry[]>([]),
-    [campaign, setCampaign] = useState<CampaignAge>();
+    [campaign, setCampaign] = useState<CampaignAge>(),
+    [votes, setVotes] = useState<any[]>([]);
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) nav({ to: "/spotlight" });
   }, [loading, user, isAdmin, nav]);
   async function load() {
-    const [a, s, b, c] = await Promise.all([
+    const [a, s, b, c, v] = await Promise.all([
       supabase.from("spotlight_submissions").select("*").order("created_at", { ascending: false }),
       supabase
         .from("spotlight_sponsor_inquiries")
@@ -67,11 +68,17 @@ function Page() {
         .eq("is_active", true)
         .limit(1)
         .maybeSingle(),
+      (supabase as any)
+        .from("spotlight_votes")
+        .select("id,created_at,invalidated_at,invalidation_reason,submission_id,user_id")
+        .order("created_at", { ascending: false })
+        .limit(200),
     ]);
     setSubmissions((a.data ?? []) as Submission[]);
     setSponsors((s.data ?? []) as Inquiry[]);
     setBookings((b.data ?? []) as Inquiry[]);
     setCampaign(c.data ?? undefined);
+    setVotes(v.data ?? []);
   }
   useEffect(() => {
     if (isAdmin) load();
@@ -93,7 +100,7 @@ function Page() {
           </div>
         </div>
         <div className="mt-8 flex gap-2 overflow-x-auto">
-          {(["auditions", "sponsors", "bookings"] as const).map((x) => (
+          {(["auditions", "votes", "sponsors", "bookings"] as const).map((x) => (
             <Button
               key={x}
               variant={tab === x ? "default" : "outline"}
@@ -108,6 +115,40 @@ function Page() {
         <div className="mt-6 space-y-4">
           {tab === "auditions" &&
             submissions.map((s) => <ReviewCard key={s.id} row={s} onSaved={load} />)}
+          {tab === "votes" &&
+            votes.map((v) => (
+              <Card key={v.id} className="flex items-center justify-between gap-3 p-4">
+                <div>
+                  <p className="font-mono text-xs">{v.id}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Entry {v.submission_id.slice(0, 8)} · Voter {v.user_id.slice(0, 8)}
+                  </p>
+                  {v.invalidated_at && (
+                    <p className="text-xs text-destructive">Invalidated: {v.invalidation_reason}</p>
+                  )}
+                </div>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  disabled={!!v.invalidated_at}
+                  onClick={async () => {
+                    const reason = window.prompt("Audit reason for invalidating this vote");
+                    if (!reason) return;
+                    const { error } = await (supabase as any).rpc("invalidate_spotlight_vote", {
+                      p_vote: v.id,
+                      p_reason: reason,
+                    });
+                    if (error) toast.error(error.message);
+                    else {
+                      toast.success("Vote invalidated.");
+                      load();
+                    }
+                  }}
+                >
+                  Invalidate
+                </Button>
+              </Card>
+            ))}
           {tab === "sponsors" &&
             sponsors.map((s) => (
               <InquiryCard key={s.id} row={s} table="spotlight_sponsor_inquiries" onSaved={load} />
@@ -177,7 +218,14 @@ function CampaignAgeCard({ campaign, onSaved }: { campaign: CampaignAge; onSaved
 function ReviewCard({ row, onSaved }: { row: Submission; onSaved: () => void }) {
   const [status, setStatus] = useState(row.status),
     [notes, setNotes] = useState(row.moderation_notes ?? ""),
-    [score, setScore] = useState("");
+    [score, setScore] = useState(""),
+    [rubric, setRubric] = useState({
+      talent: "",
+      originality: "",
+      presentation: "",
+      barangayAppeal: "",
+      bookingPotential: "",
+    });
   async function save() {
     try {
       await moderateSpotlightSubmission({
@@ -186,6 +234,15 @@ function ReviewCard({ row, onSaved }: { row: Submission; onSaved: () => void }) 
           status: status as "pending" | "needs_changes" | "approved" | "rejected" | "featured",
           moderationNotes: notes,
           score: score === "" ? undefined : Number(score),
+          rubric: Object.values(rubric).every(Boolean)
+            ? {
+                talent: Number(rubric.talent),
+                originality: Number(rubric.originality),
+                presentation: Number(rubric.presentation),
+                barangayAppeal: Number(rubric.barangayAppeal),
+                bookingPotential: Number(rubric.bookingPotential),
+              }
+            : undefined,
         },
       });
       toast.success("Review saved.");
@@ -250,6 +307,22 @@ function ReviewCard({ row, onSaved }: { row: Submission; onSaved: () => void }) 
         <Button className="self-end" onClick={save}>
           Save review
         </Button>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+        {(
+          ["talent", "originality", "presentation", "barangayAppeal", "bookingPotential"] as const
+        ).map((key) => (
+          <div key={key}>
+            <Label className="capitalize">{key.replace(/([A-Z])/g, " $1")}</Label>
+            <Input
+              type="number"
+              min="0"
+              max="100"
+              value={rubric[key]}
+              onChange={(e) => setRubric({ ...rubric, [key]: e.target.value })}
+            />
+          </div>
+        ))}
       </div>
     </Card>
   );

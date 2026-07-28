@@ -64,9 +64,7 @@ export function BarangayDirectoryResults({
                 <MapPin className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="min-w-0">
-                <h3 className="truncate font-display font-bold leading-tight">
-                  {barangay.name}
-                </h3>
+                <h3 className="truncate font-display font-bold leading-tight">{barangay.name}</h3>
                 <p className="mt-0.5 truncate text-xs text-muted-foreground">
                   {barangay.city_name}
                   {barangay.province_name ? `, ${barangay.province_name}` : ""}
@@ -93,9 +91,7 @@ export function BarangayDirectoryResults({
             {isFetching ? "Loading…" : "Load more"}
           </button>
         ) : (
-          <p className="text-xs text-muted-foreground">
-            You’ve reached the end of this list.
-          </p>
+          <p className="text-xs text-muted-foreground">You’ve reached the end of this list.</p>
         )}
       </div>
     </div>

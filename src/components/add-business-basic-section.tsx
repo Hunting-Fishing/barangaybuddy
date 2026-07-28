@@ -9,28 +9,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  BUSINESS_TYPES,
-  BUSINESS_TYPE_LABEL,
-  type BusinessType,
-} from "@/lib/business-types";
+import { BUSINESS_TYPES, BUSINESS_TYPE_LABEL, type BusinessType } from "@/lib/business-types";
 import type { AddBusinessFormState } from "@/lib/add-business-form";
 
 type Props = {
   form: AddBusinessFormState;
-  update: <K extends keyof AddBusinessFormState>(
-    key: K,
-    value: AddBusinessFormState[K],
-  ) => void;
+  update: <K extends keyof AddBusinessFormState>(key: K, value: AddBusinessFormState[K]) => void;
 };
 
 export function AddBusinessBasicSection({ form, update }: Props) {
   return (
     <Card className="p-5 md:p-6">
       <div>
-        <div className="text-xs font-bold uppercase tracking-wide text-primary">
-          Step 1
-        </div>
+        <div className="text-xs font-bold uppercase tracking-wide text-primary">Step 1</div>
         <h2 className="font-display text-xl font-bold">Business basics</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Start with the public name and the main kind of business customers should find.
@@ -86,7 +77,8 @@ export function AddBusinessBasicSection({ form, update }: Props) {
             maxLength={2000}
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            Keep it clear and local — products, services, specialties, or landmarks help customers decide.
+            Keep it clear and local — products, services, specialties, or landmarks help customers
+            decide.
           </p>
         </div>
       </div>

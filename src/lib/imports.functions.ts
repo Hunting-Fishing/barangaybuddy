@@ -56,7 +56,12 @@ export const previewImport = createServerFn({ method: "POST" })
             payloads.push({ url: c.url, source: "google", payload: r.place, text: r.rawText });
           } else {
             const r = await fetchScrape(c.url);
-            payloads.push({ url: c.url, source: c.source as Source, payload: r.raw, text: r.markdown });
+            payloads.push({
+              url: c.url,
+              source: c.source as Source,
+              payload: r.raw,
+              text: r.markdown,
+            });
           }
         } catch (e) {
           // Skip individual failures but surface in the combined text
@@ -72,17 +77,27 @@ export const previewImport = createServerFn({ method: "POST" })
       const okPayloads = payloads.filter((p) => p.payload !== null);
       if (okPayloads.length === 0) {
         const details = payloads
-          .map((p) => `• ${p.source.toUpperCase()} (${p.url}): ${p.text.replace(/^\[Could not fetch [^:]+:\s*/, "").replace(/\]$/, "")}`)
+          .map(
+            (p) =>
+              `• ${p.source.toUpperCase()} (${p.url}): ${p.text.replace(/^\[Could not fetch [^:]+:\s*/, "").replace(/\]$/, "")}`,
+          )
           .join("\n");
         const friendly = `None of the links could be read:\n\n${details}\n\nTip: for Google, paste the place's share link (open the business on Google Maps → Share), not a directions link.`;
-        await supabaseAdmin.from("business_imports").update({ status: "failed", error: friendly }).eq("id", importId);
+        await supabaseAdmin
+          .from("business_imports")
+          .update({ status: "failed", error: friendly })
+          .eq("id", importId);
         return { ok: false as const, error: friendly };
       }
 
       const combinedText = payloads
         .map((p) => `### ${p.source.toUpperCase()} — ${p.url}\n${p.text}`)
         .join("\n\n");
-      const combinedPayload = payloads.map((p) => ({ source: p.source, url: p.url, payload: p.payload }));
+      const combinedPayload = payloads.map((p) => ({
+        source: p.source,
+        url: p.url,
+        payload: p.payload,
+      }));
 
       const extracted = await geminiExtract({
         source: primarySource,
@@ -103,7 +118,11 @@ export const previewImport = createServerFn({ method: "POST" })
         if (dup) {
           await supabaseAdmin
             .from("business_imports")
-            .update({ status: "failed", error: "duplicate", extracted: extracted as unknown as never })
+            .update({
+              status: "failed",
+              error: "duplicate",
+              extracted: extracted as unknown as never,
+            })
             .eq("id", importId);
           return {
             ok: false as const,
@@ -145,7 +164,10 @@ export const previewImport = createServerFn({ method: "POST" })
       };
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unknown error";
-      await supabaseAdmin.from("business_imports").update({ status: "failed", error: msg }).eq("id", importId);
+      await supabaseAdmin
+        .from("business_imports")
+        .update({ status: "failed", error: msg })
+        .eq("id", importId);
       return { ok: false as const, error: msg };
     }
   });
@@ -188,13 +210,28 @@ const CommitInput = z.object({
   }),
 });
 
-async function insertListingsFor(businessId: string, overrides: {
-  products: { name: string; price: number | null; unit: string | null }[];
-  services: string[];
-}) {
-  const rows: Array<{ business_id: string; name: string; price: number | null; unit: string | null; category: string | null }> = [];
+async function insertListingsFor(
+  businessId: string,
+  overrides: {
+    products: { name: string; price: number | null; unit: string | null }[];
+    services: string[];
+  },
+) {
+  const rows: Array<{
+    business_id: string;
+    name: string;
+    price: number | null;
+    unit: string | null;
+    category: string | null;
+  }> = [];
   for (const p of overrides.products) {
-    rows.push({ business_id: businessId, name: p.name, price: p.price, unit: p.unit, category: "product" });
+    rows.push({
+      business_id: businessId,
+      name: p.name,
+      price: p.price,
+      unit: p.unit,
+      category: "product",
+    });
   }
   for (const s of overrides.services) {
     rows.push({ business_id: businessId, name: s, price: null, unit: null, category: "service" });
@@ -213,7 +250,7 @@ export const commitImport = createServerFn({ method: "POST" })
       .single();
     if (!imp) return { ok: false as const, error: "Import not found." };
 
-    let ownerId: string | null = null;
+    const ownerId: string | null = null;
     if (data.publish === "mine") {
       // We need an auth context for this branch — read from session via auth middleware-less approach
       // Get auth via supabase admin user lookup using the bearer token from cookies isn't available here,
@@ -313,7 +350,8 @@ export const commitImportAsMine = createServerFn({ method: "POST" })
       })
       .select("id, slug")
       .single();
-    if (error || !biz) return { ok: false as const, error: error?.message ?? "Could not create business." };
+    if (error || !biz)
+      return { ok: false as const, error: error?.message ?? "Could not create business." };
 
     await persistCatalogGrowth({
       tags: o.tags.map((s) => ({ slug: s, label: s })),

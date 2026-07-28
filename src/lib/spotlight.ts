@@ -43,6 +43,10 @@ export type PublicTalent = {
   featured_at: string | null;
 };
 export type LeaderboardTalent = PublicTalent & { votes: number; judgeScore: number; score: number };
+export type PeoplesChoiceTalent = Pick<
+  PublicTalent,
+  "slug" | "stage_name" | "public_photo_url" | "barangay_name" | "city_name"
+> & { submission_id: string; votes: number };
 
 export async function activeCampaign() {
   const { data, error } = await supabase
@@ -86,6 +90,15 @@ export async function leaderboard(): Promise<LeaderboardTalent[]> {
     judgeScore: Number(row.judge_score ?? 0),
     score: Number(row.combined_score ?? 0),
   }));
+}
+export async function peoplesChoice(): Promise<PeoplesChoiceTalent | null> {
+  const { data, error } = await (supabase as any)
+    .from("spotlight_peoples_choice")
+    .select("*")
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data as PeoplesChoiceTalent | null;
 }
 export function ageOn(date: string) {
   const born = new Date(`${date}T00:00:00`);

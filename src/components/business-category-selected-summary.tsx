@@ -42,9 +42,7 @@ export function BusinessCategorySelectedSummary({
               <button
                 type="button"
                 onClick={() =>
-                  onAdditionalTypesChange(
-                    additionalTypes.filter((item) => item !== type),
-                  )
+                  onAdditionalTypesChange(additionalTypes.filter((item) => item !== type))
                 }
                 className="hover:text-destructive"
                 aria-label={`Remove ${BUSINESS_TYPE_LABEL[type]}`}
@@ -61,9 +59,7 @@ export function BusinessCategorySelectedSummary({
                 type="button"
                 onClick={() =>
                   onCustomTypesChange(
-                    customTypes.filter(
-                      (item) => item.toLowerCase() !== type.toLowerCase(),
-                    ),
+                    customTypes.filter((item) => item.toLowerCase() !== type.toLowerCase()),
                   )
                 }
                 className="hover:text-destructive/80"

@@ -8,12 +8,7 @@ type Props = {
   className?: string;
 };
 
-export function InventoryDialogField({
-  label,
-  help,
-  children,
-  className,
-}: Props) {
+export function InventoryDialogField({ label, help, children, className }: Props) {
   return (
     <div className={className}>
       <Label>{label}</Label>

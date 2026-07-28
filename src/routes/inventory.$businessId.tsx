@@ -76,7 +76,8 @@ function BusinessInventoryPage() {
                   {business.name}
                 </h1>
                 <p className="mt-2 text-muted-foreground">
-                  Add items, control stock, track reorder points, sync products to your public page, and view inventory value.
+                  Add items, control stock, track reorder points, sync products to your public page,
+                  and view inventory value.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">

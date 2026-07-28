@@ -1,0 +1,4 @@
+-- Local development seed. Existing geography and auth fixtures are prerequisites.
+-- The active Star of the Month campaign is created by its migration.
+-- Merchant, customer, guardian, and driver rows intentionally are not tied to fabricated auth UUIDs.
+-- Create local users through Supabase Studio, then exercise onboarding through the UI so RLS remains part of the test.

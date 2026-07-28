@@ -80,17 +80,11 @@ export function AddBusinessForm() {
           </TabsList>
 
           <TabsContent value="basics" className="mt-6">
-            <AddBusinessBasicSection
-              form={businessForm.form}
-              update={businessForm.update}
-            />
+            <AddBusinessBasicSection form={businessForm.form} update={businessForm.update} />
           </TabsContent>
 
           <TabsContent value="categories" className="mt-6">
-            <AddBusinessCategoriesSection
-              form={businessForm.form}
-              setForm={businessForm.setForm}
-            />
+            <AddBusinessCategoriesSection form={businessForm.form} setForm={businessForm.setForm} />
           </TabsContent>
 
           <TabsContent value="location" className="mt-6">
@@ -109,17 +103,11 @@ export function AddBusinessForm() {
           </TabsContent>
 
           <TabsContent value="contact" className="mt-6">
-            <AddBusinessContactSection
-              form={businessForm.form}
-              update={businessForm.update}
-            />
+            <AddBusinessContactSection form={businessForm.form} update={businessForm.update} />
           </TabsContent>
 
           <TabsContent value="photos" className="mt-6">
-            <AddBusinessMediaSection
-              form={businessForm.form}
-              update={businessForm.update}
-            />
+            <AddBusinessMediaSection form={businessForm.form} update={businessForm.update} />
           </TabsContent>
         </Tabs>
 
@@ -146,9 +134,7 @@ export function AddBusinessForm() {
               </Button>
             )}
             <Button type="submit" size="lg" disabled={businessForm.submitting}>
-              {businessForm.submitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+              {businessForm.submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save and manage business
             </Button>
           </div>

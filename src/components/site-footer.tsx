@@ -25,7 +25,18 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
-              <Link to="/search" className="hover:text-foreground">
+              <Link
+                to="/search"
+                search={{
+                  q: "",
+                  types: [],
+                  customTypes: [],
+                  tags: [],
+                  category: undefined,
+                  page: 1,
+                }}
+                className="hover:text-foreground"
+              >
                 Search businesses
               </Link>
             </li>

@@ -3,13 +3,20 @@ import { useEffect, useState } from "react";
 import { Award, MapPin } from "lucide-react";
 import { SpotlightLayout } from "@/components/spotlight-layout";
 import { Card } from "@/components/ui/card";
-import { leaderboard, type LeaderboardTalent } from "@/lib/spotlight";
+import {
+  leaderboard,
+  peoplesChoice,
+  type LeaderboardTalent,
+  type PeoplesChoiceTalent,
+} from "@/lib/spotlight";
 export const Route = createFileRoute("/spotlight/leaderboard")({ component: Page });
 function Page() {
   const [rows, setRows] = useState<LeaderboardTalent[]>([]),
-    [page, setPage] = useState(1);
+    [page, setPage] = useState(1),
+    [choice, setChoice] = useState<PeoplesChoiceTalent | null>(null);
   useEffect(() => {
     leaderboard().then(setRows);
+    peoplesChoice().then(setChoice);
   }, []);
   const visible = rows.slice((page - 1) * 10, page * 10);
   return (
@@ -20,6 +27,26 @@ function Page() {
         <p className="mt-3 max-w-2xl text-muted-foreground">
           Live standings: 70% normalized community vote and 30% average judge score.
         </p>
+        {choice && (
+          <Card className="mt-6 border-amber-300 bg-amber-50 p-5 text-amber-950">
+            <div className="flex items-center gap-3">
+              <Award className="h-8 w-8" />
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider">People's Choice</p>
+                <Link
+                  to="/spotlight/talent/$slug"
+                  params={{ slug: choice.slug }}
+                  className="font-display text-xl font-bold"
+                >
+                  {choice.stage_name}
+                </Link>
+                <p className="text-sm">
+                  {choice.barangay_name} · {choice.votes} verified votes
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
         <div className="mt-8 space-y-3">
           {visible.map((r, i) => (
             <Link key={r.id} to="/spotlight/talent/$slug" params={{ slug: r.slug }}>

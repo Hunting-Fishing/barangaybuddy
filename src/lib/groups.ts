@@ -80,11 +80,7 @@ export async function listPublicGroups() {
 }
 
 export async function getGroupBySlug(slug: string) {
-  const { data, error } = await anyDb
-    .from("groups")
-    .select("*")
-    .eq("slug", slug)
-    .maybeSingle();
+  const { data, error } = await anyDb.from("groups").select("*").eq("slug", slug).maybeSingle();
   if (error) throw error;
   return data as GroupRow | null;
 }

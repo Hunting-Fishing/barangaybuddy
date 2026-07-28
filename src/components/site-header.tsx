@@ -17,6 +17,8 @@ import {
   Trophy,
   Sparkles,
   UsersRound,
+  ShoppingBag,
+  Bike,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -102,6 +104,7 @@ export function SiteHeader() {
           </Link>
           <Link
             to="/search"
+            search={{ q: "", types: [], customTypes: [], tags: [], category: undefined, page: 1 }}
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
             <Search className="h-4 w-4" /> Search
@@ -129,6 +132,18 @@ export function SiteHeader() {
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
             <UsersRound className="h-4 w-4" /> Family
+          </Link>
+          <Link
+            to="/marketplace"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            <ShoppingBag className="h-4 w-4" /> Market
+          </Link>
+          <Link
+            to="/buddy-express"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            <Bike className="h-4 w-4" /> Express
           </Link>
         </nav>
 
@@ -176,6 +191,12 @@ export function SiteHeader() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate({ to: "/family" })}>
                   <UsersRound className="mr-2 h-4 w-4" /> Family account
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate({ to: "/marketplace/orders" })}>
+                  <ShoppingBag className="mr-2 h-4 w-4" /> My orders
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate({ to: "/buddy-express" })}>
+                  <Bike className="mr-2 h-4 w-4" /> Buddy Express
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate({ to: "/roadsafe-notifications" })}>
                   <Bell className="mr-2 h-4 w-4" /> Safety alerts

@@ -72,9 +72,15 @@ export function FeatureTagsPicker({ value, onChange }: Props) {
       {value.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {value.map((slug) => (
-            <Badge key={slug} variant={isPresetTag(slug) ? "secondary" : "default"} className="gap-1">
+            <Badge
+              key={slug}
+              variant={isPresetTag(slug) ? "secondary" : "default"}
+              className="gap-1"
+            >
               {tagLabel(slug)}
-              {!isPresetTag(slug) && <span className="text-[10px] uppercase opacity-70">custom</span>}
+              {!isPresetTag(slug) && (
+                <span className="text-[10px] uppercase opacity-70">custom</span>
+              )}
               <button
                 type="button"
                 onClick={() => onChange(value.filter((s) => s !== slug))}
@@ -105,7 +111,9 @@ export function FeatureTagsPicker({ value, onChange }: Props) {
 
       <div className="max-h-96 overflow-auto rounded-md border border-border">
         {filteredGroups.length === 0 && (
-          <p className="p-4 text-sm text-muted-foreground">No matches. Add it as a custom tag below.</p>
+          <p className="p-4 text-sm text-muted-foreground">
+            No matches. Add it as a custom tag below.
+          </p>
         )}
         {filteredGroups.map((g) => (
           <div key={g.id} className="border-b border-border last:border-b-0">

@@ -76,7 +76,8 @@ function BusinessInventoryPage() {
                   {business.name}
                 </h1>
                 <p className="mt-2 text-muted-foreground">
-                  Manage stock, reorder points, pricing, public listings, and business inventory value.
+                  Manage stock, reorder points, pricing, public listings, and business inventory
+                  value.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">

@@ -12,16 +12,12 @@ type Props = {
   onSelect: (item: BusinessCategoryItem) => void;
 };
 
-export function CategoryTypeCard({
-  item,
-  searchCount,
-  categoryId,
-  onSelect,
-}: Props) {
+export function CategoryTypeCard({ item, searchCount, categoryId, onSelect }: Props) {
   return (
     <Link
       to="/search"
       search={{
+        q: "",
         types: item.businessType ? [item.businessType] : [],
         customTypes: item.customType ? [item.customType] : [],
         tags: [],
@@ -35,9 +31,7 @@ export function CategoryTypeCard({
         <div>
           <div className="flex flex-wrap gap-1.5">
             {item.businessType && (
-              <Badge variant="secondary">
-                {BUSINESS_TYPE_LABEL[item.businessType]}
-              </Badge>
+              <Badge variant="secondary">{BUSINESS_TYPE_LABEL[item.businessType]}</Badge>
             )}
             {item.customType && <Badge>{item.customType}</Badge>}
             {item.section && (
@@ -52,12 +46,11 @@ export function CategoryTypeCard({
 
         <div className="mt-5 flex items-center justify-between gap-3 text-xs text-muted-foreground">
           <span>
-            {searchCount > 0
-              ? `${searchCount.toLocaleString()} searches`
-              : "Start this search"}
+            {searchCount > 0 ? `${searchCount.toLocaleString()} searches` : "Start this search"}
           </span>
           <span className="inline-flex items-center gap-1 font-medium text-primary">
-            Search <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            Search{" "}
+            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </span>
         </div>
       </Card>

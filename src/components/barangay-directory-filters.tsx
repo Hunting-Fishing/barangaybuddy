@@ -146,9 +146,7 @@ export function BarangayDirectoryFilters({
           <label className="mb-1.5 block text-sm font-medium">Show amount</label>
           <Select
             value={String(selectedTake)}
-            onValueChange={(value) =>
-              onSearchChange({ take: Number(value) as TakeAmount })
-            }
+            onValueChange={(value) => onSearchChange({ take: Number(value) as TakeAmount })}
           >
             <SelectTrigger aria-label="Choose result amount">
               <SelectValue />
@@ -164,9 +162,7 @@ export function BarangayDirectoryFilters({
         </div>
 
         <div className="lg:col-span-3">
-          <label className="mb-1.5 block text-sm font-medium">
-            Search barangay name
-          </label>
+          <label className="mb-1.5 block text-sm font-medium">Search barangay name</label>
           <div className="relative">
             <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
