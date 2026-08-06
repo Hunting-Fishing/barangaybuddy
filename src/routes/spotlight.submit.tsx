@@ -69,7 +69,7 @@ function Page() {
           .select("code,name,cities_municipalities(name)")
           .ilike("name", `%${search}%`)
           .limit(8)
-          .then(({ data }) => setResults((data ?? []) as Barangay[])),
+          .then(({ data }: any) => setResults((data ?? []) as Barangay[])),
       250,
     );
     return () => clearTimeout(timer);

@@ -68,7 +68,7 @@ function Page() {
           .select("code,name")
           .ilike("name", `%${search}%`)
           .limit(8)
-          .then(({ data }) => setBarangays(data ?? [])),
+          .then(({ data }: any) => setBarangays(data ?? [])),
       200,
     );
     return () => clearTimeout(t);
@@ -302,7 +302,7 @@ function Page() {
             third-party seller margin is discounted.
           </p>
           <div className="mt-5 grid gap-4 md:grid-cols-3">
-            {data?.offers.map((o) => (
+            {data?.offers.map((o: any) => (
               <Card key={o.id} className="p-5">
                 <p className="text-xs font-bold uppercase text-primary">{o.category}</p>
                 <h3 className="mt-2 font-bold">{o.name}</h3>
