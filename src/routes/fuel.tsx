@@ -14,6 +14,7 @@ import { FuelMap } from "@/components/fuel-map";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { z } from "zod";
+import { runFuelPriceSync, runFuelStationSync } from "@/lib/sync.functions";
 
 export const Route = createFileRoute("/fuel")({
   head: () => ({
@@ -58,16 +59,7 @@ function FuelPage() {
   async function refreshNow() {
     setRefreshing(true);
     try {
-      const res = await fetch("/api/public/hooks/fuel-sync", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
-        },
-        body: "{}",
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+      const json = await runFuelPriceSync();
       toast.success(`Synced ${json.prices ?? 0} price rows from DOE`);
       await loadDoe(doeRegion);
     } catch (e) {
@@ -80,16 +72,7 @@ function FuelPage() {
   async function refreshStations() {
     setRefreshingStations(true);
     try {
-      const res = await fetch("/api/public/hooks/fuel-stations-sync", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
-        },
-        body: "{}",
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+      const json = await runFuelStationSync();
       toast.success(`Imported ${json.upserted ?? 0} stations from OpenStreetMap`);
       // Reload page-wide map data
       setTimeout(() => window.location.reload(), 800);

@@ -11,7 +11,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = supabaseClient as any;
 import {
   CONSENT_VERSION,
   FAMILY_PERMISSIONS,
@@ -66,7 +68,7 @@ function Page() {
           .select("code,name")
           .ilike("name", `%${search}%`)
           .limit(8)
-          .then(({ data }) => setBarangays(data ?? [])),
+          .then(({ data }: any) => setBarangays(data ?? [])),
       200,
     );
     return () => clearTimeout(t);
@@ -300,7 +302,7 @@ function Page() {
             third-party seller margin is discounted.
           </p>
           <div className="mt-5 grid gap-4 md:grid-cols-3">
-            {data?.offers.map((o) => (
+            {data?.offers.map((o: any) => (
               <Card key={o.id} className="p-5">
                 <p className="text-xs font-bold uppercase text-primary">{o.category}</p>
                 <h3 className="mt-2 font-bold">{o.name}</h3>

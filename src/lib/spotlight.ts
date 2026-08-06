@@ -1,4 +1,7 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
+// Tables for this feature are not in the generated types yet.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = supabaseClient as any;
 
 export const TALENT_CATEGORIES = [
   "Singing",
@@ -80,7 +83,7 @@ export async function leaderboard(): Promise<LeaderboardTalent[]> {
     .order("votes", { ascending: false })
     .order("stage_name");
   if (error) throw error;
-  return (data ?? []).map((row) => ({
+  return (data ?? []).map((row: any) => ({
     ...(row as PublicTalent),
     votes: row.votes ?? 0,
     judgeScore: Number(row.judge_score ?? 0),

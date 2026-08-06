@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { runBusinessImportSync } from "@/lib/sync.functions";
 import { z } from "zod";
 import { ExternalLink, Package, Plus, Settings, ShieldCheck } from "lucide-react";
 import { FeatureTagsPicker } from "@/components/feature-tags-picker";
@@ -64,16 +65,7 @@ function Dashboard() {
   async function runOsmSync() {
     setSyncingOsm(true);
     try {
-      const res = await fetch("/api/public/hooks/business-osm-sync", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
-        },
-        body: "{}",
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok || json.ok === false) throw new Error(json.error || `HTTP ${res.status}`);
+      const json = await runBusinessImportSync();
       toast.success(`Imported ${json.upserted ?? 0} businesses from OpenStreetMap`);
       await loadLastRun();
     } catch (e) {

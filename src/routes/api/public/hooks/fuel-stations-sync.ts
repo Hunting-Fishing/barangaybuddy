@@ -5,11 +5,11 @@ export const Route = createFileRoute("/api/public/hooks/fuel-stations-sync")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY;
+        const expected = process.env.DATA_SYNC_SECRET;
         const provided =
-          request.headers.get("apikey") ??
+          request.headers.get("x-sync-secret") ??
           request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-        if (!expected || provided !== expected) {
+        if (!expected || !provided || provided.length !== expected.length || provided !== expected) {
           return new Response("Unauthorized", { status: 401 });
         }
         try {

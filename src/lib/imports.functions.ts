@@ -161,14 +161,22 @@ const CommitInput = z.object({
     longitude: z.number().nullable(),
     contact_phone: z.string().max(40).nullable(),
     contact_email: z.string().max(120).nullable(),
-    website: z.string().max(500).nullable(),
+    website: z
+      .string()
+      .max(500)
+      .nullable()
+      .transform((v) => (v && /^https?:\/\//i.test(v.trim()) ? v.trim() : null)),
     hours: z.string().max(500).nullable(),
     type: z.enum(BUSINESS_TYPES),
     additional_types: z.array(z.enum(BUSINESS_TYPES)).max(8),
     custom_types: z.array(z.string().min(2).max(40)).max(12),
     tags: z.array(z.string().min(1).max(40)).max(40),
     barangay_code: z.string().min(1),
-    cover_image_url: z.string().max(2000).nullable(),
+    cover_image_url: z
+      .string()
+      .max(2000)
+      .nullable()
+      .transform((v) => (v && /^https?:\/\//i.test(v.trim()) ? v.trim() : null)),
     products: z
       .array(
         z.object({
