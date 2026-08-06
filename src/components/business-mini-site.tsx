@@ -177,8 +177,14 @@ export function BusinessMiniSite({ business, listings }: Props) {
             <InfoCard icon={<Phone className="h-5 w-5" />} label="Phone" value={business.contact_phone} href={`tel:${business.contact_phone}`} />
           )}
           {business.website && (
-            <InfoCard icon={<Globe className="h-5 w-5" />} label="Website" value="Open website" href={business.website} />
+            <InfoCard
+              icon={<Globe className="h-5 w-5" />}
+              label="Website"
+              value={safeExternalUrl(business.website) ? "Open website" : business.website}
+              href={safeExternalUrl(business.website) ?? undefined}
+            />
           )}
+
           {business.contact_email && (
             <InfoCard icon={<Mail className="h-5 w-5" />} label="Email" value={business.contact_email} href={`mailto:${business.contact_email}`} />
           )}
