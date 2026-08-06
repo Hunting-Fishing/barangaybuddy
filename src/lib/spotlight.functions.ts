@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { supabaseAdmin as supabaseAdminClient } from "@/integrations/supabase/client.server";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabaseAdmin = supabaseAdminClient as any;
 const input = z.object({
   submissionId: z.string().uuid(),
   status: z.enum(["pending", "needs_changes", "approved", "rejected", "featured"]),
