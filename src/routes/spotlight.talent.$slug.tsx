@@ -5,7 +5,9 @@ import { toast } from "sonner";
 import { SpotlightLayout } from "@/components/spotlight-layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = supabaseClient as any;
 import { useAuth } from "@/hooks/use-auth";
 import { talentBySlug, type PublicTalent } from "@/lib/spotlight";
 export const Route = createFileRoute("/spotlight/talent/$slug")({ component: Page });

@@ -11,7 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase = supabaseClient as any;
 import { loadFamily, type ChildProfile } from "@/lib/family";
 import { activeCampaign, ageOn, makeSlug, TALENT_CATEGORIES } from "@/lib/spotlight";
 type Barangay = { code: string; name: string; cities_municipalities: { name: string } | null };
