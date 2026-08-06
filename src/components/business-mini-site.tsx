@@ -1,3 +1,4 @@
+import { safeExternalUrl } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
 import { Clock, Globe, Mail, MapPin, MessageSquare, Package, Phone, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
