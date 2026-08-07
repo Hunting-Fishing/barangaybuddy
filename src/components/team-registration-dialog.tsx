@@ -119,6 +119,14 @@ export function TeamRegistrationDialog({
       return;
     }
 
+    if (phone.trim()) {
+      await anyDb
+        .from("group_team_contacts")
+        .upsert({ team_id: team.id, contact_phone: phone.trim() }, { onConflict: "team_id" });
+    }
+
+
+
     const rows = [
       {
         team_id: team.id,
