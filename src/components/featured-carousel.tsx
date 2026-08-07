@@ -9,7 +9,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Trophy, Fuel, Sparkles } from "lucide-react";
+import { ArrowRight, Trophy, Fuel, Sparkles, Car } from "lucide-react";
 import flyerAsset from "@/assets/pool-league-flyer.png.asset.json";
 
 const BILLIARDS_SLUG = "barangay-buddy-billiards-league";
