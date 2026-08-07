@@ -10,6 +10,7 @@ import { Search, MapPin, ArrowRight, Link2, Sparkles } from "lucide-react";
 import { BusinessCategoryIcon } from "@/components/business-category-icon";
 import { BUSINESS_CATEGORY_GROUPS } from "@/lib/business-category-taxonomy";
 import heroImage from "@/assets/hero-barangay.jpg";
+import { FeaturedCarousel } from "@/components/featured-carousel";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -123,6 +124,8 @@ function Home() {
           </div>
         </div>
       </section>
+
+      <FeaturedCarousel />
 
       {/* CATEGORIES */}
       <section className="container mx-auto px-4 py-10 md:py-20">
