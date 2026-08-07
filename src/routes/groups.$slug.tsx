@@ -329,7 +329,13 @@ function GroupPage() {
               </TabsList>
 
               <TabsContent value="venues" className="mt-4 space-y-4">
-                {venuePins.length > 0 && <GroupVenueMap venues={venuePins} />}
+                {venuePins.length > 0 && (
+                  <ClientOnly fallback={<div className="h-64 rounded-lg bg-muted" />}>
+                    <Suspense fallback={<div className="h-64 rounded-lg bg-muted" />}>
+                      <GroupVenueMap venues={venuePins} />
+                    </Suspense>
+                  </ClientOnly>
+                )}
                 {venues.length === 0 ? (
                   <Card className="p-6 text-center text-sm text-muted-foreground">
                     No league venues yet. Business owners can request to join from their
