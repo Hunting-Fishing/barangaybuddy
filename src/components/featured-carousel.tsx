@@ -62,6 +62,16 @@ const SLIDES: Slide[] = [
     gradient: "from-sun/80 via-orange-600 to-amber-900",
     to: "/dashboard",
   },
+  {
+    id: "365motorsales",
+    eyebrow: "Partner spotlight",
+    title: "365 Motor Sales",
+    body: "Quality cars and motorcycles in the Philippines — browse inventory and deals online.",
+    cta: "Visit 365motorsales.com",
+    icon: Car,
+    gradient: "from-red-900 via-red-800 to-red-950",
+    href: "https://365motorsales.com",
+  },
 ];
 
 export function FeaturedCarousel() {
