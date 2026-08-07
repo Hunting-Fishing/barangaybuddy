@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { ClientOnly } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -7,7 +8,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { GroupVenueMap, type VenuePin } from "@/components/group-venue-map";
+import type { VenuePin } from "@/lib/venue-pin";
+
+const GroupVenueMap = lazy(() =>
+  import("@/components/group-venue-map").then((m) => ({ default: m.GroupVenueMap })),
+);
 import { GroupSignupDialog } from "@/components/group-signup-dialog";
 import { TeamRegistrationDialog } from "@/components/team-registration-dialog";
 import flyerAsset from "@/assets/pool-league-flyer.png.asset.json";
@@ -291,6 +296,26 @@ function GroupPage() {
         </div>
       </div>
 
+      {/* Always-available league navigation */}
+      <div className="border-b border-border bg-muted/40">
+        <div className="container mx-auto flex flex-wrap gap-2 px-4 py-3">
+          <Button asChild size="sm" variant="secondary">
+            <Link to="/groups/$slug/dashboard" params={{ slug: group.slug }}>
+              <LayoutDashboard className="mr-2 h-4 w-4" /> League dashboard
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/groups/$slug/compare" params={{ slug: group.slug }}>
+              <Trophy className="mr-2 h-4 w-4" /> How we compare
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="ghost">
+            <Link to="/groups">All groups</Link>
+          </Button>
+        </div>
+      </div>
+
+
       <main className="container mx-auto flex-1 px-4 py-8">
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
           {/* Left column: description + tabs */}
@@ -324,7 +349,13 @@ function GroupPage() {
               </TabsList>
 
               <TabsContent value="venues" className="mt-4 space-y-4">
-                {venuePins.length > 0 && <GroupVenueMap venues={venuePins} />}
+                {venuePins.length > 0 && (
+                  <ClientOnly fallback={<div className="h-64 rounded-lg bg-muted" />}>
+                    <Suspense fallback={<div className="h-64 rounded-lg bg-muted" />}>
+                      <GroupVenueMap venues={venuePins} />
+                    </Suspense>
+                  </ClientOnly>
+                )}
                 {venues.length === 0 ? (
                   <Card className="p-6 text-center text-sm text-muted-foreground">
                     No league venues yet. Business owners can request to join from their

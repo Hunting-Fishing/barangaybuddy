@@ -1,15 +1,9 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import type { VenuePin } from "@/lib/venue-pin";
 
-export interface VenuePin {
-  id: string;
-  slug: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  approved: boolean;
-}
+export type { VenuePin };
 
 export function GroupVenueMap({ venues }: { venues: VenuePin[] }) {
   const ref = useRef<HTMLDivElement>(null);
