@@ -657,6 +657,13 @@ export type Database = {
             referencedRelation: "groups"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "group_memberships_user_profile_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       group_payments: {
@@ -815,6 +822,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "group_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_team_members_user_profile_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
