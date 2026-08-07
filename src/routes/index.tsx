@@ -57,23 +57,22 @@ function Home() {
         <div className="absolute inset-0 -z-10 opacity-25">
           <img src={heroImage} alt="" className="h-full w-full object-cover" />
         </div>
-        <div className="container mx-auto grid gap-12 px-4 py-24 md:py-32 lg:grid-cols-12">
+        <div className="container mx-auto grid gap-12 px-4 py-10 md:py-24 lg:grid-cols-12 lg:py-32">
           <div className="lg:col-span-7">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sun/40 bg-sun/15 px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-sun">
+            <div className="inline-flex items-center gap-2 rounded-full border border-sun/40 bg-sun/15 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-sun sm:text-xs">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sun opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-sun" />
               </span>
               Live across all 42,011 barangays
             </div>
-            <h1 className="mt-6 font-display text-5xl font-bold leading-[1.05] text-primary-foreground md:text-6xl lg:text-7xl">
+            <h1 className="mt-4 font-display text-3xl font-bold leading-[1.08] text-primary-foreground sm:text-5xl md:text-6xl lg:text-7xl">
               Every barangay,
               <br />
               <span className="bg-gradient-sun bg-clip-text text-transparent">one network.</span>
             </h1>
-            <p className="mt-6 max-w-xl text-lg text-primary-foreground/80">
-              Discover stores, services, restaurants and food vendors right in your barangay.
-              Track live fuel prices. Message owners directly. Built by Filipinos, for Filipinos.
+            <p className="mt-3 max-w-xl text-sm text-primary-foreground/80 sm:mt-6 sm:text-lg">
+              Find stores, services, food vendors and live fuel prices in your barangay.
             </p>
 
             <form
@@ -81,34 +80,34 @@ function Home() {
                 e.preventDefault();
                 window.location.href = `/search?q=${encodeURIComponent(search)}`;
               }}
-              className="mt-8 flex gap-2"
+              className="mt-5 flex gap-2 sm:mt-8"
             >
               <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground sm:left-4 sm:h-5 sm:w-5" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search businesses, barangays, or products…"
-                  className="h-14 rounded-xl border-0 bg-background pl-12 text-base shadow-elegant"
+                  placeholder="Search barangay, store, product…"
+                  className="h-11 rounded-xl border-0 bg-background pl-9 text-sm shadow-elegant sm:h-14 sm:pl-12 sm:text-base"
                 />
               </div>
-              <Button size="lg" className="h-14 bg-sun text-sun-foreground hover:bg-sun/90 shadow-sun">
+              <Button className="h-11 shrink-0 bg-sun px-4 text-sun-foreground shadow-sun hover:bg-sun/90 sm:h-14 sm:px-6">
                 Search
               </Button>
             </form>
 
-            <div className="mt-8 flex gap-8 text-primary-foreground/90">
+            <div className="mt-5 grid grid-cols-3 gap-2 text-primary-foreground/90 sm:mt-8 sm:flex sm:gap-8">
               <div>
-                <div className="font-display text-3xl font-bold">{stats.barangays.toLocaleString()}</div>
-                <div className="text-xs uppercase tracking-widest text-primary-foreground/60">Barangays</div>
+                <div className="font-display text-xl font-bold sm:text-3xl">{stats.barangays.toLocaleString()}</div>
+                <div className="text-[10px] uppercase tracking-widest text-primary-foreground/60 sm:text-xs">Barangays</div>
               </div>
               <div>
-                <div className="font-display text-3xl font-bold">{stats.businesses.toLocaleString()}+</div>
-                <div className="text-xs uppercase tracking-widest text-primary-foreground/60">Businesses</div>
+                <div className="font-display text-xl font-bold sm:text-3xl">{stats.businesses.toLocaleString()}+</div>
+                <div className="text-[10px] uppercase tracking-widest text-primary-foreground/60 sm:text-xs">Businesses</div>
               </div>
               <div>
-                <div className="font-display text-3xl font-bold">17</div>
-                <div className="text-xs uppercase tracking-widest text-primary-foreground/60">Regions</div>
+                <div className="font-display text-xl font-bold sm:text-3xl">17</div>
+                <div className="text-[10px] uppercase tracking-widest text-primary-foreground/60 sm:text-xs">Regions</div>
               </div>
             </div>
           </div>
@@ -126,37 +125,36 @@ function Home() {
       </section>
 
       {/* CATEGORIES */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="flex items-end justify-between">
-          <div>
-            <h2 className="font-display text-3xl font-bold md:text-4xl">Browse by category</h2>
-            <p className="mt-2 text-muted-foreground">
+      <section className="container mx-auto px-4 py-10 md:py-20">
+        <div className="flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="font-display text-xl font-bold sm:text-3xl md:text-4xl">Browse by category</h2>
+            <p className="mt-1 hidden text-muted-foreground sm:block">
               Choose a category first, then pick the exact business type you need.
             </p>
           </div>
-          <Link to="/search" search={{ q: "", types: [], customTypes: [], tags: [], category: undefined, page: 1 }} className="hidden text-sm font-medium text-primary hover:underline md:inline-flex">
-            Search all businesses <ArrowRight className="ml-1 inline h-4 w-4" />
+          <Link to="/search" search={{ q: "", types: [], customTypes: [], tags: [], category: undefined, page: 1 }} className="shrink-0 text-xs font-medium text-primary hover:underline sm:text-sm">
+            See all <ArrowRight className="ml-1 inline h-3.5 w-3.5" />
           </Link>
         </div>
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-2.5 sm:mt-8 sm:gap-4 lg:grid-cols-4">
           {BUSINESS_CATEGORY_GROUPS.map((group) => (
             <Link
               key={group.id}
               to="/categories/$category"
               params={{ category: group.id }}
-              className={`group relative flex min-h-44 flex-col overflow-hidden rounded-2xl bg-gradient-to-br ${
+              className={`group relative flex min-h-24 flex-col overflow-hidden rounded-xl bg-gradient-to-br sm:min-h-44 sm:rounded-2xl ${
                 GROUP_STYLES[group.id] ?? "from-primary/90 to-primary/70"
-              } p-6 text-primary-foreground shadow-soft transition-all hover:-translate-y-1 hover:shadow-elegant`}
+              } p-3 text-primary-foreground shadow-soft transition-all hover:-translate-y-1 hover:shadow-elegant sm:p-6`}
             >
-              <BusinessCategoryIcon icon={group.icon} className="h-10 w-10 opacity-95" />
-              <h3 className="mt-4 font-display text-xl font-bold">{group.label}</h3>
-              <p className="mt-1 line-clamp-2 text-sm text-primary-foreground/80">
+              <BusinessCategoryIcon icon={group.icon} className="h-5 w-5 opacity-95 sm:h-10 sm:w-10" />
+              <h3 className="mt-2 font-display text-sm font-bold leading-tight sm:mt-4 sm:text-xl">{group.label}</h3>
+              <p className="mt-1 hidden line-clamp-2 text-sm text-primary-foreground/80 sm:block">
                 {group.description}
               </p>
-              <div className="mt-auto pt-4 text-xs text-primary-foreground/75">
-                {group.items.length} business types
+              <div className="mt-auto pt-2 text-[10px] text-primary-foreground/75 sm:pt-4 sm:text-xs">
+                {group.items.length} types
               </div>
-              <ArrowRight className="absolute right-5 top-1/2 h-5 w-5 -translate-y-1/2 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
             </Link>
           ))}
         </div>
