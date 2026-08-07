@@ -57,23 +57,22 @@ function Home() {
         <div className="absolute inset-0 -z-10 opacity-25">
           <img src={heroImage} alt="" className="h-full w-full object-cover" />
         </div>
-        <div className="container mx-auto grid gap-12 px-4 py-24 md:py-32 lg:grid-cols-12">
+        <div className="container mx-auto grid gap-12 px-4 py-10 md:py-24 lg:grid-cols-12 lg:py-32">
           <div className="lg:col-span-7">
-            <div className="inline-flex items-center gap-2 rounded-full border border-sun/40 bg-sun/15 px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-sun">
+            <div className="inline-flex items-center gap-2 rounded-full border border-sun/40 bg-sun/15 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-sun sm:text-xs">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sun opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-sun" />
               </span>
               Live across all 42,011 barangays
             </div>
-            <h1 className="mt-6 font-display text-5xl font-bold leading-[1.05] text-primary-foreground md:text-6xl lg:text-7xl">
+            <h1 className="mt-4 font-display text-3xl font-bold leading-[1.08] text-primary-foreground sm:text-5xl md:text-6xl lg:text-7xl">
               Every barangay,
               <br />
               <span className="bg-gradient-sun bg-clip-text text-transparent">one network.</span>
             </h1>
-            <p className="mt-6 max-w-xl text-lg text-primary-foreground/80">
-              Discover stores, services, restaurants and food vendors right in your barangay.
-              Track live fuel prices. Message owners directly. Built by Filipinos, for Filipinos.
+            <p className="mt-3 max-w-xl text-sm text-primary-foreground/80 sm:mt-6 sm:text-lg">
+              Find stores, services, food vendors and live fuel prices in your barangay.
             </p>
 
             <form
@@ -81,34 +80,34 @@ function Home() {
                 e.preventDefault();
                 window.location.href = `/search?q=${encodeURIComponent(search)}`;
               }}
-              className="mt-8 flex gap-2"
+              className="mt-5 flex gap-2 sm:mt-8"
             >
               <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground sm:left-4 sm:h-5 sm:w-5" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search businesses, barangays, or products…"
-                  className="h-14 rounded-xl border-0 bg-background pl-12 text-base shadow-elegant"
+                  placeholder="Search barangay, store, product…"
+                  className="h-11 rounded-xl border-0 bg-background pl-9 text-sm shadow-elegant sm:h-14 sm:pl-12 sm:text-base"
                 />
               </div>
-              <Button size="lg" className="h-14 bg-sun text-sun-foreground hover:bg-sun/90 shadow-sun">
+              <Button className="h-11 shrink-0 bg-sun px-4 text-sun-foreground shadow-sun hover:bg-sun/90 sm:h-14 sm:px-6">
                 Search
               </Button>
             </form>
 
-            <div className="mt-8 flex gap-8 text-primary-foreground/90">
+            <div className="mt-5 grid grid-cols-3 gap-2 text-primary-foreground/90 sm:mt-8 sm:flex sm:gap-8">
               <div>
-                <div className="font-display text-3xl font-bold">{stats.barangays.toLocaleString()}</div>
-                <div className="text-xs uppercase tracking-widest text-primary-foreground/60">Barangays</div>
+                <div className="font-display text-xl font-bold sm:text-3xl">{stats.barangays.toLocaleString()}</div>
+                <div className="text-[10px] uppercase tracking-widest text-primary-foreground/60 sm:text-xs">Barangays</div>
               </div>
               <div>
-                <div className="font-display text-3xl font-bold">{stats.businesses.toLocaleString()}+</div>
-                <div className="text-xs uppercase tracking-widest text-primary-foreground/60">Businesses</div>
+                <div className="font-display text-xl font-bold sm:text-3xl">{stats.businesses.toLocaleString()}+</div>
+                <div className="text-[10px] uppercase tracking-widest text-primary-foreground/60 sm:text-xs">Businesses</div>
               </div>
               <div>
-                <div className="font-display text-3xl font-bold">17</div>
-                <div className="text-xs uppercase tracking-widest text-primary-foreground/60">Regions</div>
+                <div className="font-display text-xl font-bold sm:text-3xl">17</div>
+                <div className="text-[10px] uppercase tracking-widest text-primary-foreground/60 sm:text-xs">Regions</div>
               </div>
             </div>
           </div>
@@ -126,87 +125,91 @@ function Home() {
       </section>
 
       {/* CATEGORIES */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="flex items-end justify-between">
-          <div>
-            <h2 className="font-display text-3xl font-bold md:text-4xl">Browse by category</h2>
-            <p className="mt-2 text-muted-foreground">
+      <section className="container mx-auto px-4 py-10 md:py-20">
+        <div className="flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="font-display text-xl font-bold sm:text-3xl md:text-4xl">Browse by category</h2>
+            <p className="mt-1 hidden text-muted-foreground sm:block">
               Choose a category first, then pick the exact business type you need.
             </p>
           </div>
-          <Link to="/search" search={{ q: "", types: [], customTypes: [], tags: [], category: undefined, page: 1 }} className="hidden text-sm font-medium text-primary hover:underline md:inline-flex">
-            Search all businesses <ArrowRight className="ml-1 inline h-4 w-4" />
+          <Link to="/search" search={{ q: "", types: [], customTypes: [], tags: [], category: undefined, page: 1 }} className="shrink-0 text-xs font-medium text-primary hover:underline sm:text-sm">
+            See all <ArrowRight className="ml-1 inline h-3.5 w-3.5" />
           </Link>
         </div>
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-2.5 sm:mt-8 sm:gap-4 lg:grid-cols-4">
           {BUSINESS_CATEGORY_GROUPS.map((group) => (
             <Link
               key={group.id}
               to="/categories/$category"
               params={{ category: group.id }}
-              className={`group relative flex min-h-44 flex-col overflow-hidden rounded-2xl bg-gradient-to-br ${
+              className={`group relative flex min-h-24 flex-col overflow-hidden rounded-xl bg-gradient-to-br sm:min-h-44 sm:rounded-2xl ${
                 GROUP_STYLES[group.id] ?? "from-primary/90 to-primary/70"
-              } p-6 text-primary-foreground shadow-soft transition-all hover:-translate-y-1 hover:shadow-elegant`}
+              } p-3 text-primary-foreground shadow-soft transition-all hover:-translate-y-1 hover:shadow-elegant sm:p-6`}
             >
-              <BusinessCategoryIcon icon={group.icon} className="h-10 w-10 opacity-95" />
-              <h3 className="mt-4 font-display text-xl font-bold">{group.label}</h3>
-              <p className="mt-1 line-clamp-2 text-sm text-primary-foreground/80">
+              <BusinessCategoryIcon icon={group.icon} className="h-5 w-5 opacity-95 sm:h-10 sm:w-10" />
+              <h3 className="mt-2 font-display text-sm font-bold leading-tight sm:mt-4 sm:text-xl">{group.label}</h3>
+              <p className="mt-1 hidden line-clamp-2 text-sm text-primary-foreground/80 sm:block">
                 {group.description}
               </p>
-              <div className="mt-auto pt-4 text-xs text-primary-foreground/75">
-                {group.items.length} business types
+              <div className="mt-auto pt-2 text-[10px] text-primary-foreground/75 sm:pt-4 sm:text-xs">
+                {group.items.length} types
               </div>
-              <ArrowRight className="absolute right-5 top-1/2 h-5 w-5 -translate-y-1/2 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
             </Link>
           ))}
         </div>
       </section>
 
       {/* IMPORT BUSINESS */}
-      <section className="container mx-auto px-4 py-8">
-        <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 transition-all hover:-translate-y-1 hover:shadow-elegant">
-          <CardContent className="p-6 md:p-10">
-            <div className="flex flex-col items-center gap-6 text-center md:flex-row md:text-left">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft">
-                <Link2 className="h-7 w-7" />
+      <section className="container mx-auto px-4 py-4 sm:py-8">
+        <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 transition-all hover:shadow-elegant">
+          <CardContent className="p-4 sm:p-6 md:p-10">
+            <div className="flex items-center gap-3 text-left sm:gap-6 md:flex-row">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft sm:h-14 sm:w-14">
+                <Link2 className="h-5 w-5 sm:h-7 sm:w-7" />
               </div>
-              <div className="flex-1">
-                <h2 className="font-display text-xl font-bold md:text-2xl">Add a Business from a link</h2>
-                <p className="mt-1.5 max-w-2xl text-muted-foreground">
-                  Paste a Google Maps link such as{" "}
-                  <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium">https://share.google/YsB3YFMjiv2Vw08LQ</code>{" "}
-                  or a Facebook Business page link. Our AI extracts name, location, products and features automatically.
+              <div className="min-w-0 flex-1">
+                <h2 className="font-display text-base font-bold sm:text-xl md:text-2xl">Add a business from a link</h2>
+                <p className="mt-1 max-w-2xl text-xs text-muted-foreground sm:text-base">
+                  Paste a Google Maps or Facebook page link — our AI fills in the details.
                 </p>
               </div>
-              <Button size="lg" className="shrink-1 bg-sun text-sun-foreground hover:bg-sun/90 shadow-sun gap-2" asChild>
+              <Button className="hidden shrink-0 gap-2 bg-sun text-sun-foreground shadow-sun hover:bg-sun/90 sm:inline-flex" asChild>
                 <Link to="/import">
-                  <Sparkles className="h-4 w-4" /> Import Business
+                  <Sparkles className="h-4 w-4" /> Import
                 </Link>
               </Button>
             </div>
+            <Button className="mt-3 w-full gap-2 bg-sun text-sun-foreground shadow-sun hover:bg-sun/90 sm:hidden" asChild>
+              <Link to="/import">
+                <Sparkles className="h-4 w-4" /> Import business
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       </section>
 
       {/* FEATURED */}
       {featured.length > 0 && (
-        <section className="container mx-auto px-4 py-12">
-          <h2 className="font-display text-3xl font-bold md:text-4xl">Newest businesses</h2>
-          <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <section className="container mx-auto px-4 py-6 sm:py-12">
+          <h2 className="font-display text-xl font-bold sm:text-3xl md:text-4xl">Newest businesses</h2>
+          <div className="mt-4 grid gap-3 sm:mt-8 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {featured.map((b) => (
               <Link key={b.id} to="/business/$slug" params={{ slug: b.slug }}>
                 <Card className="overflow-hidden transition-all hover:-translate-y-1 hover:shadow-elegant">
-                  <div className="aspect-video bg-gradient-to-br from-secondary to-muted">
-                    {b.cover_image_url && (
-                      <img src={b.cover_image_url} alt={b.name} className="h-full w-full object-cover" />
-                    )}
-                  </div>
-                  <div className="p-5">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <MapPin className="h-3 w-3" /> {b.barangays?.name}, {b.barangays?.cities_municipalities?.name}
+                  <div className="flex sm:block">
+                    <div className="aspect-square w-24 shrink-0 bg-gradient-to-br from-secondary to-muted sm:aspect-video sm:w-full">
+                      {b.cover_image_url && (
+                        <img src={b.cover_image_url} alt={b.name} loading="lazy" className="h-full w-full object-cover" />
+                      )}
                     </div>
-                    <h3 className="mt-1 font-display text-lg font-bold">{b.name}</h3>
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{b.description}</p>
+                    <div className="min-w-0 p-3 sm:p-5">
+                      <div className="flex items-center gap-1 truncate text-[11px] text-muted-foreground sm:text-xs">
+                        <MapPin className="h-3 w-3 shrink-0" /> {b.barangays?.name}, {b.barangays?.cities_municipalities?.name}
+                      </div>
+                      <h3 className="mt-0.5 truncate font-display text-sm font-bold sm:text-lg">{b.name}</h3>
+                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground sm:text-sm">{b.description}</p>
+                    </div>
                   </div>
                 </Card>
               </Link>
@@ -216,31 +219,31 @@ function Home() {
       )}
 
       {/* CTA */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="overflow-hidden rounded-3xl bg-gradient-hero p-10 text-primary-foreground shadow-elegant md:p-16">
-          <div className="grid gap-8 lg:grid-cols-2">
+      <section className="container mx-auto px-4 py-10 sm:py-20">
+        <div className="overflow-hidden rounded-2xl bg-gradient-hero p-6 text-primary-foreground shadow-elegant sm:rounded-3xl sm:p-10 md:p-16">
+          <div className="grid gap-5 sm:gap-8 lg:grid-cols-2">
             <div>
-              <h2 className="font-display text-3xl font-bold md:text-5xl">
+              <h2 className="font-display text-2xl font-bold sm:text-3xl md:text-5xl">
                 Got a business?
                 <br />
                 <span className="bg-gradient-sun bg-clip-text text-transparent">Get found.</span>
               </h2>
-              <p className="mt-4 max-w-md text-primary-foreground/80">
-                List your store, service, restaurant, or fuel station free. Reach customers in your
-                exact barangay and beyond.
+              <p className="mt-3 max-w-md text-sm text-primary-foreground/80 sm:mt-4 sm:text-base">
+                List your store, service, restaurant, or fuel station free.
               </p>
             </div>
-            <div className="flex items-end justify-end gap-3">
-              <Button size="lg" className="bg-sun text-sun-foreground hover:bg-sun/90 shadow-sun" asChild>
-                <Link to="/signup">Create free account</Link>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end sm:justify-end sm:gap-3">
+              <Button className="bg-sun text-sun-foreground shadow-sun hover:bg-sun/90" asChild>
+                <Link to="/signup">Create account</Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10" asChild>
-                <Link to="/fuel">View fuel prices</Link>
+              <Button variant="outline" className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10" asChild>
+                <Link to="/fuel">Fuel prices</Link>
               </Button>
             </div>
           </div>
         </div>
       </section>
+
 
       <SiteFooter />
     </div>
