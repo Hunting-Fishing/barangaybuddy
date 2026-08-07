@@ -120,6 +120,7 @@ function GroupPage() {
     }>
   >([]);
   const [barangayNames, setBarangayNames] = useState<Record<string, string>>({});
+  const [invites, setInvites] = useState<Array<{ id: string; team: { id: string; name: string } | null }>>([]);
 
   useEffect(() => {
     void loadAll();
@@ -187,6 +188,17 @@ function GroupPage() {
     }
 
     if (user) {
+      const { data: inviteRows } = await (supabase as any)
+        .from("group_team_members")
+        .select("id, team:group_teams(id, name, group_id)")
+        .eq("user_id", user.id)
+        .eq("status", "invited");
+      setInvites(
+        ((inviteRows ?? []) as Array<{ id: string; team: { id: string; name: string; group_id: string } | null }>)
+          .filter((r) => r.team?.group_id === group.id)
+          .map((r) => ({ id: r.id, team: r.team })),
+      );
+
       const m = await getMyMembership(group.id, user.id);
       setMembership(m);
       if (m && (m.role === "admin" || m.role === "owner") && m.status === "active") {
@@ -204,6 +216,7 @@ function GroupPage() {
     } else {
       setMembership(null);
       setIsGroupAdmin(false);
+      setInvites([]);
     }
   }
 
@@ -224,6 +237,16 @@ function GroupPage() {
         })),
     [venues],
   );
+
+  async function respondToInvite(id: string, accept: boolean) {
+    const anyDb = supabase as any;
+    const { error } = accept
+      ? await anyDb.from("group_team_members").update({ status: "confirmed" }).eq("id", id)
+      : await anyDb.from("group_team_members").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success(accept ? "You joined the team roster." : "Invite declined.");
+    void loadAll();
+  }
 
   async function cancelMembership() {
     if (!membership) return;
@@ -608,6 +631,36 @@ function GroupPage() {
                 </li>
               </ul>
             </Card>
+
+            {invites.length > 0 && (
+              <Card className="p-5">
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Team invites
+                </div>
+                {invites.map((iv) => (
+                  <div key={iv.id} className="mt-3 space-y-2">
+                    <div className="text-sm font-medium">{iv.team?.name}</div>
+                    {!canPlay && (
+                      <p className="text-xs text-amber-700">
+                        You need an active player membership to compete for this team.
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => respondToInvite(iv.id, true)}>
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => respondToInvite(iv.id, false)}
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </Card>
+            )}
 
             <Card className="p-5">
               <div className="flex items-center gap-2 text-sm">
