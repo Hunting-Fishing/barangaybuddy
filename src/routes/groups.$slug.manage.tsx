@@ -143,7 +143,7 @@ function ManageGroup() {
       anyDb
         .from("group_teams")
         .select(
-          "id, name, status, contact_phone, notes, members:group_team_members(id, status, is_captain, profile:profiles(display_name))",
+          "id, name, status, notes, contact:group_team_contacts(contact_phone), members:group_team_members(id, status, is_captain, profile:profiles(display_name))",
         )
         .eq("group_id", groupId)
         .order("created_at", { ascending: false }),
