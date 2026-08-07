@@ -782,6 +782,35 @@ export type Database = {
           },
         ]
       }
+      group_team_contacts: {
+        Row: {
+          contact_phone: string | null
+          created_at: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          contact_phone?: string | null
+          created_at?: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          contact_phone?: string | null
+          created_at?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_team_contacts_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: true
+            referencedRelation: "group_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_team_members: {
         Row: {
           created_at: string
@@ -838,7 +867,6 @@ export type Database = {
           barangay_code: string | null
           captain_id: string
           city_code: string | null
-          contact_phone: string | null
           created_at: string
           group_id: string
           home_venue_business_id: string | null
@@ -854,7 +882,6 @@ export type Database = {
           barangay_code?: string | null
           captain_id: string
           city_code?: string | null
-          contact_phone?: string | null
           created_at?: string
           group_id: string
           home_venue_business_id?: string | null
@@ -870,7 +897,6 @@ export type Database = {
           barangay_code?: string | null
           captain_id?: string
           city_code?: string | null
-          contact_phone?: string | null
           created_at?: string
           group_id?: string
           home_venue_business_id?: string | null
