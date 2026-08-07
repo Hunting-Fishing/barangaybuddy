@@ -36,6 +36,14 @@ type PendingVenue = {
   business: { id: string; name: string; slug: string } | null;
 };
 
+function teamPhone(
+  contact: { contact_phone: string | null } | Array<{ contact_phone: string | null }> | null,
+): string | null {
+  if (!contact) return null;
+  return (Array.isArray(contact) ? contact[0]?.contact_phone : contact.contact_phone) ?? null;
+}
+
+
 function ManageGroup() {
   const { slug } = Route.useParams();
   const { user, loading } = useAuth();
