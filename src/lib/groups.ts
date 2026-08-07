@@ -24,6 +24,7 @@ export type MembershipRow = {
   user_id: string;
   role: "owner" | "admin" | "member";
   status: "pending" | "active" | "expired" | "cancelled";
+  tier?: "supporter" | "player";
   started_at: string | null;
   expires_at: string | null;
   payment_ref: string | null;
