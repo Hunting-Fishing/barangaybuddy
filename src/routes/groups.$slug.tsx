@@ -34,6 +34,7 @@ import {
   Clock,
   Tag,
   Settings,
+  LayoutDashboard,
 } from "lucide-react";
 import { toast } from "sonner";
 
