@@ -393,8 +393,8 @@ function ManageGroup() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div className="font-semibold">{t.name}</div>
-                      {t.contact_phone && (
-                        <div className="text-xs text-muted-foreground">{t.contact_phone}</div>
+                      {teamPhone(t.contact) && (
+                        <div className="text-xs text-muted-foreground">{teamPhone(t.contact)}</div>
                       )}
                       {t.notes && <p className="mt-1 text-sm text-muted-foreground">{t.notes}</p>}
                       <div className="mt-2 flex flex-wrap gap-1.5">
