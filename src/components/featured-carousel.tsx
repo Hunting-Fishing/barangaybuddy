@@ -9,7 +9,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Trophy, Fuel, Sparkles } from "lucide-react";
+import { ArrowRight, Trophy, Fuel, Sparkles, Car } from "lucide-react";
 import flyerAsset from "@/assets/pool-league-flyer.png.asset.json";
 
 const BILLIARDS_SLUG = "barangay-buddy-billiards-league";
@@ -23,9 +23,10 @@ type Slide = {
   icon: typeof Trophy;
   gradient: string;
   image?: string;
-  to: string;
+  to?: string;
   params?: Record<string, string>;
   search?: Record<string, unknown>;
+  href?: string;
 };
 
 const SLIDES: Slide[] = [
@@ -60,6 +61,16 @@ const SLIDES: Slide[] = [
     icon: Sparkles,
     gradient: "from-sun/80 via-orange-600 to-amber-900",
     to: "/dashboard",
+  },
+  {
+    id: "365motorsales",
+    eyebrow: "Partner spotlight",
+    title: "365 Motor Sales",
+    body: "Quality cars and motorcycles in the Philippines — browse inventory and deals online.",
+    cta: "Visit 365motorsales.com",
+    icon: Car,
+    gradient: "from-red-900 via-red-800 to-red-950",
+    href: "https://365motorsales.com",
   },
 ];
 
@@ -104,10 +115,21 @@ export function FeaturedCarousel() {
                         {slide.body}
                       </p>
                       <Button asChild size="sm" variant="secondary" className="mt-3 sm:mt-6">
-                        <Link to={slide.to as never} params={slide.params as never} search={slide.search as never}>
-                          {slide.cta}
-                          <ArrowRight className="ml-1.5 h-4 w-4" />
-                        </Link>
+                        {slide.href ? (
+                          <a
+                            href={slide.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {slide.cta}
+                            <ArrowRight className="ml-1.5 h-4 w-4" />
+                          </a>
+                        ) : (
+                          <Link to={slide.to as never} params={slide.params as never} search={slide.search as never}>
+                            {slide.cta}
+                            <ArrowRight className="ml-1.5 h-4 w-4" />
+                          </Link>
+                        )}
                       </Button>
                     </div>
                     {slide.image ? (
