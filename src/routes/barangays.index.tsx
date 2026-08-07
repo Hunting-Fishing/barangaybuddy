@@ -29,17 +29,17 @@ export const Route = createFileRoute("/barangays/")({
 
 function BarangaysIndex() {
   const search = Route.useSearch();
-  const navigate = useNavigate({ from: "/barangays" });
+  const navigate = useNavigate({ from: "/barangays/" });
 
   const setSearch = (next: Partial<BarangaySearch>) => {
     navigate({
-      search: (prev: BarangaySearch) => ({ ...prev, ...next }),
+      search: (prev: any) => ({ ...prev, ...next }),
       replace: true,
     });
   };
 
   const resetFilters = (take: TakeAmount) => {
-    navigate({ search: { take }, replace: true });
+    navigate({ search: { take } as any, replace: true });
   };
 
   return (

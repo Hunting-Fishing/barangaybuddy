@@ -200,7 +200,7 @@ function CategoryPage() {
             </Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
-            <Link to="/search">Search businesses</Link>
+            <Link to="/search" search={{ q: "", types: [], customTypes: [], tags: [], category: undefined, page: 1 }}>Search businesses</Link>
           </Button>
         </div>
 
@@ -227,7 +227,9 @@ function CategoryPage() {
               <Link
                 to="/search"
                 search={{
+                  q: "",
                   types: businessTypes,
+                  customTypes: [],
                   tags: [],
                   category: group.id,
                   page: 1,

@@ -22,6 +22,7 @@ export function CategoryTypeCard({
     <Link
       to="/search"
       search={{
+        q: "",
         types: item.businessType ? [item.businessType] : [],
         customTypes: item.customType ? [item.customType] : [],
         tags: [],

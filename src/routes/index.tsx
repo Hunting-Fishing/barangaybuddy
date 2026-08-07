@@ -134,7 +134,7 @@ function Home() {
               Choose a category first, then pick the exact business type you need.
             </p>
           </div>
-          <Link to="/search" className="hidden text-sm font-medium text-primary hover:underline md:inline-flex">
+          <Link to="/search" search={{ q: "", types: [], customTypes: [], tags: [], category: undefined, page: 1 }} className="hidden text-sm font-medium text-primary hover:underline md:inline-flex">
             Search all businesses <ArrowRight className="ml-1 inline h-4 w-4" />
           </Link>
         </div>
