@@ -107,7 +107,6 @@ export function TeamRegistrationDialog({
         barangay_code: barangay.code,
         city_code: barangay.city_code,
         captain_id: user.id,
-        contact_phone: phone.trim() || null,
         notes: notes.trim() || null,
         status: "pending",
       })
