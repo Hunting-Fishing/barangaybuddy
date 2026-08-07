@@ -52,7 +52,7 @@ function ManageGroup() {
       id: string;
       name: string;
       status: string;
-      contact_phone: string | null;
+      contact: { contact_phone: string | null } | Array<{ contact_phone: string | null }> | null;
       notes: string | null;
       members: Array<{ id: string; status: string; is_captain: boolean; profile: { display_name: string | null } | null }>;
     }>
