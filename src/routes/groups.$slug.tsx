@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { ClientOnly } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -7,7 +8,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { GroupVenueMap, type VenuePin } from "@/components/group-venue-map";
+import type { VenuePin } from "@/lib/venue-pin";
+
+const GroupVenueMap = lazy(() =>
+  import("@/components/group-venue-map").then((m) => ({ default: m.GroupVenueMap })),
+);
 import { GroupSignupDialog } from "@/components/group-signup-dialog";
 import { TeamRegistrationDialog } from "@/components/team-registration-dialog";
 import flyerAsset from "@/assets/pool-league-flyer.png.asset.json";
