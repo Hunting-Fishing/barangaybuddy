@@ -47,6 +47,16 @@ function ManageGroup() {
   const [pendingVenues, setPendingVenues] = useState<PendingVenue[]>([]);
   const [events, setEvents] = useState<GroupEventRow[]>([]);
   const [promos, setPromos] = useState<GroupPromoRow[]>([]);
+  const [teams, setTeams] = useState<
+    Array<{
+      id: string;
+      name: string;
+      status: string;
+      contact_phone: string | null;
+      notes: string | null;
+      members: Array<{ id: string; status: string; is_captain: boolean; profile: { display_name: string | null } | null }>;
+    }>
+  >([]);
 
   const [newEvent, setNewEvent] = useState({
     title: "",
@@ -108,7 +118,7 @@ function ManageGroup() {
 
   async function loadLists(groupId: string) {
     const anyDb = supabase as any;
-    const [membersRes, venuesRes, eventsRes, promosRes] = await Promise.all([
+    const [membersRes, venuesRes, eventsRes, promosRes, teamsRes] = await Promise.all([
       anyDb
         .from("group_memberships")
         .select("*, profile:profiles(id, display_name)")
@@ -130,11 +140,29 @@ function ManageGroup() {
         .select("*")
         .eq("group_id", groupId)
         .order("valid_from", { ascending: false }),
+      anyDb
+        .from("group_teams")
+        .select(
+          "id, name, status, contact_phone, notes, members:group_team_members(id, status, is_captain, profile:profiles(display_name))",
+        )
+        .eq("group_id", groupId)
+        .order("created_at", { ascending: false }),
     ]);
     setPendingMembers((membersRes.data ?? []) as PendingMember[]);
     setPendingVenues((venuesRes.data ?? []) as PendingVenue[]);
     setEvents((eventsRes.data ?? []) as GroupEventRow[]);
     setPromos((promosRes.data ?? []) as GroupPromoRow[]);
+    setTeams((teamsRes.data ?? []) as never);
+  }
+
+  async function setTeamStatus(id: string, status: "approved" | "rejected") {
+    const { error } = await (supabase as any)
+      .from("group_teams")
+      .update({ status })
+      .eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success(status === "approved" ? "Team approved." : "Team rejected.");
+    if (group) void loadLists(group.id);
   }
 
   async function approveMember(m: PendingMember) {
@@ -282,6 +310,9 @@ function ManageGroup() {
             <TabsTrigger value="venues">
               Pending venues ({pendingVenues.length})
             </TabsTrigger>
+            <TabsTrigger value="teams">
+              Teams ({teams.filter((t) => t.status === "pending").length})
+            </TabsTrigger>
             <TabsTrigger value="events">Events</TabsTrigger>
             <TabsTrigger value="promos">Promos</TabsTrigger>
           </TabsList>
@@ -345,6 +376,60 @@ function ManageGroup() {
                     <Button size="sm" variant="ghost" onClick={() => rejectVenue(v)}>
                       <X className="mr-1 h-3 w-3" /> Reject
                     </Button>
+                  </div>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="teams" className="mt-4 space-y-3">
+            {teams.length === 0 ? (
+              <Card className="p-6 text-center text-sm text-muted-foreground">
+                No teams registered yet.
+              </Card>
+            ) : (
+              teams.map((t) => (
+                <Card key={t.id} className="p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="font-semibold">{t.name}</div>
+                      {t.contact_phone && (
+                        <div className="text-xs text-muted-foreground">{t.contact_phone}</div>
+                      )}
+                      {t.notes && <p className="mt-1 text-sm text-muted-foreground">{t.notes}</p>}
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {t.members.map((m) => (
+                          <Badge
+                            key={m.id}
+                            variant={m.status === "confirmed" ? "secondary" : "outline"}
+                            className="font-normal"
+                          >
+                            {m.is_captain && "© "}
+                            {m.profile?.display_name ?? "Player"}
+                            {m.status !== "confirmed" && " (invited)"}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="capitalize">
+                        {t.status}
+                      </Badge>
+                      {t.status !== "approved" && (
+                        <Button size="sm" onClick={() => setTeamStatus(t.id, "approved")}>
+                          Approve
+                        </Button>
+                      )}
+                      {t.status !== "rejected" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setTeamStatus(t.id, "rejected")}
+                        >
+                          Reject
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </Card>
               ))
