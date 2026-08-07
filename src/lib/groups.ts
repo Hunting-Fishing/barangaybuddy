@@ -24,6 +24,7 @@ export type MembershipRow = {
   user_id: string;
   role: "owner" | "admin" | "member";
   status: "pending" | "active" | "expired" | "cancelled";
+  tier?: "supporter" | "player";
   started_at: string | null;
   expires_at: string | null;
   payment_ref: string | null;
@@ -121,4 +122,59 @@ export function computeDiscount(
 
 export function formatPhp(n: number) {
   return `₱${n.toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
+}
+
+export type MembershipTier = "supporter" | "player";
+
+export type TeamRow = {
+  id: string;
+  group_id: string;
+  name: string;
+  slug: string;
+  barangay_code: string | null;
+  city_code: string | null;
+  home_venue_business_id: string | null;
+  captain_id: string;
+  contact_phone: string | null;
+  logo_url: string | null;
+  notes: string | null;
+  status: "pending" | "approved" | "rejected" | "disbanded";
+  created_at: string;
+};
+
+export type TeamMemberRow = {
+  id: string;
+  team_id: string;
+  user_id: string;
+  is_captain: boolean;
+  jersey_name: string | null;
+  status: "invited" | "confirmed" | "removed";
+};
+
+export function slugifyTeam(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 60);
+}
+
+export async function listGroupTeams(groupId: string) {
+  const { data } = await anyDb
+    .from("group_teams")
+    .select("*")
+    .eq("group_id", groupId)
+    .order("created_at", { ascending: true });
+  return (data ?? []) as TeamRow[];
+}
+
+export async function listTeamRosters(teamIds: string[]) {
+  if (teamIds.length === 0) return [];
+  const { data } = await anyDb
+    .from("group_team_members")
+    .select("*, profile:profiles(id, display_name, avatar_url)")
+    .in("team_id", teamIds);
+  return (data ?? []) as Array<
+    TeamMemberRow & { profile: { id: string; display_name: string | null; avatar_url: string | null } | null }
+  >;
 }

@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GroupVenueMap, type VenuePin } from "@/components/group-venue-map";
-import { GroupJoinDialog } from "@/components/group-join-dialog";
+import { GroupSignupDialog } from "@/components/group-signup-dialog";
+import { TeamRegistrationDialog } from "@/components/team-registration-dialog";
+import flyerAsset from "@/assets/pool-league-flyer.png.asset.json";
 import { useAuth } from "@/hooks/use-auth";
 import {
   getGroupBySlug,
@@ -19,6 +21,9 @@ import {
   type MembershipRow,
   type GroupEventRow,
   type GroupPromoRow,
+  listGroupTeams,
+  listTeamRosters,
+  type TeamRow,
 } from "@/lib/groups";
 import {
   Calendar,
@@ -104,6 +109,18 @@ function GroupPage() {
   const [events, setEvents] = useState<GroupEventRow[]>([]);
   const [promos, setPromos] = useState<GroupPromoRow[]>([]);
   const [isGroupAdmin, setIsGroupAdmin] = useState(false);
+  const [teams, setTeams] = useState<TeamRow[]>([]);
+  const [rosters, setRosters] = useState<
+    Array<{
+      id: string;
+      team_id: string;
+      status: string;
+      is_captain: boolean;
+      profile: { id: string; display_name: string | null; avatar_url: string | null } | null;
+    }>
+  >([]);
+  const [barangayNames, setBarangayNames] = useState<Record<string, string>>({});
+  const [invites, setInvites] = useState<Array<{ id: string; team: { id: string; name: string } | null }>>([]);
 
   useEffect(() => {
     void loadAll();
@@ -153,7 +170,35 @@ function GroupPage() {
       .filter((p): p is MemberProfile => Boolean(p));
     setMembers(mems);
 
+    const teamRows = await listGroupTeams(group.id);
+    setTeams(teamRows);
+    const roster = await listTeamRosters(teamRows.map((t) => t.id));
+    setRosters(roster as never);
+    const codes = Array.from(
+      new Set(teamRows.map((t) => t.barangay_code).filter((c): c is string => Boolean(c))),
+    );
+    if (codes.length > 0) {
+      const { data: brgys } = await supabase
+        .from("barangays")
+        .select("code, name")
+        .in("code", codes);
+      setBarangayNames(
+        Object.fromEntries((brgys ?? []).map((b) => [b.code, b.name])) as Record<string, string>,
+      );
+    }
+
     if (user) {
+      const { data: inviteRows } = await (supabase as any)
+        .from("group_team_members")
+        .select("id, team:group_teams(id, name, group_id)")
+        .eq("user_id", user.id)
+        .eq("status", "invited");
+      setInvites(
+        ((inviteRows ?? []) as Array<{ id: string; team: { id: string; name: string; group_id: string } | null }>)
+          .filter((r) => r.team?.group_id === group.id)
+          .map((r) => ({ id: r.id, team: r.team })),
+      );
+
       const m = await getMyMembership(group.id, user.id);
       setMembership(m);
       if (m && (m.role === "admin" || m.role === "owner") && m.status === "active") {
@@ -171,10 +216,13 @@ function GroupPage() {
     } else {
       setMembership(null);
       setIsGroupAdmin(false);
+      setInvites([]);
     }
   }
 
   const active = isActiveMembership(membership);
+  const canPlay = active && (membership?.tier ?? "player") === "player";
+  const isBilliards = group.slug.includes("billiard") || group.slug.includes("pool");
   const venuePins: VenuePin[] = useMemo(
     () =>
       venues
@@ -189,6 +237,16 @@ function GroupPage() {
         })),
     [venues],
   );
+
+  async function respondToInvite(id: string, accept: boolean) {
+    const anyDb = supabase as any;
+    const { error } = accept
+      ? await anyDb.from("group_team_members").update({ status: "confirmed" }).eq("id", id)
+      : await anyDb.from("group_team_members").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success(accept ? "You joined the team roster." : "Invite declined.");
+    void loadAll();
+  }
 
   async function cancelMembership() {
     if (!membership) return;
@@ -244,10 +302,22 @@ function GroupPage() {
               </Card>
             )}
 
-            <Tabs defaultValue="venues">
+            {isBilliards && (
+              <Card className="overflow-hidden">
+                <img
+                  src={flyerAsset.url}
+                  alt="Barangay Buddy Pool League — build your team, represent your barangay. Now forming."
+                  className="w-full"
+                  loading="lazy"
+                />
+              </Card>
+            )}
+
+            <Tabs defaultValue={isBilliards ? "teams" : "venues"}>
               <TabsList>
                 <TabsTrigger value="venues">Venues ({venues.length})</TabsTrigger>
                 <TabsTrigger value="events">Events ({events.length})</TabsTrigger>
+                <TabsTrigger value="teams">Teams ({teams.filter((t) => t.status === "approved").length})</TabsTrigger>
                 <TabsTrigger value="promos">Promos ({promos.length})</TabsTrigger>
                 <TabsTrigger value="members">Members ({memberCount})</TabsTrigger>
               </TabsList>
@@ -328,6 +398,75 @@ function GroupPage() {
                       </div>
                     </Card>
                   ))
+                )}
+              </TabsContent>
+
+              <TabsContent value="teams" className="mt-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm text-muted-foreground">
+                    Teams represent their barangay. Captains register the team; every player needs
+                    an app account and an active player membership.
+                  </p>
+                  {user && (
+                    <TeamRegistrationDialog
+                      group={group as GroupRow}
+                      onCreated={() => void loadAll()}
+                      disabled={!canPlay}
+                      disabledReason={
+                        canPlay ? undefined : "Player membership required to register a team"
+                      }
+                    />
+                  )}
+                </div>
+                {teams.length === 0 ? (
+                  <Card className="p-6 text-center text-sm text-muted-foreground">
+                    No teams yet — be the first barangay to form one.
+                  </Card>
+                ) : (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {teams.map((t) => {
+                      const players = rosters.filter((r) => r.team_id === t.id);
+                      return (
+                        <Card key={t.id} className="p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="font-semibold">{t.name}</div>
+                              {t.barangay_code && (
+                                <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                                  <MapPin className="h-3 w-3" />
+                                  {barangayNames[t.barangay_code] ?? "Barangay"}
+                                </div>
+                              )}
+                            </div>
+                            <Badge
+                              variant="secondary"
+                              className={
+                                t.status === "approved"
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : "bg-amber-100 text-amber-800"
+                              }
+                            >
+                              {t.status === "approved" ? "Confirmed" : "Pending approval"}
+                            </Badge>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {players.length === 0 ? (
+                              <span className="text-xs text-muted-foreground">
+                                Roster being finalised
+                              </span>
+                            ) : (
+                              players.map((p) => (
+                                <Badge key={p.id} variant="outline" className="font-normal">
+                                  {p.is_captain && "© "}
+                                  {p.profile?.display_name ?? "Player"}
+                                </Badge>
+                              ))
+                            )}
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
                 )}
               </TabsContent>
 
@@ -435,11 +574,20 @@ function GroupPage() {
                   <div className="flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900">
                     <CheckCircle2 className="h-4 w-4" />
                     <span>
-                      Active member
-                      {membership?.expires_at &&
-                        ` — expires ${new Date(membership.expires_at).toLocaleDateString("en-PH")}`}
+                      {canPlay ? "Active player" : "Free supporter"}
+                      {canPlay && membership?.expires_at
+                        ? ` — expires ${new Date(membership.expires_at).toLocaleDateString("en-PH")}`
+                        : ""}
                     </span>
                   </div>
+                  {!canPlay && (
+                    <GroupSignupDialog
+                      group={group as GroupRow}
+                      existing={membership}
+                      onJoined={(m) => setMembership(m)}
+                      defaultTab="player"
+                    />
+                  )}
                   <Button variant="outline" className="w-full" onClick={cancelMembership}>
                     Cancel membership
                   </Button>
@@ -450,18 +598,20 @@ function GroupPage() {
                     <Clock className="h-4 w-4" />
                     <span>Payment under review by league admin.</span>
                   </div>
-                  <GroupJoinDialog
+                  <GroupSignupDialog
                     group={group as GroupRow}
                     existing={membership}
                     onJoined={(m) => setMembership(m)}
+                    defaultTab="player"
                   />
                 </div>
               ) : (
                 <div className="mt-4">
-                  <GroupJoinDialog
+                  <GroupSignupDialog
                     group={group as GroupRow}
                     existing={membership}
                     onJoined={(m) => setMembership(m)}
+                    defaultTab="player"
                   />
                 </div>
               )}
@@ -469,18 +619,48 @@ function GroupPage() {
               <ul className="mt-5 space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600" />
-                  Free entry to league events & tournaments
+                  Free supporter tier: follow the league, no fee, no competing
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600" />
-                  Automatic member discounts at league venues
+                  Player tier: join a team roster, compete in tournaments
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600" />
-                  Listed on the public members roster
+                  Member discounts at league venues + public roster listing
                 </li>
               </ul>
             </Card>
+
+            {invites.length > 0 && (
+              <Card className="p-5">
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Team invites
+                </div>
+                {invites.map((iv) => (
+                  <div key={iv.id} className="mt-3 space-y-2">
+                    <div className="text-sm font-medium">{iv.team?.name}</div>
+                    {!canPlay && (
+                      <p className="text-xs text-amber-700">
+                        You need an active player membership to compete for this team.
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => respondToInvite(iv.id, true)}>
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => respondToInvite(iv.id, false)}
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </Card>
+            )}
 
             <Card className="p-5">
               <div className="flex items-center gap-2 text-sm">

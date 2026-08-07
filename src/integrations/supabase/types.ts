@@ -615,6 +615,7 @@ export type Database = {
           role: Database["public"]["Enums"]["group_role"]
           started_at: string | null
           status: Database["public"]["Enums"]["membership_status"]
+          tier: Database["public"]["Enums"]["membership_tier"]
           updated_at: string
           user_id: string
         }
@@ -629,6 +630,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["group_role"]
           started_at?: string | null
           status?: Database["public"]["Enums"]["membership_status"]
+          tier?: Database["public"]["Enums"]["membership_tier"]
           updated_at?: string
           user_id: string
         }
@@ -643,12 +645,73 @@ export type Database = {
           role?: Database["public"]["Enums"]["group_role"]
           started_at?: string | null
           status?: Database["public"]["Enums"]["membership_status"]
+          tier?: Database["public"]["Enums"]["membership_tier"]
           updated_at?: string
           user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "group_memberships_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_memberships_user_profile_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_payments: {
+        Row: {
+          amount_php: number
+          checkout_url: string | null
+          created_at: string
+          external_id: string | null
+          group_id: string
+          id: string
+          method: string | null
+          provider: string
+          raw: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_php: number
+          checkout_url?: string | null
+          created_at?: string
+          external_id?: string | null
+          group_id: string
+          id?: string
+          method?: string | null
+          provider?: string
+          raw?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_php?: number
+          checkout_url?: string | null
+          created_at?: string
+          external_id?: string | null
+          group_id?: string
+          id?: string
+          method?: string | null
+          provider?: string
+          raw?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_payments_group_id_fkey"
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "groups"
@@ -715,6 +778,130 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_team_members: {
+        Row: {
+          created_at: string
+          id: string
+          invited_by: string | null
+          is_captain: boolean
+          jersey_name: string | null
+          status: Database["public"]["Enums"]["team_member_status"]
+          team_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          is_captain?: boolean
+          jersey_name?: string | null
+          status?: Database["public"]["Enums"]["team_member_status"]
+          team_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          is_captain?: boolean
+          jersey_name?: string | null
+          status?: Database["public"]["Enums"]["team_member_status"]
+          team_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "group_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_team_members_user_profile_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_teams: {
+        Row: {
+          barangay_code: string | null
+          captain_id: string
+          city_code: string | null
+          contact_phone: string | null
+          created_at: string
+          group_id: string
+          home_venue_business_id: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          notes: string | null
+          slug: string
+          status: Database["public"]["Enums"]["team_status"]
+          updated_at: string
+        }
+        Insert: {
+          barangay_code?: string | null
+          captain_id: string
+          city_code?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          group_id: string
+          home_venue_business_id?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          notes?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["team_status"]
+          updated_at?: string
+        }
+        Update: {
+          barangay_code?: string | null
+          captain_id?: string
+          city_code?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          group_id?: string
+          home_venue_business_id?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          notes?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["team_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_teams_barangay_code_fkey"
+            columns: ["barangay_code"]
+            isOneToOne: false
+            referencedRelation: "barangays"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "group_teams_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_teams_home_venue_business_id_fkey"
+            columns: ["home_venue_business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
         ]
@@ -1139,6 +1326,9 @@ export type Database = {
       group_role: "owner" | "admin" | "member"
       group_type: "league" | "club" | "interest_group"
       membership_status: "pending" | "active" | "expired" | "cancelled"
+      membership_tier: "supporter" | "player"
+      team_member_status: "invited" | "confirmed" | "removed"
+      team_status: "pending" | "approved" | "rejected" | "disbanded"
       venue_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
@@ -1307,6 +1497,9 @@ export const Constants = {
       group_role: ["owner", "admin", "member"],
       group_type: ["league", "club", "interest_group"],
       membership_status: ["pending", "active", "expired", "cancelled"],
+      membership_tier: ["supporter", "player"],
+      team_member_status: ["invited", "confirmed", "removed"],
+      team_status: ["pending", "approved", "rejected", "disbanded"],
       venue_status: ["pending", "approved", "rejected"],
     },
   },

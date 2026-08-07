@@ -50,7 +50,7 @@ export const Route = createFileRoute("/regions/")({
 
 function Regions() {
   const { region: selected, q } = Route.useSearch();
-  const navigate = useNavigate({ from: "/regions" });
+  const navigate = useNavigate({ from: "/regions/" });
   const location = useLocation();
   const { data: regions } = useSuspenseQuery(regionsQueryOptions());
   const refs = useRef<Record<string, HTMLAnchorElement | null>>({});
@@ -70,7 +70,7 @@ function Regions() {
     if (stillVisible) return;
     const next = filtered[0]?.slug;
     navigate({
-      search: (prev: { region?: string; q?: string }) => ({ ...prev, region: next }),
+      search: (prev: any) => ({ ...prev, region: next }),
       replace: true,
     });
   }, [query, filtered, regions.length, selected, navigate]);
@@ -119,7 +119,7 @@ function Regions() {
             onChange={(e) => {
               const value = e.target.value;
               navigate({
-                search: (prev: { region?: string; q?: string }) => ({
+                search: (prev: any) => ({
                   ...prev,
                   q: value || undefined,
                 }),
@@ -134,7 +134,7 @@ function Regions() {
               type="button"
               onClick={() =>
                 navigate({
-                  search: (prev: { region?: string; q?: string }) => ({ ...prev, q: undefined }),
+                  search: (prev: any) => ({ ...prev, q: undefined }),
                   replace: true,
                 })
               }

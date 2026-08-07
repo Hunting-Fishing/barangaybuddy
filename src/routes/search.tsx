@@ -309,6 +309,7 @@ function SearchPage() {
         types: [],
         customTypes: [],
         tags: [],
+        category: undefined,
         page: 1,
       },
       replace: true,

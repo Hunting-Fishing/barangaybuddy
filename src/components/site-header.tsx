@@ -102,6 +102,7 @@ export function SiteHeader() {
           </Link>
           <Link
             to="/search"
+            search={{ q: "", types: [], customTypes: [], tags: [], category: undefined, page: 1 }}
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
             <Search className="h-4 w-4" /> Search
