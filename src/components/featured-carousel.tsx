@@ -115,10 +115,21 @@ export function FeaturedCarousel() {
                         {slide.body}
                       </p>
                       <Button asChild size="sm" variant="secondary" className="mt-3 sm:mt-6">
-                        <Link to={slide.to as never} params={slide.params as never} search={slide.search as never}>
-                          {slide.cta}
-                          <ArrowRight className="ml-1.5 h-4 w-4" />
-                        </Link>
+                        {slide.href ? (
+                          <a
+                            href={slide.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {slide.cta}
+                            <ArrowRight className="ml-1.5 h-4 w-4" />
+                          </a>
+                        ) : (
+                          <Link to={slide.to as never} params={slide.params as never} search={slide.search as never}>
+                            {slide.cta}
+                            <ArrowRight className="ml-1.5 h-4 w-4" />
+                          </Link>
+                        )}
                       </Button>
                     </div>
                     {slide.image ? (
