@@ -296,6 +296,26 @@ function GroupPage() {
         </div>
       </div>
 
+      {/* Always-available league navigation */}
+      <div className="border-b border-border bg-muted/40">
+        <div className="container mx-auto flex flex-wrap gap-2 px-4 py-3">
+          <Button asChild size="sm" variant="secondary">
+            <Link to="/groups/$slug/dashboard" params={{ slug: group.slug }}>
+              <LayoutDashboard className="mr-2 h-4 w-4" /> League dashboard
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/groups/$slug/compare" params={{ slug: group.slug }}>
+              <Trophy className="mr-2 h-4 w-4" /> How we compare
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="ghost">
+            <Link to="/groups">All groups</Link>
+          </Button>
+        </div>
+      </div>
+
+
       <main className="container mx-auto flex-1 px-4 py-8">
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
           {/* Left column: description + tabs */}
