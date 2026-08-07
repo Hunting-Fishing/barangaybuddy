@@ -1,4 +1,11 @@
-import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  notFound,
+  Outlet,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { ClientOnly } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,7 +76,7 @@ export const Route = createFileRoute("/groups/$slug")({
     }
     return { meta };
   },
-  component: GroupPage,
+  component: GroupRoute,
   errorComponent: ({ reset }) => (
     <div className="p-10 text-center">
       <p>This group didn't load.</p>
@@ -83,6 +90,18 @@ export const Route = createFileRoute("/groups/$slug")({
     </div>
   ),
 });
+
+function GroupRoute() {
+  const { slug } = Route.useParams();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const groupPath = `/groups/${encodeURIComponent(slug)}`;
+
+  if (pathname !== groupPath && pathname !== `${groupPath}/`) {
+    return <Outlet />;
+  }
+
+  return <GroupPage />;
+}
 
 type MemberProfile = {
   id: string;
