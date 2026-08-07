@@ -208,6 +208,8 @@ function GroupPage() {
   }
 
   const active = isActiveMembership(membership);
+  const canPlay = active && (membership?.tier ?? "player") === "player";
+  const isBilliards = group.slug.includes("billiard") || group.slug.includes("pool");
   const venuePins: VenuePin[] = useMemo(
     () =>
       venues
@@ -274,6 +276,17 @@ function GroupPage() {
                 <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                   {group.description}
                 </p>
+              </Card>
+            )}
+
+            {isBilliards && (
+              <Card className="overflow-hidden">
+                <img
+                  src={flyerAsset.url}
+                  alt="Barangay Buddy Pool League — build your team, represent your barangay. Now forming."
+                  className="w-full"
+                  loading="lazy"
+                />
               </Card>
             )}
 
@@ -538,11 +551,20 @@ function GroupPage() {
                   <div className="flex items-center gap-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-900">
                     <CheckCircle2 className="h-4 w-4" />
                     <span>
-                      Active member
-                      {membership?.expires_at &&
-                        ` — expires ${new Date(membership.expires_at).toLocaleDateString("en-PH")}`}
+                      {canPlay ? "Active player" : "Free supporter"}
+                      {canPlay && membership?.expires_at
+                        ? ` — expires ${new Date(membership.expires_at).toLocaleDateString("en-PH")}`
+                        : ""}
                     </span>
                   </div>
+                  {!canPlay && (
+                    <GroupSignupDialog
+                      group={group as GroupRow}
+                      existing={membership}
+                      onJoined={(m) => setMembership(m)}
+                      defaultTab="player"
+                    />
+                  )}
                   <Button variant="outline" className="w-full" onClick={cancelMembership}>
                     Cancel membership
                   </Button>
@@ -574,15 +596,15 @@ function GroupPage() {
               <ul className="mt-5 space-y-2 text-sm text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600" />
-                  Free entry to league events & tournaments
+                  Free supporter tier: follow the league, no fee, no competing
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600" />
-                  Automatic member discounts at league venues
+                  Player tier: join a team roster, compete in tournaments
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600" />
-                  Listed on the public members roster
+                  Member discounts at league venues + public roster listing
                 </li>
               </ul>
             </Card>
