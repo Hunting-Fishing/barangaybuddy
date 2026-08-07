@@ -135,7 +135,7 @@ export type TeamRow = {
   city_code: string | null;
   home_venue_business_id: string | null;
   captain_id: string;
-  contact_phone: string | null;
+  // contact_phone lives in group_team_contacts (captain/admin only)
   logo_url: string | null;
   notes: string | null;
   status: "pending" | "approved" | "rejected" | "disbanded";

@@ -107,7 +107,6 @@ export function TeamRegistrationDialog({
         barangay_code: barangay.code,
         city_code: barangay.city_code,
         captain_id: user.id,
-        contact_phone: phone.trim() || null,
         notes: notes.trim() || null,
         status: "pending",
       })
@@ -119,6 +118,14 @@ export function TeamRegistrationDialog({
       toast.error(error?.message ?? "Could not register the team.");
       return;
     }
+
+    if (phone.trim()) {
+      await anyDb
+        .from("group_team_contacts")
+        .upsert({ team_id: team.id, contact_phone: phone.trim() }, { onConflict: "team_id" });
+    }
+
+
 
     const rows = [
       {

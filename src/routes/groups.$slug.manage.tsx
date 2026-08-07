@@ -36,6 +36,14 @@ type PendingVenue = {
   business: { id: string; name: string; slug: string } | null;
 };
 
+function teamPhone(
+  contact: { contact_phone: string | null } | Array<{ contact_phone: string | null }> | null,
+): string | null {
+  if (!contact) return null;
+  return (Array.isArray(contact) ? contact[0]?.contact_phone : contact.contact_phone) ?? null;
+}
+
+
 function ManageGroup() {
   const { slug } = Route.useParams();
   const { user, loading } = useAuth();
@@ -52,7 +60,7 @@ function ManageGroup() {
       id: string;
       name: string;
       status: string;
-      contact_phone: string | null;
+      contact: { contact_phone: string | null } | Array<{ contact_phone: string | null }> | null;
       notes: string | null;
       members: Array<{ id: string; status: string; is_captain: boolean; profile: { display_name: string | null } | null }>;
     }>
@@ -143,7 +151,7 @@ function ManageGroup() {
       anyDb
         .from("group_teams")
         .select(
-          "id, name, status, contact_phone, notes, members:group_team_members(id, status, is_captain, profile:profiles(display_name))",
+          "id, name, status, notes, contact:group_team_contacts(contact_phone), members:group_team_members(id, status, is_captain, profile:profiles(display_name))",
         )
         .eq("group_id", groupId)
         .order("created_at", { ascending: false }),
@@ -393,8 +401,8 @@ function ManageGroup() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div className="font-semibold">{t.name}</div>
-                      {t.contact_phone && (
-                        <div className="text-xs text-muted-foreground">{t.contact_phone}</div>
+                      {teamPhone(t.contact) && (
+                        <div className="text-xs text-muted-foreground">{teamPhone(t.contact)}</div>
                       )}
                       {t.notes && <p className="mt-1 text-sm text-muted-foreground">{t.notes}</p>}
                       <div className="mt-2 flex flex-wrap gap-1.5">
