@@ -313,7 +313,7 @@ function GroupPage() {
               </Card>
             )}
 
-            <Tabs defaultValue="venues">
+            <Tabs defaultValue={isBilliards ? "teams" : "venues"}>
               <TabsList>
                 <TabsTrigger value="venues">Venues ({venues.length})</TabsTrigger>
                 <TabsTrigger value="events">Events ({events.length})</TabsTrigger>
