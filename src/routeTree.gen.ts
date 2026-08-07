@@ -43,6 +43,7 @@ import { Route as SpotlightStarOfTheMonthRouteImport } from './routes/spotlight.
 import { Route as SpotlightSubmitRouteImport } from './routes/spotlight.submit'
 import { Route as BarangaysCityBarangayRouteImport } from './routes/barangays.$city.$barangay'
 import { Route as DashboardBusinessIdRouteImport } from './routes/dashboard.business.$id'
+import { Route as GroupsSlugCompareRouteImport } from './routes/groups.$slug.compare'
 import { Route as GroupsSlugDashboardRouteImport } from './routes/groups.$slug.dashboard'
 import { Route as GroupsSlugManageRouteImport } from './routes/groups.$slug.manage'
 import { Route as SpotlightBookSlugRouteImport } from './routes/spotlight.book.$slug'
@@ -224,6 +225,11 @@ const DashboardBusinessIdRoute = DashboardBusinessIdRouteImport.update({
   path: '/business/$id',
   getParentRoute: () => DashboardRoute,
 } as any)
+const GroupsSlugCompareRoute = GroupsSlugCompareRouteImport.update({
+  id: '/compare',
+  path: '/compare',
+  getParentRoute: () => GroupsSlugRoute,
+} as any)
 const GroupsSlugDashboardRoute = GroupsSlugDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -315,6 +321,7 @@ export interface FileRoutesByFullPath {
   '/spotlight/': typeof SpotlightIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
+  '/groups/$slug/compare': typeof GroupsSlugCompareRoute
   '/groups/$slug/dashboard': typeof GroupsSlugDashboardRoute
   '/groups/$slug/manage': typeof GroupsSlugManageRoute
   '/spotlight/book/$slug': typeof SpotlightBookSlugRoute
@@ -361,6 +368,7 @@ export interface FileRoutesByTo {
   '/spotlight': typeof SpotlightIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
+  '/groups/$slug/compare': typeof GroupsSlugCompareRoute
   '/groups/$slug/dashboard': typeof GroupsSlugDashboardRoute
   '/groups/$slug/manage': typeof GroupsSlugManageRoute
   '/spotlight/book/$slug': typeof SpotlightBookSlugRoute
@@ -408,6 +416,7 @@ export interface FileRoutesById {
   '/spotlight/': typeof SpotlightIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
+  '/groups/$slug/compare': typeof GroupsSlugCompareRoute
   '/groups/$slug/dashboard': typeof GroupsSlugDashboardRoute
   '/groups/$slug/manage': typeof GroupsSlugManageRoute
   '/spotlight/book/$slug': typeof SpotlightBookSlugRoute
@@ -456,6 +465,7 @@ export interface FileRouteTypes {
     | '/spotlight/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
+    | '/groups/$slug/compare'
     | '/groups/$slug/dashboard'
     | '/groups/$slug/manage'
     | '/spotlight/book/$slug'
@@ -502,6 +512,7 @@ export interface FileRouteTypes {
     | '/spotlight'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
+    | '/groups/$slug/compare'
     | '/groups/$slug/dashboard'
     | '/groups/$slug/manage'
     | '/spotlight/book/$slug'
@@ -548,6 +559,7 @@ export interface FileRouteTypes {
     | '/spotlight/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
+    | '/groups/$slug/compare'
     | '/groups/$slug/dashboard'
     | '/groups/$slug/manage'
     | '/spotlight/book/$slug'
@@ -842,6 +854,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardBusinessIdRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/groups/$slug/compare': {
+      id: '/groups/$slug/compare'
+      path: '/compare'
+      fullPath: '/groups/$slug/compare'
+      preLoaderRoute: typeof GroupsSlugCompareRouteImport
+      parentRoute: typeof GroupsSlugRoute
+    }
     '/groups/$slug/dashboard': {
       id: '/groups/$slug/dashboard'
       path: '/dashboard'
@@ -951,11 +970,13 @@ const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
 )
 
 interface GroupsSlugRouteChildren {
+  GroupsSlugCompareRoute: typeof GroupsSlugCompareRoute
   GroupsSlugDashboardRoute: typeof GroupsSlugDashboardRoute
   GroupsSlugManageRoute: typeof GroupsSlugManageRoute
 }
 
 const GroupsSlugRouteChildren: GroupsSlugRouteChildren = {
+  GroupsSlugCompareRoute: GroupsSlugCompareRoute,
   GroupsSlugDashboardRoute: GroupsSlugDashboardRoute,
   GroupsSlugManageRoute: GroupsSlugManageRoute,
 }
@@ -1008,3 +1029,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

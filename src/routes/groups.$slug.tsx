@@ -638,6 +638,22 @@ function GroupPage() {
               </ul>
             </Card>
 
+            <Card className="p-5">
+              <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                How we compare
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                We're the grassroots ladder below the national circuit — divisions, trick shots and
+                published league finances.
+              </p>
+              <Button asChild variant="outline" className="mt-3 w-full">
+                <Link to="/groups/$slug/compare" params={{ slug: group.slug }}>
+                  See the comparison
+                </Link>
+              </Button>
+            </Card>
+
+
             {invites.length > 0 && (
               <Card className="p-5">
                 <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
