@@ -23,9 +23,10 @@ type Slide = {
   icon: typeof Trophy;
   gradient: string;
   image?: string;
-  to: string;
+  to?: string;
   params?: Record<string, string>;
   search?: Record<string, unknown>;
+  href?: string;
 };
 
 const SLIDES: Slide[] = [
