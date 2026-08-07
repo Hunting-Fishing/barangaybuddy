@@ -83,7 +83,15 @@ export function FeaturedCarousel() {
                 <div
                   className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${slide.gradient} shadow-elegant sm:rounded-3xl`}
                 >
-                  <div className="grid gap-0 sm:grid-cols-[1fr_auto]">
+                  {slide.image ? (
+                    <img
+                      src={slide.image}
+                      alt=""
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-20 sm:hidden"
+                    />
+                  ) : null}
+                  <div className="relative grid gap-0 sm:grid-cols-[1fr_auto]">
                     <div className="p-4 sm:p-8">
                       <div className="inline-flex items-center gap-1.5 rounded-full bg-primary-foreground/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-primary-foreground sm:text-xs">
                         <Icon className="h-3.5 w-3.5" />
@@ -96,7 +104,7 @@ export function FeaturedCarousel() {
                         {slide.body}
                       </p>
                       <Button asChild size="sm" variant="secondary" className="mt-3 sm:mt-6">
-                        <Link to={slide.to} params={slide.params as never} search={slide.search as never}>
+                        <Link to={slide.to as never} params={slide.params as never} search={slide.search as never}>
                           {slide.cta}
                           <ArrowRight className="ml-1.5 h-4 w-4" />
                         </Link>
@@ -113,14 +121,6 @@ export function FeaturedCarousel() {
                       </div>
                     ) : null}
                   </div>
-                  {slide.image ? (
-                    <img
-                      src={slide.image}
-                      alt=""
-                      aria-hidden
-                      className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-15 sm:hidden"
-                    />
-                  ) : null}
                 </div>
               </CarouselItem>
             );
