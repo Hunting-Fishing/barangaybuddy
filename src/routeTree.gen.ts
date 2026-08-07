@@ -43,6 +43,7 @@ import { Route as SpotlightStarOfTheMonthRouteImport } from './routes/spotlight.
 import { Route as SpotlightSubmitRouteImport } from './routes/spotlight.submit'
 import { Route as BarangaysCityBarangayRouteImport } from './routes/barangays.$city.$barangay'
 import { Route as DashboardBusinessIdRouteImport } from './routes/dashboard.business.$id'
+import { Route as GroupsSlugDashboardRouteImport } from './routes/groups.$slug.dashboard'
 import { Route as GroupsSlugManageRouteImport } from './routes/groups.$slug.manage'
 import { Route as SpotlightBookSlugRouteImport } from './routes/spotlight.book.$slug'
 import { Route as SpotlightTalentSlugRouteImport } from './routes/spotlight.talent.$slug'
@@ -223,6 +224,11 @@ const DashboardBusinessIdRoute = DashboardBusinessIdRouteImport.update({
   path: '/business/$id',
   getParentRoute: () => DashboardRoute,
 } as any)
+const GroupsSlugDashboardRoute = GroupsSlugDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => GroupsSlugRoute,
+} as any)
 const GroupsSlugManageRoute = GroupsSlugManageRouteImport.update({
   id: '/manage',
   path: '/manage',
@@ -309,6 +315,7 @@ export interface FileRoutesByFullPath {
   '/spotlight/': typeof SpotlightIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
+  '/groups/$slug/dashboard': typeof GroupsSlugDashboardRoute
   '/groups/$slug/manage': typeof GroupsSlugManageRoute
   '/spotlight/book/$slug': typeof SpotlightBookSlugRoute
   '/spotlight/talent/$slug': typeof SpotlightTalentSlugRoute
@@ -354,6 +361,7 @@ export interface FileRoutesByTo {
   '/spotlight': typeof SpotlightIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
+  '/groups/$slug/dashboard': typeof GroupsSlugDashboardRoute
   '/groups/$slug/manage': typeof GroupsSlugManageRoute
   '/spotlight/book/$slug': typeof SpotlightBookSlugRoute
   '/spotlight/talent/$slug': typeof SpotlightTalentSlugRoute
@@ -400,6 +408,7 @@ export interface FileRoutesById {
   '/spotlight/': typeof SpotlightIndexRoute
   '/barangays/$city/$barangay': typeof BarangaysCityBarangayRoute
   '/dashboard/business/$id': typeof DashboardBusinessIdRouteWithChildren
+  '/groups/$slug/dashboard': typeof GroupsSlugDashboardRoute
   '/groups/$slug/manage': typeof GroupsSlugManageRoute
   '/spotlight/book/$slug': typeof SpotlightBookSlugRoute
   '/spotlight/talent/$slug': typeof SpotlightTalentSlugRoute
@@ -447,6 +456,7 @@ export interface FileRouteTypes {
     | '/spotlight/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
+    | '/groups/$slug/dashboard'
     | '/groups/$slug/manage'
     | '/spotlight/book/$slug'
     | '/spotlight/talent/$slug'
@@ -492,6 +502,7 @@ export interface FileRouteTypes {
     | '/spotlight'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
+    | '/groups/$slug/dashboard'
     | '/groups/$slug/manage'
     | '/spotlight/book/$slug'
     | '/spotlight/talent/$slug'
@@ -537,6 +548,7 @@ export interface FileRouteTypes {
     | '/spotlight/'
     | '/barangays/$city/$barangay'
     | '/dashboard/business/$id'
+    | '/groups/$slug/dashboard'
     | '/groups/$slug/manage'
     | '/spotlight/book/$slug'
     | '/spotlight/talent/$slug'
@@ -830,6 +842,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardBusinessIdRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/groups/$slug/dashboard': {
+      id: '/groups/$slug/dashboard'
+      path: '/dashboard'
+      fullPath: '/groups/$slug/dashboard'
+      preLoaderRoute: typeof GroupsSlugDashboardRouteImport
+      parentRoute: typeof GroupsSlugRoute
+    }
     '/groups/$slug/manage': {
       id: '/groups/$slug/manage'
       path: '/manage'
@@ -932,10 +951,12 @@ const MessagesRouteWithChildren = MessagesRoute._addFileChildren(
 )
 
 interface GroupsSlugRouteChildren {
+  GroupsSlugDashboardRoute: typeof GroupsSlugDashboardRoute
   GroupsSlugManageRoute: typeof GroupsSlugManageRoute
 }
 
 const GroupsSlugRouteChildren: GroupsSlugRouteChildren = {
+  GroupsSlugDashboardRoute: GroupsSlugDashboardRoute,
   GroupsSlugManageRoute: GroupsSlugManageRoute,
 }
 
@@ -987,3 +1008,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

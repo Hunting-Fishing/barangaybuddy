@@ -580,6 +580,11 @@ function GroupPage() {
                         : ""}
                     </span>
                   </div>
+                  <Button asChild className="w-full">
+                    <Link to="/groups/$slug/dashboard" params={{ slug: group.slug }}>
+                      <LayoutDashboard className="mr-2 h-4 w-4" /> My league dashboard
+                    </Link>
+                  </Button>
                   {!canPlay && (
                     <GroupSignupDialog
                       group={group as GroupRow}
