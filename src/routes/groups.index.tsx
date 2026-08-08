@@ -39,7 +39,15 @@ function GroupsIndex() {
 
   useEffect(() => {
     listPublicGroups()
-      .then((rows) => setGroups(rows))
+      .then((rows) =>
+        setGroups(
+          [...rows].sort((a, b) => {
+            const rank = (g: GroupRow) =>
+              g.slug === BILLIARDS_SLUG ? 0 : g.name.toLowerCase().startsWith("barangay buddy") ? 1 : 2;
+            return rank(a) - rank(b) || a.name.localeCompare(b.name);
+          }),
+        ),
+      )
       .finally(() => setLoading(false));
   }, []);
 
@@ -47,17 +55,20 @@ function GroupsIndex() {
     <div className="flex min-h-screen flex-col bg-background">
       <SiteHeader />
       <main className="container mx-auto flex-1 px-4 py-10">
-        <div className="mb-8 max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800">
-            <Sparkles className="h-3.5 w-3.5" /> New
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/60 bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800">
+              <Sparkles className="h-3.5 w-3.5" /> New
+            </div>
+            <h1 className="mt-3 font-display text-3xl font-bold md:text-4xl">
+              Clubs, Leagues & Groups
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              Join local leagues and interest groups. Members get free entry to events and
+              automatic discounts at partner venues nationwide.
+            </p>
           </div>
-          <h1 className="mt-3 font-display text-3xl font-bold md:text-4xl">
-            Clubs, Leagues & Groups
-          </h1>
-          <p className="mt-2 text-muted-foreground">
-            Join local leagues and interest groups. Members get free entry to events and
-            automatic discounts at partner venues nationwide.
-          </p>
+          <GroupCreateDialog />
         </div>
 
         {loading ? (
