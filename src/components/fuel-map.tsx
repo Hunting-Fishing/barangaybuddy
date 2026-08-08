@@ -349,7 +349,7 @@ out center tags;`;
             {searching || loadingOsmNearby ? "Searching…" : "Search"}
           </Button>
         </form>
-        <Button type="button" size="sm" variant="outline" onClick={locateMe} disabled={loadingOsmNearby}>
+        <Button type="button" size="sm" variant="outline" onClick={() => locateMe()} disabled={loadingOsmNearby}>
           <Locate className="mr-1 h-4 w-4" /> {loadingOsmNearby ? "Loading nearby…" : "Use my location"}
         </Button>
       </div>
