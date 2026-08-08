@@ -23,6 +23,7 @@ const GroupVenueMap = lazy(() =>
 import { GroupSignupDialog } from "@/components/group-signup-dialog";
 import { TeamRegistrationDialog } from "@/components/team-registration-dialog";
 import flyerAsset from "@/assets/pool-league-flyer.png.asset.json";
+import billiardsLogo from "@/assets/billiards-logo.png.asset.json";
 import { useAuth } from "@/hooks/use-auth";
 import {
   getGroupBySlug,
