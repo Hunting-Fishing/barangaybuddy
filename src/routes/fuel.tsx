@@ -291,7 +291,7 @@ function FuelPage() {
                       <Label>Brand</Label>
                       <Select value={s_brand} onValueChange={setSBrand}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-[2100]">
                           {BRANDS.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
                         </SelectContent>
                       </Select>
@@ -319,7 +319,7 @@ function FuelPage() {
                         placeholder="Type barangay name…"
                       />
                       {brgyResults.length > 0 && !brgy && (
-                        <div className="mt-1 max-h-44 overflow-auto rounded-md border bg-popover text-sm">
+                        <div className="relative z-[2100] mt-1 max-h-44 overflow-auto rounded-md border bg-popover text-sm shadow-md">
                           {brgyResults.map((b: any) => (
                             <button
                               key={b.code}

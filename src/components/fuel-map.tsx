@@ -100,7 +100,7 @@ export function FuelMap() {
     return all;
   }
 
-  async function loadNearbyOsmStations(latitude: number, longitude: number) {
+  async function loadNearbyOsmStations(latitude: number, longitude: number, silent = false) {
     setLoadingOsmNearby(true);
     try {
       const query = `[out:json][timeout:25];
@@ -110,18 +110,29 @@ export function FuelMap() {
 );
 out center tags;`;
 
-      const res = await fetch("https://overpass-api.de/api/interpreter", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Accept: "application/json",
-        },
-        body: "data=" + encodeURIComponent(query),
-      });
-
-      if (!res.ok) {
-        throw new Error(`OpenStreetMap nearby search failed (${res.status})`);
+      let res: Response;
+      try {
+        res = await fetch("https://overpass-api.de/api/interpreter", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json",
+          },
+          body: "data=" + encodeURIComponent(query),
+        });
+      } catch {
+        throw new Error(
+          "Couldn't reach OpenStreetMap for nearby stations (network or browser blocked the request). BarangayHub stations are still shown.",
+        );
       }
+
+      if (res.status === 429 || res.status === 504) {
+        throw new Error("OpenStreetMap is busy right now — try the nearby search again in a minute.");
+      }
+      if (!res.ok) {
+        throw new Error(`OpenStreetMap nearby search unavailable (error ${res.status}). BarangayHub stations are still shown.`);
+      }
+
 
       const json = (await res.json()) as { elements?: OsmElement[] };
       const dbNames = new Set(stations.map((station) => normalizeName(station.name)));
@@ -168,11 +179,17 @@ out center tags;`;
 
       if (nearby.length > 0) {
         toast.success(`Loaded ${nearby.length} nearby OpenStreetMap fuel stations.`);
-      } else {
+      } else if (!silent) {
         toast.info("No extra nearby OpenStreetMap fuel stations found.");
       }
     } catch (error) {
-      toast.error((error as Error).message);
+      if (!silent) {
+        toast.error("Nearby station lookup failed", {
+          description: (error as Error).message || "Please try again shortly.",
+        });
+      }
+
+
     } finally {
       setLoadingOsmNearby(false);
     }
@@ -296,7 +313,7 @@ out center tags;`;
           .bindPopup("You are here")
           .addTo(map);
 
-        void loadNearbyOsmStations(latitude, longitude);
+        void loadNearbyOsmStations(latitude, longitude, silent);
       },
       (err) => {
         if (!silent) toast.error(err.message || "Could not get your location.");
@@ -318,17 +335,24 @@ out center tags;`;
     if (query.length < 2) return;
     setSearching(true);
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&limit=1&q=${encodeURIComponent(query)}`,
-        { headers: { "Accept-Language": "en" } },
-      );
+      let res: Response;
+      try {
+        res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&limit=1&q=${encodeURIComponent(query)}`,
+          { headers: { "Accept-Language": "en" } },
+        );
+      } catch {
+        throw new Error("Couldn't reach the OpenStreetMap place search. Check your connection and try again.");
+      }
+      if (!res.ok) throw new Error(`Place search unavailable (error ${res.status}). Try again in a moment.`);
       const json = (await res.json()) as Array<{ lat: string; lon: string; display_name: string }>;
       if (!json.length) return toast.error("No place found in the Philippines.");
       const { lat, lon } = json[0];
       mapRef.current?.setView([Number(lat), Number(lon)], 13);
       await loadNearbyOsmStations(Number(lat), Number(lon));
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error("Place search failed", { description: (err as Error).message });
+
     } finally {
       setSearching(false);
     }
