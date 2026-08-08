@@ -12,6 +12,7 @@ import { GroupSignupDialog } from "@/components/group-signup-dialog";
 import { TeamRegistrationDialog } from "@/components/team-registration-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import billiardsLogo from "@/assets/billiards-logo.png.asset.json";
 import {
   getGroupBySlug,
   getMyMembership,
