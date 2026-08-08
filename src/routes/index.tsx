@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, MapPin, ArrowRight, Link2, Sparkles } from "lucide-react";
-import { BusinessCategoryIcon } from "@/components/business-category-icon";
 import { BUSINESS_CATEGORY_GROUPS } from "@/lib/business-category-taxonomy";
 import { CATEGORY_IMAGES } from "@/lib/category-images";
 import heroImage from "@/assets/hero-barangay.jpg";
