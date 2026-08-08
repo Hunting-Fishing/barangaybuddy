@@ -274,8 +274,11 @@ out center tags;`;
     });
   }, [allStations, pricesByStation]);
 
-  function locateMe() {
-    if (!navigator.geolocation) return toast.error("Geolocation not supported.");
+  function locateMe(silent = false) {
+    if (!navigator.geolocation) {
+      if (!silent) toast.error("Geolocation not supported.");
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -295,7 +298,9 @@ out center tags;`;
 
         void loadNearbyOsmStations(latitude, longitude);
       },
-      (err) => toast.error(err.message || "Could not get your location."),
+      (err) => {
+        if (!silent) toast.error(err.message || "Could not get your location.");
+      },
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }
