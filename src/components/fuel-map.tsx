@@ -305,6 +305,13 @@ out center tags;`;
     );
   }
 
+  // Auto-locate the user once the map is ready.
+  useEffect(() => {
+    const t = window.setTimeout(() => locateMe(true), 600);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function searchTown(e: React.FormEvent) {
     e.preventDefault();
     const query = q.trim();
