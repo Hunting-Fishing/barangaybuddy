@@ -150,13 +150,26 @@ function Home() {
                 GROUP_STYLES[group.id] ?? "from-primary/90 to-primary/70"
               } p-3 text-primary-foreground shadow-soft transition-all hover:-translate-y-1 hover:shadow-elegant sm:p-6`}
             >
-              <BusinessCategoryIcon icon={group.icon} className="h-5 w-5 opacity-95 sm:h-10 sm:w-10" />
-              <h3 className="mt-2 font-display text-sm font-bold leading-tight sm:mt-4 sm:text-xl">{group.label}</h3>
-              <p className="mt-1 hidden line-clamp-2 text-sm text-primary-foreground/80 sm:block">
-                {group.description}
-              </p>
-              <div className="mt-auto pt-2 text-[10px] text-primary-foreground/75 sm:pt-4 sm:text-xs">
-                {group.items.length} types
+              {CATEGORY_IMAGES[group.id] && (
+                <>
+                  <img
+                    src={CATEGORY_IMAGES[group.id]}
+                    alt={group.label}
+                    loading="lazy"
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/10" />
+                </>
+              )}
+              <div className="relative flex h-full flex-col">
+                <BusinessCategoryIcon icon={group.icon} className="h-5 w-5 opacity-95 sm:h-10 sm:w-10" />
+                <h3 className="mt-2 font-display text-sm font-bold leading-tight drop-shadow sm:mt-4 sm:text-xl">{group.label}</h3>
+                <p className="mt-1 hidden line-clamp-2 text-sm text-primary-foreground/85 sm:block">
+                  {group.description}
+                </p>
+                <div className="mt-auto pt-2 text-[10px] text-primary-foreground/80 sm:pt-4 sm:text-xs">
+                  {group.items.length} types
+                </div>
               </div>
             </Link>
           ))}
