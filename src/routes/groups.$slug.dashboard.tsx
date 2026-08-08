@@ -303,6 +303,7 @@ function LeagueDashboard() {
                     ? "You're a free supporter — upgrade to Player to compete."
                     : "Activate your membership to get started."}
               </p>
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="secondary">
