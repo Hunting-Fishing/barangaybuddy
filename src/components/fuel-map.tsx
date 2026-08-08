@@ -110,18 +110,29 @@ export function FuelMap() {
 );
 out center tags;`;
 
-      const res = await fetch("https://overpass-api.de/api/interpreter", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Accept: "application/json",
-        },
-        body: "data=" + encodeURIComponent(query),
-      });
-
-      if (!res.ok) {
-        throw new Error(`OpenStreetMap nearby search failed (${res.status})`);
+      let res: Response;
+      try {
+        res = await fetch("https://overpass-api.de/api/interpreter", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json",
+          },
+          body: "data=" + encodeURIComponent(query),
+        });
+      } catch {
+        throw new Error(
+          "Couldn't reach OpenStreetMap for nearby stations (network or browser blocked the request). BarangayHub stations are still shown.",
+        );
       }
+
+      if (res.status === 429 || res.status === 504) {
+        throw new Error("OpenStreetMap is busy right now — try the nearby search again in a minute.");
+      }
+      if (!res.ok) {
+        throw new Error(`OpenStreetMap nearby search unavailable (error ${res.status}). BarangayHub stations are still shown.`);
+      }
+
 
       const json = (await res.json()) as { elements?: OsmElement[] };
       const dbNames = new Set(stations.map((station) => normalizeName(station.name)));
