@@ -337,19 +337,73 @@ function FuelPage() {
                         </div>
                       )}
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label>Latitude (optional)</Label>
-                        <Input value={s_lat} onChange={(e) => setSLat(e.target.value)} placeholder="14.6760" inputMode="decimal" />
+                    <div className="rounded-lg border border-border p-3">
+                      <Label>Where is it on the map?</Label>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {s_lat && s_lng
+                          ? "Pin saved. Tap the map to move it."
+                          : "Tap “I'm at this station” if you're there now, or drop a pin on the map."}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={locatingStation}
+                          onClick={() => {
+                            if (!navigator.geolocation) return toast.error("Location isn't supported on this device.");
+                            setLocatingStation(true);
+                            navigator.geolocation.getCurrentPosition(
+                              (pos) => {
+                                setSLat(pos.coords.latitude.toFixed(6));
+                                setSLng(pos.coords.longitude.toFixed(6));
+                                setLocatingStation(false);
+                                setShowPickMap(true);
+                                toast.success("Location added from your device.");
+                              },
+                              (err) => {
+                                setLocatingStation(false);
+                                toast.error(err.message || "Could not get your location.");
+                              },
+                              { enableHighAccuracy: true, timeout: 10000 },
+                            );
+                          }}
+                        >
+                          <Locate className="mr-1 h-4 w-4" />
+                          {locatingStation ? "Getting location…" : "I'm at this station"}
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => setShowPickMap((v) => !v)}>
+                          <MapPin className="mr-1 h-4 w-4" />
+                          {showPickMap ? "Hide map" : "Pick location on map"}
+                        </Button>
+                        {s_lat && s_lng && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => { setSLat(""); setSLng(""); }}
+                          >
+                            Clear pin
+                          </Button>
+                        )}
                       </div>
-                      <div>
-                        <Label>Longitude (optional)</Label>
-                        <Input value={s_lng} onChange={(e) => setSLng(e.target.value)} placeholder="121.0437" inputMode="decimal" />
-                      </div>
+                      {showPickMap && (
+                        <div className="mt-3">
+                          <ClientOnly fallback={<div className="h-56 rounded-md border bg-muted/30" />}>
+                            <Suspense fallback={<div className="h-56 rounded-md border bg-muted/30" />}>
+                              <LocationPickerMap
+                                value={s_lat && s_lng ? { lat: Number(s_lat), lng: Number(s_lng) } : null}
+                                onChange={({ lat, lng }) => {
+                                  setSLat(lat.toFixed(6));
+                                  setSLng(lng.toFixed(6));
+                                }}
+                              />
+                            </Suspense>
+                          </ClientOnly>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Tip: open the station on Google Maps, long-press the pin, and copy the lat/long.
-                    </p>
+
                     <DialogFooter>
                       <Button type="button" variant="ghost" onClick={() => setAddOpen(false)}>Cancel</Button>
                       <Button type="submit" disabled={adding}>{adding ? "Adding…" : "Add station"}</Button>
