@@ -246,13 +246,20 @@ function FuelPage() {
       .select("id, name")
       .single();
     setAdding(false);
-    if (error || !data) return toast.error(error?.message ?? "Could not add station.");
-    toast.success("Station added — thanks for growing the map!");
-    await loadStations();
-    setStationId(data.id);
+    if (error || !data) {
+      return toast.error("Could not add station", {
+        description: error?.message ?? "Please try again.",
+      });
+    }
+    // Close and reset first so a slow refresh can never leave the form open.
     setAddOpen(false);
     setSBranch(""); setSAddress(""); setSLat(""); setSLng("");
-    setBrgy(null); setBrgyQuery("");
+    setBrgy(null); setBrgyQuery(""); setShowPickMap(false);
+    toast.success("Station added — thanks for growing the map!");
+    setStationId(data.id);
+    if (lat != null && lng != null) setMapFocus({ lat, lng });
+    setMapRefresh((n) => n + 1);
+    void loadStations();
   }
 
   return (
