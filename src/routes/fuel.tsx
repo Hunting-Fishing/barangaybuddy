@@ -314,7 +314,7 @@ function FuelPage() {
                         Barangay {brgy && <span className="text-xs text-muted-foreground">— {brgy.label}</span>}
                       </Label>
                       <Input
-                        value={brgyQuery}
+                        value={brgy ? brgy.label : brgyQuery}
                         onChange={(e) => { setBrgyQuery(e.target.value); setBrgy(null); }}
                         placeholder="Type barangay name…"
                       />
