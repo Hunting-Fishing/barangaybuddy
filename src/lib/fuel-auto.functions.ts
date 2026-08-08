@@ -70,8 +70,10 @@ export const autoRefreshFuelData = createServerFn({ method: "POST" }).handler(
     const { data: outlook } = await supabaseAdmin
       .from("fuel_price_outlooks")
       .select("source, source_url, fuel_type, direction, amount_per_liter, note, fetched_at")
+      .gte("effective_date", new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
       .order("fetched_at", { ascending: false })
       .limit(12);
+
 
     const { data: completed } = await supabaseAdmin
       .from("fuel_import_runs")
