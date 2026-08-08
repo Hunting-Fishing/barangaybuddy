@@ -280,7 +280,7 @@ function FuelPage() {
         <div className="mt-8">
           <ClientOnly fallback={<div className="h-[420px] rounded-lg border bg-muted/30" />}>
             <Suspense fallback={<div className="h-[420px] rounded-lg border bg-muted/30" />}>
-              <FuelMap />
+              <FuelMap refreshKey={mapRefresh} focus={mapFocus} />
             </Suspense>
           </ClientOnly>
         </div>
