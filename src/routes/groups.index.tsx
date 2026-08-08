@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Users2, Sparkles } from "lucide-react";
 import { listPublicGroups, formatPhp, type GroupRow } from "@/lib/groups";
+import { GroupCreateDialog } from "@/components/group-create-dialog";
 import billiardsLogo from "@/assets/billiards-logo.png.asset.json";
 
 const BILLIARDS_SLUG = "barangay-buddy-billiards-league";
