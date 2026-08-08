@@ -6,6 +6,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Users2, Sparkles } from "lucide-react";
 import { listPublicGroups, formatPhp, type GroupRow } from "@/lib/groups";
+import billiardsLogo from "@/assets/billiards-logo.png.asset.json";
+
+const BILLIARDS_SLUG = "barangay-buddy-billiards-league";
 
 export const Route = createFileRoute("/groups/")({
   head: () => ({
@@ -79,11 +82,21 @@ function GroupsIndex() {
                         alt={g.name}
                         className="h-full w-full object-cover"
                       />
+                    ) : g.slug === BILLIARDS_SLUG ? (
+                      <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,oklch(0.32_0.07_155),oklch(0.18_0.04_160))]">
+                        <img
+                          src={billiardsLogo.url}
+                          alt="Barangay Buddy Billiards League logo"
+                          className="h-full w-auto object-contain py-2"
+                          loading="lazy"
+                        />
+                      </div>
                     ) : (
                       <div className="flex h-full items-center justify-center">
                         <Trophy className="h-14 w-14 text-white/80" />
                       </div>
                     )}
+
                     <div className="absolute left-3 top-3">
                       <Badge className="bg-black/60 capitalize backdrop-blur">
                         {g.type.replace("_", " ")}

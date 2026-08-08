@@ -12,6 +12,7 @@ import { GroupSignupDialog } from "@/components/group-signup-dialog";
 import { TeamRegistrationDialog } from "@/components/team-registration-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import billiardsLogo from "@/assets/billiards-logo.png.asset.json";
 import {
   getGroupBySlug,
   getMyMembership,
@@ -282,13 +283,20 @@ function LeagueDashboard() {
         <div className="pointer-events-none absolute -bottom-24 left-1/3 h-72 w-72 rounded-full bg-white/5" />
         <div className="container relative mx-auto px-4 py-10">
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
+            <div className="flex items-center gap-4">
+              <img
+                src={billiardsLogo.url}
+                alt="Barangay Buddy Billiards League logo"
+                className="hidden h-24 w-24 shrink-0 object-contain drop-shadow-lg sm:block"
+              />
+              <div>
               <Badge className="bg-white/15 text-white backdrop-blur">
                 <Trophy className="mr-1 h-3 w-3" /> {group.name}
               </Badge>
               <h1 className="mt-3 font-display text-3xl font-bold text-white md:text-4xl">
                 Rack 'em up, {displayName}
               </h1>
+
               <p className="mt-1 text-sm text-white/70">
                 {canPlay
                   ? "You're a registered player. Check your fixtures below."
@@ -296,6 +304,7 @@ function LeagueDashboard() {
                     ? "You're a free supporter — upgrade to Player to compete."
                     : "Activate your membership to get started."}
               </p>
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="secondary">

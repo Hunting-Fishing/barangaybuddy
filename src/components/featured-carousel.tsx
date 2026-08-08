@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Trophy, Fuel, Sparkles, Car } from "lucide-react";
 import flyerAsset from "@/assets/pool-league-flyer.png.asset.json";
+import billiardsLogo from "@/assets/billiards-logo.png.asset.json";
 
 const BILLIARDS_SLUG = "barangay-buddy-billiards-league";
 
@@ -104,10 +105,20 @@ export function FeaturedCarousel() {
                   ) : null}
                   <div className="relative grid gap-0 sm:grid-cols-[1fr_auto]">
                     <div className="p-4 sm:p-8">
-                      <div className="inline-flex items-center gap-1.5 rounded-full bg-primary-foreground/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-primary-foreground sm:text-xs">
-                        <Icon className="h-3.5 w-3.5" />
-                        {slide.eyebrow}
+                      <div className="flex items-center gap-3">
+                        {slide.id === "billiards" ? (
+                          <img
+                            src={billiardsLogo.url}
+                            alt="Barangay Buddy Billiards League logo"
+                            className="h-12 w-12 shrink-0 object-contain sm:h-16 sm:w-16"
+                          />
+                        ) : null}
+                        <div className="inline-flex items-center gap-1.5 rounded-full bg-primary-foreground/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-primary-foreground sm:text-xs">
+                          <Icon className="h-3.5 w-3.5" />
+                          {slide.eyebrow}
+                        </div>
                       </div>
+
                       <h2 className="mt-2.5 font-display text-lg font-bold leading-tight text-primary-foreground sm:mt-4 sm:text-3xl">
                         {slide.title}
                       </h2>
