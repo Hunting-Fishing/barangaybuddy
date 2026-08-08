@@ -274,8 +274,11 @@ out center tags;`;
     });
   }, [allStations, pricesByStation]);
 
-  function locateMe() {
-    if (!navigator.geolocation) return toast.error("Geolocation not supported.");
+  function locateMe(silent = false) {
+    if (!navigator.geolocation) {
+      if (!silent) toast.error("Geolocation not supported.");
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -295,10 +298,19 @@ out center tags;`;
 
         void loadNearbyOsmStations(latitude, longitude);
       },
-      (err) => toast.error(err.message || "Could not get your location."),
+      (err) => {
+        if (!silent) toast.error(err.message || "Could not get your location.");
+      },
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }
+
+  // Auto-locate the user once the map is ready.
+  useEffect(() => {
+    const t = window.setTimeout(() => locateMe(true), 600);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function searchTown(e: React.FormEvent) {
     e.preventDefault();
@@ -344,7 +356,7 @@ out center tags;`;
             {searching || loadingOsmNearby ? "Searching…" : "Search"}
           </Button>
         </form>
-        <Button type="button" size="sm" variant="outline" onClick={locateMe} disabled={loadingOsmNearby}>
+        <Button type="button" size="sm" variant="outline" onClick={() => locateMe()} disabled={loadingOsmNearby}>
           <Locate className="mr-1 h-4 w-4" /> {loadingOsmNearby ? "Loading nearby…" : "Use my location"}
         </Button>
       </div>

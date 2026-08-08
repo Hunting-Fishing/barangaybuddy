@@ -282,7 +282,7 @@ function FuelPage() {
                     <Plus className="mr-1 h-4 w-4" /> Register a missing station
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="z-[2000] max-w-lg">
                   <DialogHeader>
                     <DialogTitle>Add a fuel station</DialogTitle>
                   </DialogHeader>
@@ -314,7 +314,7 @@ function FuelPage() {
                         Barangay {brgy && <span className="text-xs text-muted-foreground">— {brgy.label}</span>}
                       </Label>
                       <Input
-                        value={brgyQuery}
+                        value={brgy ? brgy.label : brgyQuery}
                         onChange={(e) => { setBrgyQuery(e.target.value); setBrgy(null); }}
                         placeholder="Type barangay name…"
                       />
