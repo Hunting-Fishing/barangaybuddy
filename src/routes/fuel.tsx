@@ -66,6 +66,8 @@ function FuelPage() {
 
 
   // Add-station dialog state
+  const [mapRefresh, setMapRefresh] = useState(0);
+  const [mapFocus, setMapFocus] = useState<{ lat: number; lng: number } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [s_brand, setSBrand] = useState("Petron");
