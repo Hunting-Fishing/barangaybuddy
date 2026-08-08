@@ -282,7 +282,7 @@ function FuelPage() {
                     <Plus className="mr-1 h-4 w-4" /> Register a missing station
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-lg">
+                <DialogContent className="z-[2000] max-w-lg">
                   <DialogHeader>
                     <DialogTitle>Add a fuel station</DialogTitle>
                   </DialogHeader>
