@@ -13,11 +13,16 @@ export const Route = createFileRoute("/api/public/hooks/fuel-sync")({
           return new Response("Unauthorized", { status: 401 });
         }
         try {
-          const result = await runFuelSync();
-          return Response.json({ ok: true, ...result });
+          const { runFuelOutlookSync } = await import("@/lib/fuel-outlook.server");
+          const [result, outlook] = await Promise.all([
+            runFuelSync(),
+            runFuelOutlookSync().catch((e) => ({ rows: 0, errors: [(e as Error).message] })),
+          ]);
+          return Response.json({ ok: true, ...result, outlook });
         } catch (e) {
           return Response.json({ ok: false, error: (e as Error).message }, { status: 500 });
         }
+
       },
     },
   },
