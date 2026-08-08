@@ -100,7 +100,7 @@ export function FuelMap() {
     return all;
   }
 
-  async function loadNearbyOsmStations(latitude: number, longitude: number) {
+  async function loadNearbyOsmStations(latitude: number, longitude: number, silent = false) {
     setLoadingOsmNearby(true);
     try {
       const query = `[out:json][timeout:25];
@@ -179,13 +179,16 @@ out center tags;`;
 
       if (nearby.length > 0) {
         toast.success(`Loaded ${nearby.length} nearby OpenStreetMap fuel stations.`);
-      } else {
+      } else if (!silent) {
         toast.info("No extra nearby OpenStreetMap fuel stations found.");
       }
     } catch (error) {
-      toast.error("Nearby station lookup failed", {
-        description: (error as Error).message || "Please try again shortly.",
-      });
+      if (!silent) {
+        toast.error("Nearby station lookup failed", {
+          description: (error as Error).message || "Please try again shortly.",
+        });
+      }
+
 
     } finally {
       setLoadingOsmNearby(false);
