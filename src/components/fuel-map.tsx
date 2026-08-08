@@ -241,7 +241,13 @@ out center tags;`;
         setPricesByStation(map);
       }
     })();
-  }, []);
+  }, [refreshKey]);
+
+  // Fly to a newly added station
+  useEffect(() => {
+    if (!focus) return;
+    mapRef.current?.setView([focus.lat, focus.lng], 16);
+  }, [focus]);
 
   const allStations = useMemo(
     () => [...stations, ...osmStations],
