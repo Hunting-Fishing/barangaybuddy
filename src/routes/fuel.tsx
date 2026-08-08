@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -10,7 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Fuel, ThumbsUp, ThumbsDown, Plus, TrendingUp, TrendingDown } from "lucide-react";
-import { FuelMap } from "@/components/fuel-map";
+import { ClientOnly } from "@tanstack/react-router";
+
+const FuelMap = lazy(() =>
+  import("@/components/fuel-map").then((m) => ({ default: m.FuelMap })),
+);
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -260,7 +264,11 @@ function FuelPage() {
           </div>
         </div>
         <div className="mt-8">
-          <FuelMap />
+          <ClientOnly fallback={<div className="h-[420px] rounded-lg border bg-muted/30" />}>
+            <Suspense fallback={<div className="h-[420px] rounded-lg border bg-muted/30" />}>
+              <FuelMap />
+            </Suspense>
+          </ClientOnly>
         </div>
 
         <div className="mt-10 grid gap-8 lg:grid-cols-3">
