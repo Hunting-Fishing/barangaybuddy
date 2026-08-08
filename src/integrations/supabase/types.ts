@@ -399,6 +399,42 @@ export type Database = {
         }
         Relationships: []
       }
+      fuel_price_outlooks: {
+        Row: {
+          amount_per_liter: number | null
+          direction: string
+          effective_date: string | null
+          fetched_at: string
+          fuel_type: string
+          id: string
+          note: string | null
+          source: string
+          source_url: string
+        }
+        Insert: {
+          amount_per_liter?: number | null
+          direction: string
+          effective_date?: string | null
+          fetched_at?: string
+          fuel_type: string
+          id?: string
+          note?: string | null
+          source: string
+          source_url: string
+        }
+        Update: {
+          amount_per_liter?: number | null
+          direction?: string
+          effective_date?: string | null
+          fetched_at?: string
+          fuel_type?: string
+          id?: string
+          note?: string | null
+          source?: string
+          source_url?: string
+        }
+        Relationships: []
+      }
       fuel_price_snapshots: {
         Row: {
           brand: string

@@ -75,7 +75,27 @@ const DOE_PRICE_SOURCES: Array<{ url: string; region_code: string; region_name: 
   { url: "https://www.doe.gov.ph/retail-pump-prices-mindanao", region_code: "MIN", region_name: "Mindanao" },
 ];
 
+type AiPrices = {
+  snapshot_date?: string | null;
+  items?: Array<{ brand?: string; fuel_type?: string; price?: number }>;
+};
+
+const PRICE_SYSTEM = `You read Philippine fuel price reports and return STRICT JSON only.
+Schema: {"snapshot_date":"YYYY-MM-DD or null","items":[{"brand":"oil company or 'Prevailing range'","fuel_type":"diesel|gasoline_91|gasoline_95|gasoline_97","price":number}]}
+price = pesos per liter at the pump (a number between 20 and 150). Only include prices explicitly stated in the text for the requested area. Never estimate. If none, return {"items":[]}.`;
+
+function normFuelType(v: string | undefined): string | null {
+  const l = (v ?? "").toLowerCase();
+  if (l.includes("diesel")) return "diesel";
+  if (l.includes("97") || l.includes("100")) return "gasoline_97";
+  if (l.includes("95")) return "gasoline_95";
+  if (l.includes("91") || l.includes("gasoline") || l.includes("unleaded")) return "gasoline_91";
+  return null;
+}
+
 export async function runFuelSync(): Promise<{ stations: number; prices: number; errors: string[] }> {
+  const { firecrawlSearch, aiExtractJson } = await import("@/lib/fuel-news.server");
+
   const { data: runRow } = await supabaseAdmin
     .from("fuel_import_runs")
     .insert({ source: "doe", status: "running" })
@@ -89,12 +109,43 @@ export async function runFuelSync(): Promise<{ stations: number; prices: number;
 
   for (const src of DOE_PRICE_SOURCES) {
     try {
-      const { markdown } = await firecrawlScrape(src.url, ["markdown"]);
-      const rows = parsePriceTable(markdown, src.region_name);
+      // 1) Preferred: DOE's own posted-price table (often Cloudflare-blocked).
+      let rows: Array<{ brand: string; fuel_type: string; price: number; region_name: string }> = [];
+      try {
+        const { markdown } = await firecrawlScrape(src.url, ["markdown"]);
+        rows = parsePriceTable(markdown, src.region_name);
+      } catch {
+        rows = [];
+      }
+
+      // 2) Fallback: current pump prices reported in public news coverage.
       if (!rows.length) {
-        errors.push(`No rows parsed from ${src.region_code}`);
+        const hits = await firecrawlSearch(
+          `prevailing retail pump prices ${src.region_name} Philippines diesel gasoline per liter this week`,
+          { limit: 3, tbs: "qdr:w" },
+        );
+        for (const hit of hits) {
+          const parsed = await aiExtractJson<AiPrices>(
+            PRICE_SYSTEM,
+            `Area: ${src.region_name}, Philippines\nArticle URL: ${hit.url}\nTitle: ${hit.title}\n\n${hit.text}`,
+          );
+          for (const item of parsed?.items ?? []) {
+            const ft = normFuelType(item.fuel_type);
+            const price = Number(item.price);
+            if (!ft || !isFinite(price) || price < 20 || price > 150) continue;
+            const brand = (item.brand || "Prevailing range").replace(/\*/g, "").trim().slice(0, 60);
+            if (rows.some((r) => r.brand === brand && r.fuel_type === ft)) continue;
+            rows.push({ brand, fuel_type: ft, price, region_name: src.region_name });
+          }
+          if (rows.length) break;
+        }
+      }
+
+      if (!rows.length) {
+        errors.push(`No prices found for ${src.region_code}`);
         continue;
       }
+
       const payload = rows.map((r) => ({
         source: "doe",
         brand: r.brand,
@@ -132,6 +183,7 @@ export async function runFuelSync(): Promise<{ stations: number; prices: number;
 
   return { stations: stationsUpserted, prices: pricesUpserted, errors };
 }
+
 
 // Slug helper kept exported so tests can re-use (unused at runtime here).
 export const _internals = { slugify };
