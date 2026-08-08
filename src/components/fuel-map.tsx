@@ -332,17 +332,24 @@ out center tags;`;
     if (query.length < 2) return;
     setSearching(true);
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&limit=1&q=${encodeURIComponent(query)}`,
-        { headers: { "Accept-Language": "en" } },
-      );
+      let res: Response;
+      try {
+        res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&limit=1&q=${encodeURIComponent(query)}`,
+          { headers: { "Accept-Language": "en" } },
+        );
+      } catch {
+        throw new Error("Couldn't reach the OpenStreetMap place search. Check your connection and try again.");
+      }
+      if (!res.ok) throw new Error(`Place search unavailable (error ${res.status}). Try again in a moment.`);
       const json = (await res.json()) as Array<{ lat: string; lon: string; display_name: string }>;
       if (!json.length) return toast.error("No place found in the Philippines.");
       const { lat, lon } = json[0];
       mapRef.current?.setView([Number(lat), Number(lon)], 13);
       await loadNearbyOsmStations(Number(lat), Number(lon));
     } catch (err) {
-      toast.error((err as Error).message);
+      toast.error("Place search failed", { description: (err as Error).message });
+
     } finally {
       setSearching(false);
     }
