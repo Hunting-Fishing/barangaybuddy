@@ -73,6 +73,9 @@ function FuelPage() {
   const [s_address, setSAddress] = useState("");
   const [s_lat, setSLat] = useState("");
   const [s_lng, setSLng] = useState("");
+  const [locatingStation, setLocatingStation] = useState(false);
+  const [showPickMap, setShowPickMap] = useState(false);
+
   const [brgyQuery, setBrgyQuery] = useState("");
   const [brgyResults, setBrgyResults] = useState<any[]>([]);
   const [brgy, setBrgy] = useState<{ code: string; label: string } | null>(null);
