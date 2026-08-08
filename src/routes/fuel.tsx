@@ -481,8 +481,8 @@ function FuelPage() {
                   <div className="flex-1">
                     <h3 className="font-display text-base font-bold">Price outlook — suspected next adjustment</h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Gathered automatically from public Philippine oil price advisories (DOE Oil Monitor and oil
-                      company weekly advisories). These are forecasts, not final pump prices.
+                      Gathered automatically from the weekly Philippine oil price advisory (DOE and oil-company
+                      announcements reported by public news sources). These are forecasts, not final pump prices.
                     </p>
                     {autoRefreshing && outlook.length === 0 ? (
                       <p className="mt-3 text-sm text-muted-foreground">Checking the latest advisories…</p>
