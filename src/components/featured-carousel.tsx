@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Trophy, Fuel, Sparkles, Car } from "lucide-react";
 import flyerAsset from "@/assets/pool-league-flyer.png.asset.json";
+import billiardsLogo from "@/assets/billiards-logo.png.asset.json";
 
 const BILLIARDS_SLUG = "barangay-buddy-billiards-league";
 
