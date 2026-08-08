@@ -60,7 +60,12 @@ function normalizeName(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
-export function FuelMap() {
+type FuelMapProps = {
+  refreshKey?: number;
+  focus?: { lat: number; lng: number } | null;
+};
+
+export function FuelMap({ refreshKey = 0, focus = null }: FuelMapProps) {
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
