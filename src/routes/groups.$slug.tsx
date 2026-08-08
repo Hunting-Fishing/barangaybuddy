@@ -299,6 +299,14 @@ function GroupPage() {
             alt={group.name}
             className="h-full w-full object-cover"
           />
+        ) : isBilliards ? (
+          <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,oklch(0.32_0.07_155),oklch(0.18_0.04_160))]">
+            <img
+              src={billiardsLogo.url}
+              alt="Barangay Buddy Billiards League logo"
+              className="h-full max-h-52 w-auto object-contain py-4 md:max-h-64"
+            />
+          </div>
         ) : (
           <div className="flex h-full items-center justify-center">
             <Trophy className="h-24 w-24 text-white/70" />
@@ -314,6 +322,7 @@ function GroupPage() {
           </h1>
         </div>
       </div>
+
 
       {/* Always-available league navigation */}
       <div className="border-b border-border bg-muted/40">
