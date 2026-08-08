@@ -75,6 +75,9 @@ export async function runFuelOutlookSync(): Promise<{ rows: number; errors: stri
 
           const src = sourceName(hit.url);
           const effective = parsed?.effective_date ?? today;
+          // Ignore articles about past price cycles (search sometimes surfaces old posts).
+          const effMs = Date.parse(effective);
+          if (!isFinite(effMs) || Math.abs(effMs - Date.now()) > 21 * 24 * 60 * 60 * 1000) continue;
           const key = `${src}:${fuel}:${effective}`;
           if (seen.has(key)) continue;
           seen.add(key);
