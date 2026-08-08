@@ -16,16 +16,6 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-const GROUP_STYLES: Record<string, string> = {
-  "food-drinks": "from-sun/90 to-orange-500/80",
-  "retail-essentials": "from-sea/90 to-blue-500/80",
-  "vehicle-transport": "from-emerald-600/90 to-emerald-500/80",
-  "construction-home": "from-amber-700/90 to-amber-500/80",
-  "health-beauty": "from-pink-600/90 to-rose-500/80",
-  "local-services": "from-violet-700/90 to-violet-500/80",
-  "markets-vendors": "from-leaf/90 to-green-500/80",
-  "agriculture-fisheries": "from-lime-700/90 to-lime-500/80",
-};
 
 function Home() {
   const [stats, setStats] = useState({ businesses: 0, barangays: 42042 });
