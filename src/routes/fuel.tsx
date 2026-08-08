@@ -9,12 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Fuel, ThumbsUp, ThumbsDown, Plus, TrendingUp, TrendingDown } from "lucide-react";
+import { Fuel, ThumbsUp, ThumbsDown, Plus, TrendingUp, TrendingDown, Locate, MapPin } from "lucide-react";
 import { ClientOnly } from "@tanstack/react-router";
 
 const FuelMap = lazy(() =>
   import("@/components/fuel-map").then((m) => ({ default: m.FuelMap })),
 );
+const LocationPickerMap = lazy(() => import("@/components/location-picker-map"));
+
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { z } from "zod";
