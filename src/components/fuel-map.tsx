@@ -183,7 +183,10 @@ out center tags;`;
         toast.info("No extra nearby OpenStreetMap fuel stations found.");
       }
     } catch (error) {
-      toast.error((error as Error).message);
+      toast.error("Nearby station lookup failed", {
+        description: (error as Error).message || "Please try again shortly.",
+      });
+
     } finally {
       setLoadingOsmNearby(false);
     }
