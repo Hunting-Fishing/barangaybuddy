@@ -313,7 +313,7 @@ out center tags;`;
           .bindPopup("You are here")
           .addTo(map);
 
-        void loadNearbyOsmStations(latitude, longitude);
+        void loadNearbyOsmStations(latitude, longitude, silent);
       },
       (err) => {
         if (!silent) toast.error(err.message || "Could not get your location.");
