@@ -9,12 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Fuel, ThumbsUp, ThumbsDown, Plus } from "lucide-react";
+import { Fuel, ThumbsUp, ThumbsDown, Plus, TrendingUp, TrendingDown } from "lucide-react";
 import { FuelMap } from "@/components/fuel-map";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { z } from "zod";
-import { runFuelPriceSync, runFuelStationSync } from "@/lib/sync.functions";
+import { autoRefreshFuelData, type FuelOutlookRow } from "@/lib/fuel-auto.functions";
 
 export const Route = createFileRoute("/fuel")({
   head: () => ({
@@ -53,35 +53,10 @@ function FuelPage() {
   const [doePrices, setDoePrices] = useState<any[]>([]);
   const [doeRegion, setDoeRegion] = useState<string>("NCR");
   const [lastSync, setLastSync] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [refreshingStations, setRefreshingStations] = useState(false);
+  const [outlook, setOutlook] = useState<FuelOutlookRow[]>([]);
+  const [autoRefreshing, setAutoRefreshing] = useState(true);
 
-  async function refreshNow() {
-    setRefreshing(true);
-    try {
-      const json = await runFuelPriceSync();
-      toast.success(`Synced ${json.prices ?? 0} price rows from DOE`);
-      await loadDoe(doeRegion);
-    } catch (e) {
-      toast.error(`Refresh failed: ${(e as Error).message}`);
-    } finally {
-      setRefreshing(false);
-    }
-  }
 
-  async function refreshStations() {
-    setRefreshingStations(true);
-    try {
-      const json = await runFuelStationSync();
-      toast.success(`Imported ${json.upserted ?? 0} stations from OpenStreetMap`);
-      // Reload page-wide map data
-      setTimeout(() => window.location.reload(), 800);
-    } catch (e) {
-      toast.error(`Station sync failed: ${(e as Error).message}`);
-    } finally {
-      setRefreshingStations(false);
-    }
-  }
 
 
   // Add-station dialog state
@@ -152,6 +127,28 @@ function FuelPage() {
   }, [user?.id]);
 
   useEffect(() => { loadDoe(doeRegion); }, [doeRegion]);
+
+  // Fully automatic: every page load asks the server to pull the freshest
+  // official prices + price outlook. No admin or user action required.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await autoRefreshFuelData();
+        if (cancelled) return;
+        setOutlook(res.outlook ?? []);
+        setLastSync(res.lastSync ?? null);
+        if (res.refreshed) await loadDoe(doeRegion);
+      } catch {
+        // Silent: the page still shows the last known prices.
+      } finally {
+        if (!cancelled) setAutoRefreshing(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+
 
 
   useEffect(() => {
@@ -415,17 +412,13 @@ function FuelPage() {
                 <div>
                   <h2 className="font-display text-xl font-bold">Today's official DOE prices</h2>
                   <p className="text-xs text-muted-foreground">
-                    Source: PH Department of Energy · Updated daily at 5:00 AM & 6:00 PM
-                    {lastSync && <> · Last sync {new Date(lastSync).toLocaleString()}</>}
+                    Source: PH Department of Energy · Auto-refreshed every time this page loads
+                    {autoRefreshing && <> · Checking for new prices…</>}
+                    {!autoRefreshing && lastSync && <> · Last sync {new Date(lastSync).toLocaleString()}</>}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={refreshStations} disabled={refreshingStations}>
-                    {refreshingStations ? "Importing stations…" : "Refresh stations (OSM)"}
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={refreshNow} disabled={refreshing}>
-                    {refreshing ? "Refreshing…" : "Refresh prices now"}
-                  </Button>
+
                   <Select value={doeRegion} onValueChange={setDoeRegion}>
                     <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
 
@@ -480,6 +473,50 @@ function FuelPage() {
                 </Card>
               )}
             </section>
+
+            <section>
+              <Card className="border-sun/40 bg-muted/30 p-4">
+                <div className="flex items-start gap-3">
+                  <TrendingUp className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                  <div className="flex-1">
+                    <h3 className="font-display text-base font-bold">Price outlook — suspected next adjustment</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Gathered automatically from the weekly Philippine oil price advisory (DOE and oil-company
+                      announcements reported by public news sources). These are forecasts, not final pump prices.
+                    </p>
+                    {autoRefreshing && outlook.length === 0 ? (
+                      <p className="mt-3 text-sm text-muted-foreground">Checking the latest advisories…</p>
+                    ) : outlook.length === 0 ? (
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        No forecast published yet this week. Advisories usually come out Monday, effective Tuesday.
+                      </p>
+                    ) : (
+                      <ul className="mt-3 space-y-2">
+                        {outlook.map((o, i) => (
+                          <li key={`${o.source}-${o.fuel_type}-${i}`} className="flex items-start gap-2 text-sm">
+                            {o.direction === "down" ? (
+                              <TrendingDown className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                            ) : (
+                              <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                            )}
+                            <span>
+                              <span className="font-medium capitalize">{o.fuel_type}</span>{" "}
+                              {o.direction === "down" ? "rollback" : o.direction === "up" ? "increase" : "steady"}
+                              {o.amount_per_liter ? ` of ₱${Number(o.amount_per_liter).toFixed(2)}/L` : ""} ·{" "}
+                              <a className="underline" href={o.source_url} target="_blank" rel="noreferrer">
+                                {o.source}
+                              </a>
+                              {o.note && <span className="block text-xs text-muted-foreground">{o.note}</span>}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            </section>
+
 
             <section>
             <h2 className="font-display text-xl font-bold">Latest community reports</h2>
