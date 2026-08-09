@@ -770,8 +770,20 @@ function LeagueDashboard() {
           </aside>
         </div>
       </main>
+      {group && checkout && (
+        <LeagueCheckoutDialog
+          open
+          onOpenChange={(v) => !v && setCheckout(null)}
+          groupId={group.id}
+          groupName={group.name}
+          feePhp={group.membership_fee_php}
+          seats={checkout.seats}
+          teamId={checkout.teamId}
+        />
+      )}
       <SiteFooter />
     </div>
+
   );
 }
 
