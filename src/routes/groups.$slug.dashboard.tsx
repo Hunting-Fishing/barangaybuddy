@@ -108,6 +108,7 @@ function LeagueDashboard() {
   const [memberCount, setMemberCount] = useState(0);
   const [barangayNames, setBarangayNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [checkout, setCheckout] = useState<{ seats: number; teamId: string | null } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) nav({ to: "/login" });
@@ -117,6 +118,19 @@ function LeagueDashboard() {
     void loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug, user?.id]);
+
+  // Coming back from the payment form
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("paid") !== "1") return;
+    toast.success("Payment received — activating your membership…");
+    window.history.replaceState({}, "", window.location.pathname);
+    const timers = [1500, 4000, 8000].map((ms) => window.setTimeout(() => void loadAll(), ms));
+    return () => timers.forEach((t) => window.clearTimeout(t));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   async function loadAll() {
     const g = await getGroupBySlug(slug);
