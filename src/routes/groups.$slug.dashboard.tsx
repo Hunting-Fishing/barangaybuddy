@@ -10,6 +10,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GroupSignupDialog } from "@/components/group-signup-dialog";
 import { TeamRegistrationDialog } from "@/components/team-registration-dialog";
+import { LeagueCheckoutDialog } from "@/components/league-checkout-dialog";
+
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import billiardsLogo from "@/assets/billiards-logo.png.asset.json";
@@ -108,6 +110,7 @@ function LeagueDashboard() {
   const [memberCount, setMemberCount] = useState(0);
   const [barangayNames, setBarangayNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [checkout, setCheckout] = useState<{ seats: number; teamId: string | null } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) nav({ to: "/login" });
@@ -117,6 +120,19 @@ function LeagueDashboard() {
     void loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug, user?.id]);
+
+  // Coming back from the payment form
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("paid") !== "1") return;
+    toast.success("Payment received — activating your membership…");
+    window.history.replaceState({}, "", window.location.pathname);
+    const timers = [1500, 4000, 8000].map((ms) => window.setTimeout(() => void loadAll(), ms));
+    return () => timers.forEach((t) => window.clearTimeout(t));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   async function loadAll() {
     const g = await getGroupBySlug(slug);
@@ -521,6 +537,34 @@ function LeagueDashboard() {
                           </Badge>
                         </div>
 
+                        {entry.is_captain && group && (
+                          <div className="mt-4 rounded-lg border border-border bg-muted/40 p-3">
+                            <div className="text-sm font-semibold">Pay for your team</div>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {formatPhp(group.membership_fee_php)} per player, up to 8 players.
+                              Covers you and your confirmed team-mates for one year.
+                            </p>
+                            <Button
+                              size="sm"
+                              className="mt-2"
+                              onClick={() =>
+                                setCheckout({
+                                  seats: Math.min(8, Math.max(1, confirmed || players.length || 1)),
+                                  teamId: team.id,
+                                })
+                              }
+                            >
+                              Pay {formatPhp(
+                                group.membership_fee_php *
+                                  Math.min(8, Math.max(1, confirmed || players.length || 1)),
+                              )}{" "}
+                              online
+                            </Button>
+                          </div>
+                        )}
+
+
+
                         <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           Roster — {confirmed} confirmed / {players.length} listed
                         </div>
@@ -726,8 +770,20 @@ function LeagueDashboard() {
           </aside>
         </div>
       </main>
+      {group && checkout && (
+        <LeagueCheckoutDialog
+          open
+          onOpenChange={(v) => !v && setCheckout(null)}
+          groupId={group.id}
+          groupName={group.name}
+          feePhp={group.membership_fee_php}
+          seats={checkout.seats}
+          teamId={checkout.teamId}
+        />
+      )}
       <SiteFooter />
     </div>
+
   );
 }
 

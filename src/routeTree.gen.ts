@@ -53,6 +53,7 @@ import { Route as ApiPublicHooksFuelStationsSyncRouteImport } from './routes/api
 import { Route as ApiPublicHooksFuelSyncRouteImport } from './routes/api/public/hooks/fuel-sync'
 import { Route as ApiPublicHooksRoadsafeDeliverRouteImport } from './routes/api/public/hooks/roadsafe-deliver'
 import { Route as ApiPublicHooksRoadsafeIngestRouteImport } from './routes/api/public/hooks/roadsafe-ingest'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as DashboardBusinessIdInventoryRouteImport } from './routes/dashboard.business.$id.inventory'
 
 const IndexRoute = IndexRouteImport.update({
@@ -279,6 +280,12 @@ const ApiPublicHooksRoadsafeIngestRoute =
     path: '/api/public/hooks/roadsafe-ingest',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicPaymentsWebhookRoute =
+  ApiPublicPaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/webhook',
+    path: '/api/public/payments/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const DashboardBusinessIdInventoryRoute =
   DashboardBusinessIdInventoryRouteImport.update({
     id: '/inventory',
@@ -331,6 +338,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
   '/api/public/hooks/roadsafe-deliver': typeof ApiPublicHooksRoadsafeDeliverRoute
   '/api/public/hooks/roadsafe-ingest': typeof ApiPublicHooksRoadsafeIngestRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/dashboard/business/$id/inventory': typeof DashboardBusinessIdInventoryRoute
 }
 export interface FileRoutesByTo {
@@ -378,6 +386,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
   '/api/public/hooks/roadsafe-deliver': typeof ApiPublicHooksRoadsafeDeliverRoute
   '/api/public/hooks/roadsafe-ingest': typeof ApiPublicHooksRoadsafeIngestRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/dashboard/business/$id/inventory': typeof DashboardBusinessIdInventoryRoute
 }
 export interface FileRoutesById {
@@ -426,6 +435,7 @@ export interface FileRoutesById {
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
   '/api/public/hooks/roadsafe-deliver': typeof ApiPublicHooksRoadsafeDeliverRoute
   '/api/public/hooks/roadsafe-ingest': typeof ApiPublicHooksRoadsafeIngestRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/dashboard/business/$id/inventory': typeof DashboardBusinessIdInventoryRoute
 }
 export interface FileRouteTypes {
@@ -475,6 +485,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/fuel-sync'
     | '/api/public/hooks/roadsafe-deliver'
     | '/api/public/hooks/roadsafe-ingest'
+    | '/api/public/payments/webhook'
     | '/dashboard/business/$id/inventory'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -522,6 +533,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/fuel-sync'
     | '/api/public/hooks/roadsafe-deliver'
     | '/api/public/hooks/roadsafe-ingest'
+    | '/api/public/payments/webhook'
     | '/dashboard/business/$id/inventory'
   id:
     | '__root__'
@@ -569,6 +581,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/fuel-sync'
     | '/api/public/hooks/roadsafe-deliver'
     | '/api/public/hooks/roadsafe-ingest'
+    | '/api/public/payments/webhook'
     | '/dashboard/business/$id/inventory'
   fileRoutesById: FileRoutesById
 }
@@ -612,6 +625,7 @@ export interface RootRouteChildren {
   ApiPublicHooksFuelSyncRoute: typeof ApiPublicHooksFuelSyncRoute
   ApiPublicHooksRoadsafeDeliverRoute: typeof ApiPublicHooksRoadsafeDeliverRoute
   ApiPublicHooksRoadsafeIngestRoute: typeof ApiPublicHooksRoadsafeIngestRoute
+  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -924,6 +938,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksRoadsafeIngestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/business/$id/inventory': {
       id: '/dashboard/business/$id/inventory'
       path: '/inventory'
@@ -1025,17 +1046,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksFuelSyncRoute: ApiPublicHooksFuelSyncRoute,
   ApiPublicHooksRoadsafeDeliverRoute: ApiPublicHooksRoadsafeDeliverRoute,
   ApiPublicHooksRoadsafeIngestRoute: ApiPublicHooksRoadsafeIngestRoute,
+  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

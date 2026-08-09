@@ -153,6 +153,19 @@ function GroupPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [group.id, user?.id]);
 
+  // Returning from the payment form
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("paid") !== "1") return;
+    toast.success("Payment received — activating your membership…");
+    window.history.replaceState({}, "", window.location.pathname);
+    const timers = [1500, 4000, 8000].map((ms) => window.setTimeout(() => void loadAll(), ms));
+    return () => timers.forEach((t) => window.clearTimeout(t));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
   async function loadAll() {
     const anyDb = supabase as any;
     const [venuesRes, eventsRes, promosRes, activeCountRes, activeMembersRes] =
