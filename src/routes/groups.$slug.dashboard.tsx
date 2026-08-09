@@ -537,6 +537,34 @@ function LeagueDashboard() {
                           </Badge>
                         </div>
 
+                        {entry.is_captain && group && (
+                          <div className="mt-4 rounded-lg border border-border bg-muted/40 p-3">
+                            <div className="text-sm font-semibold">Pay for your team</div>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {formatPhp(group.membership_fee_php)} per player, up to 8 players.
+                              Covers you and your confirmed team-mates for one year.
+                            </p>
+                            <Button
+                              size="sm"
+                              className="mt-2"
+                              onClick={() =>
+                                setCheckout({
+                                  seats: Math.min(8, Math.max(1, confirmed || players.length || 1)),
+                                  teamId: team.id,
+                                })
+                              }
+                            >
+                              Pay {formatPhp(
+                                group.membership_fee_php *
+                                  Math.min(8, Math.max(1, confirmed || players.length || 1)),
+                              )}{" "}
+                              online
+                            </Button>
+                          </div>
+                        )}
+
+
+
                         <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           Roster — {confirmed} confirmed / {players.length} listed
                         </div>
