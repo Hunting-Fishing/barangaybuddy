@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { createLeagueCheckout } from "@/lib/payments.functions";
 import { formatPhp } from "@/lib/groups";
+import { PaymentTestModeBanner } from "@/components/payment-test-mode-banner";
 
 export function LeagueCheckoutDialog({
   open,
@@ -47,6 +48,7 @@ export function LeagueCheckoutDialog({
             {formatPhp(feePhp * seats)} for one year
           </DialogDescription>
         </DialogHeader>
+        <PaymentTestModeBanner />
         {open && (
           <EmbeddedCheckoutProvider stripe={getStripe()} options={{ fetchClientSecret }}>
             <EmbeddedCheckout />
