@@ -48,6 +48,7 @@ import {
   Tag,
   Settings,
   LayoutDashboard,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -344,6 +345,11 @@ function GroupPage() {
           <Button asChild size="sm" variant="secondary">
             <Link to="/groups/$slug/dashboard" params={{ slug: group.slug }}>
               <LayoutDashboard className="mr-2 h-4 w-4" /> League dashboard
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/groups/$slug/membership" params={{ slug: group.slug }}>
+              <ShieldCheck className="mr-2 h-4 w-4" /> My membership
             </Link>
           </Button>
           <Button asChild size="sm" variant="outline">

@@ -46,6 +46,7 @@ import { Route as DashboardBusinessIdRouteImport } from './routes/dashboard.busi
 import { Route as GroupsSlugCompareRouteImport } from './routes/groups.$slug.compare'
 import { Route as GroupsSlugDashboardRouteImport } from './routes/groups.$slug.dashboard'
 import { Route as GroupsSlugManageRouteImport } from './routes/groups.$slug.manage'
+import { Route as GroupsSlugMembershipRouteImport } from './routes/groups.$slug.membership'
 import { Route as SpotlightBookSlugRouteImport } from './routes/spotlight.book.$slug'
 import { Route as SpotlightTalentSlugRouteImport } from './routes/spotlight.talent.$slug'
 import { Route as ApiPublicHooksBusinessOsmSyncRouteImport } from './routes/api/public/hooks/business-osm-sync'
@@ -241,6 +242,11 @@ const GroupsSlugManageRoute = GroupsSlugManageRouteImport.update({
   path: '/manage',
   getParentRoute: () => GroupsSlugRoute,
 } as any)
+const GroupsSlugMembershipRoute = GroupsSlugMembershipRouteImport.update({
+  id: '/membership',
+  path: '/membership',
+  getParentRoute: () => GroupsSlugRoute,
+} as any)
 const SpotlightBookSlugRoute = SpotlightBookSlugRouteImport.update({
   id: '/spotlight/book/$slug',
   path: '/spotlight/book/$slug',
@@ -331,6 +337,7 @@ export interface FileRoutesByFullPath {
   '/groups/$slug/compare': typeof GroupsSlugCompareRoute
   '/groups/$slug/dashboard': typeof GroupsSlugDashboardRoute
   '/groups/$slug/manage': typeof GroupsSlugManageRoute
+  '/groups/$slug/membership': typeof GroupsSlugMembershipRoute
   '/spotlight/book/$slug': typeof SpotlightBookSlugRoute
   '/spotlight/talent/$slug': typeof SpotlightTalentSlugRoute
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
@@ -379,6 +386,7 @@ export interface FileRoutesByTo {
   '/groups/$slug/compare': typeof GroupsSlugCompareRoute
   '/groups/$slug/dashboard': typeof GroupsSlugDashboardRoute
   '/groups/$slug/manage': typeof GroupsSlugManageRoute
+  '/groups/$slug/membership': typeof GroupsSlugMembershipRoute
   '/spotlight/book/$slug': typeof SpotlightBookSlugRoute
   '/spotlight/talent/$slug': typeof SpotlightTalentSlugRoute
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
@@ -428,6 +436,7 @@ export interface FileRoutesById {
   '/groups/$slug/compare': typeof GroupsSlugCompareRoute
   '/groups/$slug/dashboard': typeof GroupsSlugDashboardRoute
   '/groups/$slug/manage': typeof GroupsSlugManageRoute
+  '/groups/$slug/membership': typeof GroupsSlugMembershipRoute
   '/spotlight/book/$slug': typeof SpotlightBookSlugRoute
   '/spotlight/talent/$slug': typeof SpotlightTalentSlugRoute
   '/api/public/hooks/business-osm-sync': typeof ApiPublicHooksBusinessOsmSyncRoute
@@ -478,6 +487,7 @@ export interface FileRouteTypes {
     | '/groups/$slug/compare'
     | '/groups/$slug/dashboard'
     | '/groups/$slug/manage'
+    | '/groups/$slug/membership'
     | '/spotlight/book/$slug'
     | '/spotlight/talent/$slug'
     | '/api/public/hooks/business-osm-sync'
@@ -526,6 +536,7 @@ export interface FileRouteTypes {
     | '/groups/$slug/compare'
     | '/groups/$slug/dashboard'
     | '/groups/$slug/manage'
+    | '/groups/$slug/membership'
     | '/spotlight/book/$slug'
     | '/spotlight/talent/$slug'
     | '/api/public/hooks/business-osm-sync'
@@ -574,6 +585,7 @@ export interface FileRouteTypes {
     | '/groups/$slug/compare'
     | '/groups/$slug/dashboard'
     | '/groups/$slug/manage'
+    | '/groups/$slug/membership'
     | '/spotlight/book/$slug'
     | '/spotlight/talent/$slug'
     | '/api/public/hooks/business-osm-sync'
@@ -889,6 +901,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GroupsSlugManageRouteImport
       parentRoute: typeof GroupsSlugRoute
     }
+    '/groups/$slug/membership': {
+      id: '/groups/$slug/membership'
+      path: '/membership'
+      fullPath: '/groups/$slug/membership'
+      preLoaderRoute: typeof GroupsSlugMembershipRouteImport
+      parentRoute: typeof GroupsSlugRoute
+    }
     '/spotlight/book/$slug': {
       id: '/spotlight/book/$slug'
       path: '/spotlight/book/$slug'
@@ -994,12 +1013,14 @@ interface GroupsSlugRouteChildren {
   GroupsSlugCompareRoute: typeof GroupsSlugCompareRoute
   GroupsSlugDashboardRoute: typeof GroupsSlugDashboardRoute
   GroupsSlugManageRoute: typeof GroupsSlugManageRoute
+  GroupsSlugMembershipRoute: typeof GroupsSlugMembershipRoute
 }
 
 const GroupsSlugRouteChildren: GroupsSlugRouteChildren = {
   GroupsSlugCompareRoute: GroupsSlugCompareRoute,
   GroupsSlugDashboardRoute: GroupsSlugDashboardRoute,
   GroupsSlugManageRoute: GroupsSlugManageRoute,
+  GroupsSlugMembershipRoute: GroupsSlugMembershipRoute,
 }
 
 const GroupsSlugRouteWithChildren = GroupsSlugRoute._addFileChildren(
