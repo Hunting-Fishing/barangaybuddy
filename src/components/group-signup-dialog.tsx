@@ -19,7 +19,9 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import type { GroupRow, MembershipRow } from "@/lib/groups";
 import { formatPhp } from "@/lib/groups";
-import { CheckCircle2, Loader2, Wallet } from "lucide-react";
+import { CheckCircle2, CreditCard, Loader2, Wallet } from "lucide-react";
+import { LeagueCheckoutDialog } from "@/components/league-checkout-dialog";
+import { paymentsConfigured } from "@/lib/stripe";
 
 const METHODS = [
   { id: "gcash", label: "GCash" },
@@ -47,6 +49,7 @@ export function GroupSignupDialog({
   const [ref, setRef] = useState("");
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
 
   async function upsertMembership(payload: Record<string, unknown>) {
     const { data, error } = await (supabase as any)
@@ -154,6 +157,33 @@ export function GroupSignupDialog({
           </TabsContent>
 
           <TabsContent value="player" className="mt-4 space-y-3">
+            {paymentsConfigured() && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <CreditCard className="h-4 w-4 text-primary" />
+                  Pay online — instant activation
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Card, e-wallet and other methods enabled on our payment account. Your player slot
+                  activates automatically once payment clears — no admin wait.
+                </p>
+                <Button
+                  className="mt-2 w-full"
+                  onClick={() => {
+                    if (!user) return toast.error("Sign in first.");
+                    setOpen(false);
+                    setPayOpen(true);
+                  }}
+                >
+                  Pay {formatPhp(group.membership_fee_php)} now
+                </Button>
+              </div>
+            )}
+
+            <div className="pt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Or pay manually (GCash / Maya / bank)
+            </div>
+
             {group.payment_instructions && (
               <div className="whitespace-pre-wrap rounded-lg border border-border bg-muted/50 p-3 text-sm">
                 {group.payment_instructions}
@@ -214,6 +244,14 @@ export function GroupSignupDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      <LeagueCheckoutDialog
+        open={payOpen}
+        onOpenChange={setPayOpen}
+        groupId={group.id}
+        groupName={group.name}
+        feePhp={group.membership_fee_php}
+        seats={1}
+      />
     </Dialog>
   );
 }
