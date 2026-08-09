@@ -10,6 +10,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GroupSignupDialog } from "@/components/group-signup-dialog";
 import { TeamRegistrationDialog } from "@/components/team-registration-dialog";
+import { LeagueCheckoutDialog } from "@/components/league-checkout-dialog";
+
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import billiardsLogo from "@/assets/billiards-logo.png.asset.json";
