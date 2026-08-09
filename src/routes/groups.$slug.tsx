@@ -48,6 +48,7 @@ import {
   Tag,
   Settings,
   LayoutDashboard,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
