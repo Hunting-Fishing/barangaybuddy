@@ -333,6 +333,11 @@ function LeagueDashboard() {
                   How we compare
                 </Link>
               </Button>
+              <Button asChild variant="secondary">
+                <Link to="/groups/$slug/membership" params={{ slug: group.slug }}>
+                  Membership status
+                </Link>
+              </Button>
 
               {!canPlay && (
                 <GroupSignupDialog
