@@ -347,6 +347,11 @@ function GroupPage() {
             </Link>
           </Button>
           <Button asChild size="sm" variant="outline">
+            <Link to="/groups/$slug/membership" params={{ slug: group.slug }}>
+              <ShieldCheck className="mr-2 h-4 w-4" /> My membership
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
             <Link to="/groups/$slug/compare" params={{ slug: group.slug }}>
               <Trophy className="mr-2 h-4 w-4" /> How we compare
             </Link>
