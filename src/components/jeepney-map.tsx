@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { JeepneyPosition, JeepneyRoute, JeepneyStop, LatLng } from "@/lib/jeepney";
-import { isLive } from "@/lib/jeepney";
+import { CONGESTION_COLOURS, SEGMENT_KM, congestionLevel, haversineKm, isLive } from "@/lib/jeepney";
 
 export type MapRoute = JeepneyRoute & { stops: JeepneyStop[] };
 
@@ -13,7 +13,10 @@ type Props = {
   activeRouteId?: string | null;
   onSelectRoute?: (routeId: string) => void;
   height?: string;
+  /** routeId -> (segment index -> typical km/h for the current hour) */
+  congestion?: Record<string, Map<number, number>>;
 };
+
 
 function esc(s: string) {
   return s.replace(
