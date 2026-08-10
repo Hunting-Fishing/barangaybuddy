@@ -9,9 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Bell, Bus, Locate, Radio, TriangleAlert, Wrench } from "lucide-react";
 import { JeepneyFollowButton } from "@/components/jeepney-follow-button";
+import { JeepneyInsightsCard } from "@/components/jeepney-insights-card";
 
 import {
-  etaMinutes,
+  CONGESTION_COLOURS,
+  CONGESTION_LABELS,
+  etaMinutesWithTraffic,
   etaRangeLabel,
   formatPhpAmount,
   formatTime,
@@ -19,11 +22,14 @@ import {
   headwayLabel,
   isLive,
   parsePath,
+  segmentSpeedMap,
   type JeepneyPosition,
   type JeepneyRoute,
   type JeepneyStop,
   type LatLng,
+  type SegmentSpeed,
 } from "@/lib/jeepney";
+
 
 const JeepneyMap = lazy(() => import("@/components/jeepney-map"));
 
