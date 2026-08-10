@@ -182,15 +182,32 @@ function JeepneyRoutePage() {
             {route.code ? `Route ${route.code} · ` : ""}
             {route.operator ? `Operated by ${route.operator}` : "Jeepney route"}
           </p>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{formatPhpAmount(route.fare_php)} fare</Badge>
             {route.fare_note && <Badge variant="secondary">{route.fare_note}</Badge>}
             {headwayLabel(route) && <Badge variant="secondary">{headwayLabel(route)}</Badge>}
             <Badge variant={onRoad ? "default" : "secondary"} className="gap-1">
               <Radio className="h-3 w-3" /> {onRoad ? "Live now" : "Not broadcasting"}
             </Badge>
+            {route.status === "suspended" && (
+              <Badge variant="destructive" className="gap-1">
+                <TriangleAlert className="h-3 w-3" /> Out of service
+              </Badge>
+            )}
+            <JeepneyFollowButton routeId={route.id} routeName={route.name} />
           </div>
         </header>
+
+        {route.status === "suspended" && (
+          <Card className="mb-4 border-destructive/40 bg-destructive/5 p-4 text-sm">
+            <p className="font-semibold">This jeepney has reported a breakdown.</p>
+            <p className="text-muted-foreground">
+              {alerts.find((a) => a.kind === "breakdown")?.message ??
+                "The operator paused this route. Monitor it to be alerted the moment it's back."}
+            </p>
+          </Card>
+        )}
+
 
         <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
           <ClientOnly fallback={<div className="h-[60vh] rounded-xl border border-border" />}>
