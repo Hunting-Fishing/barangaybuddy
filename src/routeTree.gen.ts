@@ -33,6 +33,7 @@ import { Route as GroupsSlugRouteImport } from './routes/groups.$slug'
 import { Route as InventoryBusinessIdRouteImport } from './routes/inventory.$businessId'
 import { Route as JeepneyIndexRouteImport } from './routes/jeepney.index'
 import { Route as JeepneySlugRouteImport } from './routes/jeepney.$slug'
+import { Route as JeepneyOperatorRouteImport } from './routes/jeepney.operator'
 import { Route as MessagesConversationIdRouteImport } from './routes/messages.$conversationId'
 import { Route as ProvincesProvinceRouteImport } from './routes/provinces.$province'
 import { Route as RegionsIndexRouteImport } from './routes/regions.index'
@@ -177,6 +178,11 @@ const JeepneyIndexRoute = JeepneyIndexRouteImport.update({
 const JeepneySlugRoute = JeepneySlugRouteImport.update({
   id: '/jeepney/$slug',
   path: '/jeepney/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JeepneyOperatorRoute = JeepneyOperatorRouteImport.update({
+  id: '/jeepney/operator',
+  path: '/jeepney/operator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MessagesConversationIdRoute = MessagesConversationIdRouteImport.update({
@@ -333,6 +339,7 @@ export interface FileRoutesByFullPath {
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/jeepney/$slug': typeof JeepneySlugRoute
+  '/jeepney/operator': typeof JeepneyOperatorRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
@@ -384,6 +391,7 @@ export interface FileRoutesByTo {
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/jeepney/$slug': typeof JeepneySlugRoute
+  '/jeepney/operator': typeof JeepneyOperatorRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
@@ -436,6 +444,7 @@ export interface FileRoutesById {
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/jeepney/$slug': typeof JeepneySlugRoute
+  '/jeepney/operator': typeof JeepneyOperatorRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
   '/regions/$region': typeof RegionsRegionRoute
@@ -489,6 +498,7 @@ export interface FileRouteTypes {
     | '/groups/$slug'
     | '/inventory/$businessId'
     | '/jeepney/$slug'
+    | '/jeepney/operator'
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
@@ -540,6 +550,7 @@ export interface FileRouteTypes {
     | '/groups/$slug'
     | '/inventory/$businessId'
     | '/jeepney/$slug'
+    | '/jeepney/operator'
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
@@ -591,6 +602,7 @@ export interface FileRouteTypes {
     | '/groups/$slug'
     | '/inventory/$businessId'
     | '/jeepney/$slug'
+    | '/jeepney/operator'
     | '/messages/$conversationId'
     | '/provinces/$province'
     | '/regions/$region'
@@ -643,6 +655,7 @@ export interface RootRouteChildren {
   GroupsSlugRoute: typeof GroupsSlugRouteWithChildren
   InventoryBusinessIdRoute: typeof InventoryBusinessIdRoute
   JeepneySlugRoute: typeof JeepneySlugRoute
+  JeepneyOperatorRoute: typeof JeepneyOperatorRoute
   ProvincesProvinceRoute: typeof ProvincesProvinceRoute
   RegionsRegionRoute: typeof RegionsRegionRoute
   SpotlightAdminRoute: typeof SpotlightAdminRoute
@@ -834,6 +847,13 @@ declare module '@tanstack/react-router' {
       path: '/jeepney/$slug'
       fullPath: '/jeepney/$slug'
       preLoaderRoute: typeof JeepneySlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/jeepney/operator': {
+      id: '/jeepney/operator'
+      path: '/jeepney/operator'
+      fullPath: '/jeepney/operator'
+      preLoaderRoute: typeof JeepneyOperatorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/messages/$conversationId': {
@@ -1089,6 +1109,7 @@ const rootRouteChildren: RootRouteChildren = {
   GroupsSlugRoute: GroupsSlugRouteWithChildren,
   InventoryBusinessIdRoute: InventoryBusinessIdRoute,
   JeepneySlugRoute: JeepneySlugRoute,
+  JeepneyOperatorRoute: JeepneyOperatorRoute,
   ProvincesProvinceRoute: ProvincesProvinceRoute,
   RegionsRegionRoute: RegionsRegionRoute,
   SpotlightAdminRoute: SpotlightAdminRoute,
