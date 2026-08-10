@@ -334,6 +334,40 @@ function JeepneyRoutePage() {
               </ol>
             </Card>
 
+            <Card className="p-4">
+              <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
+                <Bell className="h-4 w-4" /> Service alerts
+              </p>
+              {alerts.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  No breakdowns reported. Monitor this route to get an alert if the jeepney breaks
+                  down or comes back into service.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {alerts.map((alert) => (
+                    <li key={alert.id} className="flex gap-2 text-sm">
+                      {alert.kind === "breakdown" ? (
+                        <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                      ) : (
+                        <Wrench className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-medium">{alert.headline}</p>
+                        {alert.message && (
+                          <p className="text-xs text-muted-foreground">{alert.message}</p>
+                        )}
+                        <p className="text-[11px] text-muted-foreground">
+                          {new Date(alert.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+
+
             {route.notes && (
               <Card className="p-4 text-sm">
                 <p className="mb-1 font-semibold">Notes from the operator</p>
