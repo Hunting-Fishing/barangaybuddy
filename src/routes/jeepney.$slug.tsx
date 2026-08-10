@@ -77,7 +77,7 @@ function JeepneyRoutePage() {
       .from("jeepney_routes")
       .select("*, jeepney_stops(*), jeepney_operators(display_name)")
       .eq("slug", slug)
-      .eq("status", "published")
+      .in("status", ["published", "suspended"])
       .maybeSingle();
     if (!data) {
       setRoute(null);
