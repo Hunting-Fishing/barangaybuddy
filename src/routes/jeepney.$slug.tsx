@@ -66,6 +66,7 @@ function JeepneyRoutePage() {
   const [position, setPosition] = useState<JeepneyPosition | null>(null);
   const [me, setMe] = useState<LatLng | null>(null);
   const [loading, setLoading] = useState(true);
+  const [alerts, setAlerts] = useState<RouteAlert[]>([]);
 
   useEffect(() => {
     void load();
@@ -97,7 +98,19 @@ function JeepneyRoutePage() {
     setRoute(parsed);
     setLoading(false);
     void loadLive(parsed.id);
+    void loadAlerts(parsed.id);
   }
+
+  async function loadAlerts(routeId: string) {
+    const { data } = await supabase
+      .from("jeepney_route_alerts")
+      .select("id, kind, headline, message, created_at")
+      .eq("route_id", routeId)
+      .order("created_at", { ascending: false })
+      .limit(5);
+    setAlerts((data ?? []) as RouteAlert[]);
+  }
+
 
   async function loadLive(routeId?: string) {
     const id = routeId ?? route?.id;
