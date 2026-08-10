@@ -7,7 +7,9 @@ import { SiteFooter } from "@/components/site-footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Bus, Locate, Radio } from "lucide-react";
+import { ArrowLeft, Bell, Bus, Locate, Radio, TriangleAlert, Wrench } from "lucide-react";
+import { JeepneyFollowButton } from "@/components/jeepney-follow-button";
+
 import {
   etaMinutes,
   etaRangeLabel,
