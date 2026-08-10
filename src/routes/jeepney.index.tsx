@@ -231,11 +231,15 @@ function JeepneyIndexPage() {
                     First {formatTime(route.first_run)} · Last {formatTime(route.last_run)} · Last
                     pickup {formatTime(route.last_pickup)}
                   </p>
-                  <Button size="sm" variant="link" className="mt-1 h-auto p-0" asChild>
-                    <Link to="/jeepney/$slug" params={{ slug: route.slug }}>
-                      View route & stops
-                    </Link>
-                  </Button>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <Button size="sm" variant="link" className="h-auto p-0" asChild>
+                      <Link to="/jeepney/$slug" params={{ slug: route.slug }}>
+                        View route & stops
+                      </Link>
+                    </Button>
+                    <JeepneyFollowButton routeId={route.id} routeName={route.name} />
+                  </div>
+
                 </Card>
               );
             })}
