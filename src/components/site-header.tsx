@@ -6,6 +6,7 @@ import {
   Menu,
   Search,
   Fuel,
+  Bus,
   LayoutDashboard,
   MessageSquare,
   LogOut,
