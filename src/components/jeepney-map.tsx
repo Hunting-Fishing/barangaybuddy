@@ -32,7 +32,9 @@ export default function JeepneyMap({
   activeRouteId = null,
   onSelectRoute,
   height = "70vh",
+  congestion = {},
 }: Props) {
+
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
