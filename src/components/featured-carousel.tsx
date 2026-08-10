@@ -54,6 +54,16 @@ const SLIDES: Slide[] = [
     to: "/fuel",
   },
   {
+    id: "jeepney",
+    eyebrow: "New — Jeepney Planner",
+    title: "Know when your jeepney is coming",
+    body: "Routes, stops, fares and first/last trip times — with live jeepneys on the map. Operators can list a route for ₱100/month.",
+    cta: "Open Jeepney Planner",
+    icon: Bus,
+    gradient: "from-amber-900 via-amber-800 to-yellow-950",
+    to: "/jeepney",
+  },
+  {
     id: "import",
     eyebrow: "For business owners",
     title: "Add your business from a link",
