@@ -189,3 +189,180 @@ export function jeepneySlug(name: string): string {
 
 export const JEEPNEY_MONTHLY_PHP = 100;
 export const JEEPNEY_PRICE_ID = "jeepney_route_monthly";
+
+/* ------------------------------------------------------------------ */
+/* Route tracking, analytics and traffic congestion                     */
+/* ------------------------------------------------------------------ */
+
+/** Metres between recorded GPS points while "Track my route" is running. */
+export const TRACK_MIN_METRES = 40;
+/** Ignore GPS fixes worse than this accuracy (metres). */
+export const TRACK_MAX_ACCURACY_M = 60;
+/** Length of a congestion segment along the route. */
+export const SEGMENT_KM = 0.25;
+
+function perpendicularKm(point: LatLng, a: LatLng, b: LatLng): number {
+  const x0 = point.lng * Math.cos((point.lat * Math.PI) / 180);
+  const y0 = point.lat;
+  const x1 = a.lng * Math.cos((a.lat * Math.PI) / 180);
+  const y1 = a.lat;
+  const x2 = b.lng * Math.cos((b.lat * Math.PI) / 180);
+  const y2 = b.lat;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const denom = Math.hypot(dx, dy);
+  const degKm = 111.32;
+  if (denom === 0) return Math.hypot(x0 - x1, y0 - y1) * degKm;
+  return (Math.abs(dy * x0 - dx * y0 + x2 * y1 - y2 * x1) / denom) * degKm;
+}
+
+/** Douglas–Peucker simplification. `toleranceM` in metres. */
+export function simplifyPath(path: LatLng[], toleranceM = 25): LatLng[] {
+  if (path.length < 3) return path.slice();
+  const tolKm = toleranceM / 1000;
+  const keep = new Array<boolean>(path.length).fill(false);
+  keep[0] = true;
+  keep[path.length - 1] = true;
+  const stack: [number, number][] = [[0, path.length - 1]];
+  while (stack.length) {
+    const [start, end] = stack.pop()!;
+    let maxDist = 0;
+    let index = -1;
+    for (let i = start + 1; i < end; i += 1) {
+      const d = perpendicularKm(path[i]!, path[start]!, path[end]!);
+      if (d > maxDist) {
+        maxDist = d;
+        index = i;
+      }
+    }
+    if (index !== -1 && maxDist > tolKm) {
+      keep[index] = true;
+      stack.push([start, index], [index, end]);
+    }
+  }
+  return path.filter((_, i) => keep[i]);
+}
+
+/** Which congestion segment a point falls into. */
+export function segmentIndexForPoint(path: LatLng[], point: LatLng): number {
+  if (path.length < 2) return 0;
+  return Math.max(0, Math.floor(distanceAlongPathKm(path, point) / SEGMENT_KM));
+}
+
+export function segmentCount(path: LatLng[]): number {
+  return Math.max(1, Math.ceil(pathLengthKm(path) / SEGMENT_KM));
+}
+
+export type SegmentSpeed = { segment_index: number; hour: number; avg_speed_kph: number | null };
+
+export type CongestionLevel = "free" | "slow" | "heavy" | "unknown";
+
+export const CONGESTION_COLOURS: Record<CongestionLevel, string> = {
+  free: "#16a34a",
+  slow: "#f59e0b",
+  heavy: "#dc2626",
+  unknown: "#94a3b8",
+};
+
+export const CONGESTION_LABELS: Record<CongestionLevel, string> = {
+  free: "Free flowing",
+  slow: "Slow moving",
+  heavy: "Heavy traffic",
+  unknown: "No data yet",
+};
+
+/** Grade a segment speed against free-flow jeepney speed. */
+export function congestionLevel(speedKph: number | null | undefined): CongestionLevel {
+  if (speedKph === null || speedKph === undefined || !Number.isFinite(speedKph)) return "unknown";
+  if (speedKph >= 22) return "free";
+  if (speedKph >= 12) return "slow";
+  return "heavy";
+}
+
+/** Build a segment -> speed lookup for one hour of the day. */
+export function segmentSpeedMap(rows: SegmentSpeed[], hour: number): Map<number, number> {
+  const map = new Map<number, number>();
+  rows.forEach((row) => {
+    if (row.hour !== hour) return;
+    const speed = Number(row.avg_speed_kph);
+    if (Number.isFinite(speed) && speed > 0) map.set(row.segment_index, speed);
+  });
+  return map;
+}
+
+/**
+ * ETA that walks the route segment by segment using measured speeds for the
+ * current hour, falling back to the flat estimate when there is no data.
+ */
+export function etaMinutesWithTraffic(
+  path: LatLng[],
+  from: LatLng,
+  to: LatLng,
+  speedKph: number | null | undefined,
+  speeds: Map<number, number>,
+): number | null {
+  if (!speeds.size) return etaMinutes(path, from, to, speedKph);
+  if (path.length < 2) return null;
+  const a = distanceAlongPathKm(path, from);
+  const b = distanceAlongPathKm(path, to);
+  if (b - a <= 0) return null;
+  const fallback = Math.min(45, Math.max(10, speedKph && speedKph > 3 ? speedKph : 18));
+  let minutes = 0;
+  for (let km = a; km < b; km += SEGMENT_KM) {
+    const chunk = Math.min(SEGMENT_KM, b - km);
+    const speed = speeds.get(Math.floor(km / SEGMENT_KM)) ?? fallback;
+    minutes += (chunk / Math.min(45, Math.max(5, speed))) * 60;
+  }
+  return Math.max(1, Math.round(minutes));
+}
+
+/* ---------------------------- Analytics --------------------------- */
+
+export type StatBucketType = "hour_dow" | "month" | "holiday";
+
+export type RouteStat = {
+  bucket_type: StatBucketType;
+  bucket_key: string;
+  ping_count: number;
+  trip_count: number;
+  avg_speed_kph: number | null;
+  busy_score: number | null;
+};
+
+export const HOLIDAY_LABELS: Record<string, string> = {
+  new_year: "New Year",
+  holy_week: "Holy Week",
+  undas: "Undas (All Saints')",
+  christmas: "Christmas season",
+  fiesta: "Local fiesta",
+  regular: "Regular days",
+};
+
+/** Philippine seasonal holiday bucket for a date (Manila time). */
+export function phHolidayKey(date: Date): string {
+  const manila = new Date(date.getTime() + (8 * 60 + date.getTimezoneOffset()) * 60000);
+  const month = manila.getMonth() + 1;
+  const day = manila.getDate();
+  if (month === 12 && day >= 15) return "christmas";
+  if (month === 1 && day <= 6) return "new_year";
+  if (month === 11 && day <= 2) return "undas";
+  if (month === 10 && day === 31) return "undas";
+  if (month === 3 || month === 4) {
+    // Holy Week floats; treat the late-March / mid-April window as the season.
+    if ((month === 3 && day >= 20) || (month === 4 && day <= 20)) return "holy_week";
+  }
+  return "regular";
+}
+
+export function hourLabel(hour: number): string {
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const display = hour % 12 === 0 ? 12 : hour % 12;
+  return `${display}${suffix}`;
+}
+
+export function busyLabel(score: number): string {
+  if (score >= 0.75) return "Very busy";
+  if (score >= 0.5) return "Busy";
+  if (score >= 0.25) return "Steady";
+  return "Quiet";
+}

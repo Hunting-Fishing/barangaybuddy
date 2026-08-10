@@ -1290,6 +1290,50 @@ export type Database = {
           },
         ]
       }
+      jeepney_route_stats: {
+        Row: {
+          avg_speed_kph: number | null
+          bucket_key: string
+          bucket_type: string
+          busy_score: number | null
+          id: string
+          ping_count: number
+          route_id: string
+          trip_count: number
+          updated_at: string
+        }
+        Insert: {
+          avg_speed_kph?: number | null
+          bucket_key: string
+          bucket_type: string
+          busy_score?: number | null
+          id?: string
+          ping_count?: number
+          route_id: string
+          trip_count?: number
+          updated_at?: string
+        }
+        Update: {
+          avg_speed_kph?: number | null
+          bucket_key?: string
+          bucket_type?: string
+          busy_score?: number | null
+          id?: string
+          ping_count?: number
+          route_id?: string
+          trip_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_route_stats_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jeepney_routes: {
         Row: {
           avg_trip_minutes: number | null
@@ -1380,6 +1424,44 @@ export type Database = {
             columns: ["operator_id"]
             isOneToOne: false
             referencedRelation: "jeepney_operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jeepney_segment_stats: {
+        Row: {
+          avg_speed_kph: number | null
+          hour: number
+          id: string
+          route_id: string
+          sample_count: number
+          segment_index: number
+          updated_at: string
+        }
+        Insert: {
+          avg_speed_kph?: number | null
+          hour: number
+          id?: string
+          route_id: string
+          sample_count?: number
+          segment_index: number
+          updated_at?: string
+        }
+        Update: {
+          avg_speed_kph?: number | null
+          hour?: number
+          id?: string
+          route_id?: string
+          sample_count?: number
+          segment_index?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_segment_stats_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
             referencedColumns: ["id"]
           },
         ]
@@ -1481,6 +1563,63 @@ export type Database = {
           },
           {
             foreignKeyName: "jeepney_subscriptions_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jeepney_trips: {
+        Row: {
+          avg_speed_kph: number | null
+          created_at: string
+          distance_km: number | null
+          ended_at: string | null
+          id: string
+          operator_id: string
+          ping_count: number
+          route_id: string
+          started_at: string
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          avg_speed_kph?: number | null
+          created_at?: string
+          distance_km?: number | null
+          ended_at?: string | null
+          id?: string
+          operator_id: string
+          ping_count?: number
+          route_id: string
+          started_at?: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          avg_speed_kph?: number | null
+          created_at?: string
+          distance_km?: number | null
+          ended_at?: string | null
+          id?: string
+          operator_id?: string
+          ping_count?: number
+          route_id?: string
+          started_at?: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_trips_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_operators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jeepney_trips_route_id_fkey"
             columns: ["route_id"]
             isOneToOne: false
             referencedRelation: "jeepney_routes"

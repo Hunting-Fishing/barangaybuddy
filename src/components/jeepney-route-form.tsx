@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,6 +47,7 @@ type Props = {
 };
 
 export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, existing }: Props) {
+  const [tab, setTab] = useState("route");
   const [name, setName] = useState(existing?.name ?? "");
   const [code, setCode] = useState(existing?.code ?? "");
   const [fare, setFare] = useState(existing?.fare_php ? String(existing.fare_php) : "");
@@ -76,11 +78,13 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
 
   async function save() {
     if (name.trim().length < 3) {
+      setTab("route");
       toast.error("Give your route a clear name, e.g. “Terminal – Palengke – Poblacion”.");
       return;
     }
     if (path.length < 2) {
-      toast.error("Draw at least two points so the route shows as a line on the map.");
+      setTab("map");
+      toast.error("Draw or track at least two points so the route shows as a line on the map.");
       return;
     }
     setSaving(true);
@@ -153,78 +157,36 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="jr-name">Route name</Label>
-              <Input
-                id="jr-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Terminal – Palengke – Poblacion"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="jr-code">Route code / body number</Label>
-              <Input
-                id="jr-code"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="e.g. 04K"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="jr-fare">Fare (₱)</Label>
-              <Input
-                id="jr-fare"
-                type="number"
-                value={fare}
-                onChange={(e) => setFare(e.target.value)}
-                placeholder="13"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="jr-farenote">Fare note</Label>
-              <Input
-                id="jr-farenote"
-                value={fareNote}
-                onChange={(e) => setFareNote(e.target.value)}
-                placeholder="₱1.80 per km after 4 km"
-              />
-            </div>
-          </div>
+        <Tabs value={tab} onValueChange={setTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="route">Route</TabsTrigger>
+            <TabsTrigger value="map">Map</TabsTrigger>
+            <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            <TabsTrigger value="fares">Fares</TabsTrigger>
+          </TabsList>
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="jr-first">First run</Label>
-              <Input id="jr-first" type="time" value={firstRun} onChange={(e) => setFirstRun(e.target.value)} />
+          <TabsContent value="route" className="space-y-4 pt-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="jr-name">Route name</Label>
+                <Input
+                  id="jr-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Terminal – Palengke – Poblacion"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="jr-code">Route code / body number</Label>
+                <Input
+                  id="jr-code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="e.g. 04K"
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="jr-last">Last run</Label>
-              <Input id="jr-last" type="time" value={lastRun} onChange={(e) => setLastRun(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="jr-pickup">Last pickup</Label>
-              <Input
-                id="jr-pickup"
-                type="time"
-                value={lastPickup}
-                onChange={(e) => setLastPickup(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="jr-trips">Trips per day</Label>
-              <Input id="jr-trips" type="number" value={trips} onChange={(e) => setTrips(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="jr-avg">Minutes per trip</Label>
-              <Input
-                id="jr-avg"
-                type="number"
-                value={avgMinutes}
-                onChange={(e) => setAvgMinutes(e.target.value)}
-              />
-            </div>
+
             <div className="space-y-1.5">
               <Label>Route colour</Label>
               <div className="flex flex-wrap gap-1.5">
@@ -240,67 +202,131 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
                 ))}
               </div>
             </div>
-          </div>
 
-          <div className="space-y-1.5">
-            <Label>Operating days</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {DAYS.map((d) => (
-                <Button
-                  key={d}
-                  type="button"
-                  size="sm"
-                  variant={days.includes(d) ? "default" : "outline"}
-                  onClick={() => toggleDay(d)}
-                >
-                  {d}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <ClientOnly fallback={<div className="h-72 rounded-md border border-border" />}>
-            <Suspense fallback={<div className="h-72 rounded-md border border-border" />}>
-              <JeepneyRouteEditor
-                path={path}
-                stops={stops}
-                colour={colour}
-                onPathChange={setPath}
-                onAddStop={addStop}
-              />
-            </Suspense>
-          </ClientOnly>
-
-          {stops.length > 0 && (
             <div className="space-y-1.5">
-              <Label>Stops in order</Label>
+              <Label htmlFor="jr-notes">Notes for riders</Label>
+              <Textarea
+                id="jr-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Extra trips on market days, no trips during heavy rain, etc."
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="map" className="space-y-4 pt-3">
+            <ClientOnly fallback={<div className="h-72 rounded-md border border-border" />}>
+              <Suspense fallback={<div className="h-72 rounded-md border border-border" />}>
+                <JeepneyRouteEditor
+                  path={path}
+                  stops={stops}
+                  colour={colour}
+                  onPathChange={setPath}
+                  onAddStop={addStop}
+                />
+              </Suspense>
+            </ClientOnly>
+
+            {stops.length > 0 && (
+              <div className="space-y-1.5">
+                <Label>Stops in order</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {stops.map((s, i) => (
+                    <Badge key={`${s.name}-${i}`} variant="secondary" className="gap-1">
+                      {i + 1}. {s.name}
+                      <button
+                        type="button"
+                        aria-label={`Remove ${s.name}`}
+                        onClick={() => setStops((prev) => prev.filter((_, idx) => idx !== i))}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="schedule" className="space-y-4 pt-3">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="jr-first">First run</Label>
+                <Input id="jr-first" type="time" value={firstRun} onChange={(e) => setFirstRun(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="jr-last">Last run</Label>
+                <Input id="jr-last" type="time" value={lastRun} onChange={(e) => setLastRun(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="jr-pickup">Last pickup</Label>
+                <Input
+                  id="jr-pickup"
+                  type="time"
+                  value={lastPickup}
+                  onChange={(e) => setLastPickup(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="jr-trips">Trips per day</Label>
+                <Input id="jr-trips" type="number" value={trips} onChange={(e) => setTrips(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="jr-avg">Minutes per trip</Label>
+                <Input
+                  id="jr-avg"
+                  type="number"
+                  value={avgMinutes}
+                  onChange={(e) => setAvgMinutes(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Operating days</Label>
               <div className="flex flex-wrap gap-1.5">
-                {stops.map((s, i) => (
-                  <Badge key={`${s.name}-${i}`} variant="secondary" className="gap-1">
-                    {i + 1}. {s.name}
-                    <button
-                      type="button"
-                      aria-label={`Remove ${s.name}`}
-                      onClick={() => setStops((prev) => prev.filter((_, idx) => idx !== i))}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </Badge>
+                {DAYS.map((d) => (
+                  <Button
+                    key={d}
+                    type="button"
+                    size="sm"
+                    variant={days.includes(d) ? "default" : "outline"}
+                    onClick={() => toggleDay(d)}
+                  >
+                    {d}
+                  </Button>
                 ))}
               </div>
             </div>
-          )}
+          </TabsContent>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="jr-notes">Notes for riders</Label>
-            <Textarea
-              id="jr-notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Extra trips on market days, no trips during heavy rain, etc."
-            />
-          </div>
-        </div>
+          <TabsContent value="fares" className="space-y-4 pt-3">
+            <p className="text-xs text-muted-foreground">
+              Optional — leave blank if your fares vary or you follow the LTFRB matrix.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="jr-fare">Fare (₱)</Label>
+                <Input
+                  id="jr-fare"
+                  type="number"
+                  value={fare}
+                  onChange={(e) => setFare(e.target.value)}
+                  placeholder="13"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="jr-farenote">Fare note</Label>
+                <Input
+                  id="jr-farenote"
+                  value={fareNote}
+                  onChange={(e) => setFareNote(e.target.value)}
+                  placeholder="₱1.80 per km after 4 km"
+                />
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         <DialogFooter>
           <Button onClick={save} disabled={saving}>

@@ -14,6 +14,9 @@ import { Bus, Plus } from "lucide-react";
 import { JeepneyRouteForm } from "@/components/jeepney-route-form";
 import { JeepneyLiveToggle } from "@/components/jeepney-live-toggle";
 import { JeepneyBreakdownCard } from "@/components/jeepney-breakdown-card";
+import { JeepneyInsightsCard } from "@/components/jeepney-insights-card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 import {
   JeepneySubscriptionCard,
@@ -263,20 +266,32 @@ function JeepneyOperatorPage() {
                   />
 
                   {route.status === "published" || route.status === "suspended" ? (
-                    <>
-                      <JeepneyBreakdownCard
-                        routeId={route.id}
-                        status={route.status}
-                        notes={route.notes}
-                        onChanged={loadAll}
-                      />
-                      {route.status === "published" && <JeepneyLiveToggle routeId={route.id} />}
-                    </>
+                    <Tabs defaultValue="service">
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="service">Service</TabsTrigger>
+                        <TabsTrigger value="insights">Insights</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="service" className="space-y-3 pt-3">
+                        <JeepneyBreakdownCard
+                          routeId={route.id}
+                          status={route.status}
+                          notes={route.notes}
+                          onChanged={loadAll}
+                        />
+                        {route.status === "published" && (
+                          <JeepneyLiveToggle routeId={route.id} operatorId={operator.id} />
+                        )}
+                      </TabsContent>
+                      <TabsContent value="insights" className="pt-3">
+                        <JeepneyInsightsCard routeId={route.id} title="Route analytics" />
+                      </TabsContent>
+                    </Tabs>
                   ) : (
                     <p className="text-xs text-muted-foreground">
                       Live tracking turns on once your listing is active.
                     </p>
                   )}
+
 
                 </Card>
               );

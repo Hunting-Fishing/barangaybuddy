@@ -9,9 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Bell, Bus, Locate, Radio, TriangleAlert, Wrench } from "lucide-react";
 import { JeepneyFollowButton } from "@/components/jeepney-follow-button";
+import { JeepneyInsightsCard } from "@/components/jeepney-insights-card";
 
 import {
-  etaMinutes,
+  CONGESTION_COLOURS,
+  CONGESTION_LABELS,
+  etaMinutesWithTraffic,
   etaRangeLabel,
   formatPhpAmount,
   formatTime,
@@ -19,11 +22,14 @@ import {
   headwayLabel,
   isLive,
   parsePath,
+  segmentSpeedMap,
   type JeepneyPosition,
   type JeepneyRoute,
   type JeepneyStop,
   type LatLng,
+  type SegmentSpeed,
 } from "@/lib/jeepney";
+
 
 const JeepneyMap = lazy(() => import("@/components/jeepney-map"));
 
@@ -76,6 +82,12 @@ function JeepneyRoutePage() {
   const [me, setMe] = useState<LatLng | null>(null);
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<RouteAlert[]>([]);
+  const [segmentRows, setSegmentRows] = useState<SegmentSpeed[]>([]);
+  const currentHour = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getTime() + (8 * 60 + now.getTimezoneOffset()) * 60000).getHours();
+  }, []);
+
 
   useEffect(() => {
     void load();
@@ -108,7 +120,18 @@ function JeepneyRoutePage() {
     setLoading(false);
     void loadLive(parsed.id);
     void loadAlerts(parsed.id);
+    void loadSegments(parsed.id);
   }
+
+  async function loadSegments(routeId: string) {
+    const { data } = await supabase
+      .from("jeepney_segment_stats")
+      .select("segment_index, hour, avg_speed_kph")
+      .eq("route_id", routeId)
+      .eq("hour", currentHour);
+    setSegmentRows((data ?? []) as SegmentSpeed[]);
+  }
+
 
   async function loadAlerts(routeId: string) {
     const { data } = await supabase
@@ -154,15 +177,19 @@ function JeepneyRoutePage() {
       .sort((a, b) => a.km - b.km)[0]!;
   }, [route, me]);
 
+  const speeds = useMemo(() => segmentSpeedMap(segmentRows, currentHour), [segmentRows, currentHour]);
+
   const eta = useMemo(() => {
     if (!route || !position || !nearestStop || !isLive(position.recorded_at)) return null;
-    return etaMinutes(
+    return etaMinutesWithTraffic(
       route.path,
       { lat: Number(position.latitude), lng: Number(position.longitude) },
       { lat: Number(nearestStop.stop.latitude), lng: Number(nearestStop.stop.longitude) },
       position.speed_kph,
+      speeds,
     );
-  }, [route, position, nearestStop]);
+  }, [route, position, nearestStop, speeds]);
+
 
   if (loading) {
     return (
@@ -234,18 +261,36 @@ function JeepneyRoutePage() {
 
 
         <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-          <ClientOnly fallback={<div className="h-[60vh] rounded-xl border border-border" />}>
-            <Suspense fallback={<div className="h-[60vh] rounded-xl border border-border" />}>
-              <JeepneyMap
-                routes={[route]}
-                live={position ? { [route.id]: position } : {}}
-                userLocation={me}
-                height="60vh"
-              />
-            </Suspense>
-          </ClientOnly>
+          <div className="space-y-2">
+            <ClientOnly fallback={<div className="h-[60vh] rounded-xl border border-border" />}>
+              <Suspense fallback={<div className="h-[60vh] rounded-xl border border-border" />}>
+                <JeepneyMap
+                  routes={[route]}
+                  live={position ? { [route.id]: position } : {}}
+                  userLocation={me}
+                  height="60vh"
+                  congestion={speeds.size ? { [route.id]: speeds } : {}}
+                />
+              </Suspense>
+            </ClientOnly>
+            {speeds.size > 0 && (
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <span>Typical traffic at this hour:</span>
+                {(["free", "slow", "heavy"] as const).map((level) => (
+                  <span key={level} className="flex items-center gap-1.5">
+                    <span
+                      className="inline-block h-2.5 w-4 rounded-full"
+                      style={{ background: CONGESTION_COLOURS[level] }}
+                    />
+                    {CONGESTION_LABELS[level]}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="space-y-3">
+
             <Card className="space-y-2 p-4">
               <p className="text-sm font-semibold">Daily schedule</p>
               <dl className="grid grid-cols-2 gap-2 text-sm">
@@ -333,6 +378,10 @@ function JeepneyRoutePage() {
                 ))}
               </ol>
             </Card>
+
+            <JeepneyInsightsCard routeId={route.id} />
+
+
 
             <Card className="p-4">
               <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold">

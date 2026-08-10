@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { JeepneyPosition, JeepneyRoute, JeepneyStop, LatLng } from "@/lib/jeepney";
-import { isLive } from "@/lib/jeepney";
+import { CONGESTION_COLOURS, SEGMENT_KM, congestionLevel, haversineKm, isLive } from "@/lib/jeepney";
 
 export type MapRoute = JeepneyRoute & { stops: JeepneyStop[] };
 
@@ -13,7 +13,10 @@ type Props = {
   activeRouteId?: string | null;
   onSelectRoute?: (routeId: string) => void;
   height?: string;
+  /** routeId -> (segment index -> typical km/h for the current hour) */
+  congestion?: Record<string, Map<number, number>>;
 };
+
 
 function esc(s: string) {
   return s.replace(
@@ -29,7 +32,9 @@ export default function JeepneyMap({
   activeRouteId = null,
   onSelectRoute,
   height = "70vh",
+  congestion = {},
 }: Props) {
+
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
@@ -75,13 +80,45 @@ export default function JeepneyMap({
       bounds.push(...latlngs);
 
       const dimmed = activeRouteId ? route.id !== activeRouteId : false;
-      const line = L.polyline(latlngs, {
-        color: route.colour || "#f59e0b",
-        weight: dimmed ? 3 : 5,
-        opacity: dimmed ? 0.35 : 0.9,
-      }).addTo(layer);
-      line.bindTooltip(esc(route.name), { sticky: true });
-      line.on("click", () => selectRef.current?.(route.id));
+      const speeds = congestion[route.id];
+
+      if (speeds && speeds.size && !dimmed) {
+        // Colour the line segment by segment using measured speeds.
+        let running = 0;
+        for (let i = 1; i < path.length; i += 1) {
+          const a = path[i - 1]!;
+          const b = path[i]!;
+          const speed = speeds.get(Math.floor(running / SEGMENT_KM));
+          running += haversineKm(a, b);
+          const seg = L.polyline(
+            [
+              [a.lat, a.lng],
+              [b.lat, b.lng],
+            ],
+            {
+              color: speed === undefined ? route.colour || "#f59e0b" : CONGESTION_COLOURS[congestionLevel(speed)],
+              weight: 6,
+              opacity: 0.9,
+            },
+          ).addTo(layer);
+          seg.bindTooltip(
+            speed === undefined
+              ? esc(route.name)
+              : `${esc(route.name)} — about ${Math.round(speed)} km/h here`,
+            { sticky: true },
+          );
+          seg.on("click", () => selectRef.current?.(route.id));
+        }
+      } else {
+        const line = L.polyline(latlngs, {
+          color: route.colour || "#f59e0b",
+          weight: dimmed ? 3 : 5,
+          opacity: dimmed ? 0.35 : 0.9,
+        }).addTo(layer);
+        line.bindTooltip(esc(route.name), { sticky: true });
+        line.on("click", () => selectRef.current?.(route.id));
+      }
+
 
       route.stops
         .slice()
@@ -104,7 +141,7 @@ export default function JeepneyMap({
     if (bounds.length) {
       map.fitBounds(L.latLngBounds(bounds).pad(0.15), { maxZoom: 15 });
     }
-  }, [routes, activeRouteId]);
+  }, [routes, activeRouteId, congestion]);
 
   // Live vehicles
   useEffect(() => {
