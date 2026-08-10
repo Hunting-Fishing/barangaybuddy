@@ -9,6 +9,8 @@ import {
 } from "@tanstack/react-router";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
+import { JeepneyAlertListener } from "@/components/jeepney-alert-listener";
+
 
 import appCss from "../styles.css?url";
 
@@ -131,8 +133,10 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Outlet />
+        <JeepneyAlertListener />
         <Toaster richColors position="top-right" />
       </AuthProvider>
+
     </QueryClientProvider>
   );
 }

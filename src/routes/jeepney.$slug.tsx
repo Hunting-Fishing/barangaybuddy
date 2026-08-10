@@ -7,7 +7,9 @@ import { SiteFooter } from "@/components/site-footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Bus, Locate, Radio } from "lucide-react";
+import { ArrowLeft, Bell, Bus, Locate, Radio, TriangleAlert, Wrench } from "lucide-react";
+import { JeepneyFollowButton } from "@/components/jeepney-follow-button";
+
 import {
   etaMinutes,
   etaRangeLabel,
@@ -58,12 +60,22 @@ export const Route = createFileRoute("/jeepney/$slug")({
 
 type RouteWithStops = JeepneyRoute & { stops: JeepneyStop[]; operator: string | null };
 
+type RouteAlert = {
+  id: string;
+  kind: "breakdown" | "repaired";
+  headline: string;
+  message: string | null;
+  created_at: string;
+};
+
+
 function JeepneyRoutePage() {
   const { slug } = Route.useParams();
   const [route, setRoute] = useState<RouteWithStops | null>(null);
   const [position, setPosition] = useState<JeepneyPosition | null>(null);
   const [me, setMe] = useState<LatLng | null>(null);
   const [loading, setLoading] = useState(true);
+  const [alerts, setAlerts] = useState<RouteAlert[]>([]);
 
   useEffect(() => {
     void load();
@@ -77,7 +89,7 @@ function JeepneyRoutePage() {
       .from("jeepney_routes")
       .select("*, jeepney_stops(*), jeepney_operators(display_name)")
       .eq("slug", slug)
-      .eq("status", "published")
+      .in("status", ["published", "suspended"])
       .maybeSingle();
     if (!data) {
       setRoute(null);
@@ -95,7 +107,19 @@ function JeepneyRoutePage() {
     setRoute(parsed);
     setLoading(false);
     void loadLive(parsed.id);
+    void loadAlerts(parsed.id);
   }
+
+  async function loadAlerts(routeId: string) {
+    const { data } = await supabase
+      .from("jeepney_route_alerts")
+      .select("id, kind, headline, message, created_at")
+      .eq("route_id", routeId)
+      .order("created_at", { ascending: false })
+      .limit(5);
+    setAlerts((data ?? []) as RouteAlert[]);
+  }
+
 
   async function loadLive(routeId?: string) {
     const id = routeId ?? route?.id;
@@ -182,15 +206,32 @@ function JeepneyRoutePage() {
             {route.code ? `Route ${route.code} · ` : ""}
             {route.operator ? `Operated by ${route.operator}` : "Jeepney route"}
           </p>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{formatPhpAmount(route.fare_php)} fare</Badge>
             {route.fare_note && <Badge variant="secondary">{route.fare_note}</Badge>}
             {headwayLabel(route) && <Badge variant="secondary">{headwayLabel(route)}</Badge>}
             <Badge variant={onRoad ? "default" : "secondary"} className="gap-1">
               <Radio className="h-3 w-3" /> {onRoad ? "Live now" : "Not broadcasting"}
             </Badge>
+            {route.status === "suspended" && (
+              <Badge variant="destructive" className="gap-1">
+                <TriangleAlert className="h-3 w-3" /> Out of service
+              </Badge>
+            )}
+            <JeepneyFollowButton routeId={route.id} routeName={route.name} />
           </div>
         </header>
+
+        {route.status === "suspended" && (
+          <Card className="mb-4 border-destructive/40 bg-destructive/5 p-4 text-sm">
+            <p className="font-semibold">This jeepney has reported a breakdown.</p>
+            <p className="text-muted-foreground">
+              {alerts.find((a) => a.kind === "breakdown")?.message ??
+                "The operator paused this route. Monitor it to be alerted the moment it's back."}
+            </p>
+          </Card>
+        )}
+
 
         <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
           <ClientOnly fallback={<div className="h-[60vh] rounded-xl border border-border" />}>
@@ -292,6 +333,40 @@ function JeepneyRoutePage() {
                 ))}
               </ol>
             </Card>
+
+            <Card className="p-4">
+              <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
+                <Bell className="h-4 w-4" /> Service alerts
+              </p>
+              {alerts.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  No breakdowns reported. Monitor this route to get an alert if the jeepney breaks
+                  down or comes back into service.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {alerts.map((alert) => (
+                    <li key={alert.id} className="flex gap-2 text-sm">
+                      {alert.kind === "breakdown" ? (
+                        <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                      ) : (
+                        <Wrench className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-medium">{alert.headline}</p>
+                        {alert.message && (
+                          <p className="text-xs text-muted-foreground">{alert.message}</p>
+                        )}
+                        <p className="text-[11px] text-muted-foreground">
+                          {new Date(alert.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+
 
             {route.notes && (
               <Card className="p-4 text-sm">

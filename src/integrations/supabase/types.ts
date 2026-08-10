@@ -1220,6 +1220,76 @@ export type Database = {
           },
         ]
       }
+      jeepney_route_alerts: {
+        Row: {
+          created_at: string
+          headline: string
+          id: string
+          kind: string
+          message: string | null
+          route_id: string
+        }
+        Insert: {
+          created_at?: string
+          headline: string
+          id?: string
+          kind: string
+          message?: string | null
+          route_id: string
+        }
+        Update: {
+          created_at?: string
+          headline?: string
+          id?: string
+          kind?: string
+          message?: string | null
+          route_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_route_alerts_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jeepney_route_follows: {
+        Row: {
+          created_at: string
+          id: string
+          push_enabled: boolean
+          route_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          push_enabled?: boolean
+          route_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          push_enabled?: boolean
+          route_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_route_follows_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jeepney_routes: {
         Row: {
           avg_trip_minutes: number | null
