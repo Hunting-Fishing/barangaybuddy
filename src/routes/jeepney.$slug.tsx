@@ -82,6 +82,12 @@ function JeepneyRoutePage() {
   const [me, setMe] = useState<LatLng | null>(null);
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<RouteAlert[]>([]);
+  const [segmentRows, setSegmentRows] = useState<SegmentSpeed[]>([]);
+  const currentHour = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getTime() + (8 * 60 + now.getTimezoneOffset()) * 60000).getHours();
+  }, []);
+
 
   useEffect(() => {
     void load();
