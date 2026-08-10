@@ -261,18 +261,36 @@ function JeepneyRoutePage() {
 
 
         <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-          <ClientOnly fallback={<div className="h-[60vh] rounded-xl border border-border" />}>
-            <Suspense fallback={<div className="h-[60vh] rounded-xl border border-border" />}>
-              <JeepneyMap
-                routes={[route]}
-                live={position ? { [route.id]: position } : {}}
-                userLocation={me}
-                height="60vh"
-              />
-            </Suspense>
-          </ClientOnly>
+          <div className="space-y-2">
+            <ClientOnly fallback={<div className="h-[60vh] rounded-xl border border-border" />}>
+              <Suspense fallback={<div className="h-[60vh] rounded-xl border border-border" />}>
+                <JeepneyMap
+                  routes={[route]}
+                  live={position ? { [route.id]: position } : {}}
+                  userLocation={me}
+                  height="60vh"
+                  congestion={speeds.size ? { [route.id]: speeds } : {}}
+                />
+              </Suspense>
+            </ClientOnly>
+            {speeds.size > 0 && (
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <span>Typical traffic at this hour:</span>
+                {(["free", "slow", "heavy"] as const).map((level) => (
+                  <span key={level} className="flex items-center gap-1.5">
+                    <span
+                      className="inline-block h-2.5 w-4 rounded-full"
+                      style={{ background: CONGESTION_COLOURS[level] }}
+                    />
+                    {CONGESTION_LABELS[level]}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div className="space-y-3">
+
             <Card className="space-y-2 p-4">
               <p className="text-sm font-semibold">Daily schedule</p>
               <dl className="grid grid-cols-2 gap-2 text-sm">
