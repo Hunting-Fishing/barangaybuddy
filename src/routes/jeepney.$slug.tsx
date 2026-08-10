@@ -120,7 +120,18 @@ function JeepneyRoutePage() {
     setLoading(false);
     void loadLive(parsed.id);
     void loadAlerts(parsed.id);
+    void loadSegments(parsed.id);
   }
+
+  async function loadSegments(routeId: string) {
+    const { data } = await supabase
+      .from("jeepney_segment_stats")
+      .select("segment_index, hour, avg_speed_kph")
+      .eq("route_id", routeId)
+      .eq("hour", currentHour);
+    setSegmentRows((data ?? []) as SegmentSpeed[]);
+  }
+
 
   async function loadAlerts(routeId: string) {
     const { data } = await supabase
