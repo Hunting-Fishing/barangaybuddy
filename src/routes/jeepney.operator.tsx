@@ -14,6 +14,9 @@ import { Bus, Plus } from "lucide-react";
 import { JeepneyRouteForm } from "@/components/jeepney-route-form";
 import { JeepneyLiveToggle } from "@/components/jeepney-live-toggle";
 import { JeepneyBreakdownCard } from "@/components/jeepney-breakdown-card";
+import { JeepneyInsightsCard } from "@/components/jeepney-insights-card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 import {
   JeepneySubscriptionCard,
