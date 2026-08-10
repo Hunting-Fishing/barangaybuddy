@@ -1067,6 +1067,401 @@ export type Database = {
         }
         Relationships: []
       }
+      jeepney_device_requests: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          operator_id: string
+          quantity: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          operator_id: string
+          quantity?: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          operator_id?: string
+          quantity?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_device_requests_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jeepney_operator_contacts: {
+        Row: {
+          contact_phone: string | null
+          created_at: string
+          operator_id: string
+          updated_at: string
+        }
+        Insert: {
+          contact_phone?: string | null
+          created_at?: string
+          operator_id: string
+          updated_at?: string
+        }
+        Update: {
+          contact_phone?: string | null
+          created_at?: string
+          operator_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_operator_contacts_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: true
+            referencedRelation: "jeepney_operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jeepney_operators: {
+        Row: {
+          city_code: string | null
+          created_at: string
+          display_name: string
+          id: string
+          updated_at: string
+          user_id: string
+          verified: boolean
+        }
+        Insert: {
+          city_code?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          verified?: boolean
+        }
+        Update: {
+          city_code?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_operators_city_code_fkey"
+            columns: ["city_code"]
+            isOneToOne: false
+            referencedRelation: "cities_municipalities"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      jeepney_positions: {
+        Row: {
+          heading: number | null
+          id: string
+          latitude: number
+          longitude: number
+          recorded_at: string
+          route_id: string
+          source: string
+          speed_kph: number | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          heading?: number | null
+          id?: string
+          latitude: number
+          longitude: number
+          recorded_at?: string
+          route_id: string
+          source?: string
+          speed_kph?: number | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          heading?: number | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          recorded_at?: string
+          route_id?: string
+          source?: string
+          speed_kph?: number | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_positions_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jeepney_positions_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jeepney_routes: {
+        Row: {
+          avg_trip_minutes: number | null
+          barangay_code: string | null
+          city_code: string | null
+          code: string | null
+          colour: string
+          created_at: string
+          fare_note: string | null
+          fare_php: number | null
+          first_run: string | null
+          id: string
+          last_pickup: string | null
+          last_run: string | null
+          name: string
+          notes: string | null
+          operating_days: string[]
+          operator_id: string
+          path: Json
+          slug: string
+          status: Database["public"]["Enums"]["jeepney_route_status"]
+          trips_per_day: number | null
+          updated_at: string
+        }
+        Insert: {
+          avg_trip_minutes?: number | null
+          barangay_code?: string | null
+          city_code?: string | null
+          code?: string | null
+          colour?: string
+          created_at?: string
+          fare_note?: string | null
+          fare_php?: number | null
+          first_run?: string | null
+          id?: string
+          last_pickup?: string | null
+          last_run?: string | null
+          name: string
+          notes?: string | null
+          operating_days?: string[]
+          operator_id: string
+          path?: Json
+          slug: string
+          status?: Database["public"]["Enums"]["jeepney_route_status"]
+          trips_per_day?: number | null
+          updated_at?: string
+        }
+        Update: {
+          avg_trip_minutes?: number | null
+          barangay_code?: string | null
+          city_code?: string | null
+          code?: string | null
+          colour?: string
+          created_at?: string
+          fare_note?: string | null
+          fare_php?: number | null
+          first_run?: string | null
+          id?: string
+          last_pickup?: string | null
+          last_run?: string | null
+          name?: string
+          notes?: string | null
+          operating_days?: string[]
+          operator_id?: string
+          path?: Json
+          slug?: string
+          status?: Database["public"]["Enums"]["jeepney_route_status"]
+          trips_per_day?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_routes_barangay_code_fkey"
+            columns: ["barangay_code"]
+            isOneToOne: false
+            referencedRelation: "barangays"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "jeepney_routes_city_code_fkey"
+            columns: ["city_code"]
+            isOneToOne: false
+            referencedRelation: "cities_municipalities"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "jeepney_routes_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jeepney_stops: {
+        Row: {
+          created_at: string
+          id: string
+          latitude: number
+          longitude: number
+          name: string
+          offset_minutes: number | null
+          position: number
+          route_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          latitude: number
+          longitude: number
+          name: string
+          offset_minutes?: number | null
+          position?: number
+          route_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          name?: string
+          offset_minutes?: number | null
+          position?: number
+          route_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_stops_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jeepney_subscriptions: {
+        Row: {
+          amount_php: number
+          created_at: string
+          current_period_end: string | null
+          environment: string
+          id: string
+          operator_id: string
+          payment_note: string | null
+          payment_ref: string | null
+          route_id: string | null
+          status: Database["public"]["Enums"]["jeepney_sub_status"]
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_php?: number
+          created_at?: string
+          current_period_end?: string | null
+          environment?: string
+          id?: string
+          operator_id: string
+          payment_note?: string | null
+          payment_ref?: string | null
+          route_id?: string | null
+          status?: Database["public"]["Enums"]["jeepney_sub_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_php?: number
+          created_at?: string
+          current_period_end?: string | null
+          environment?: string
+          id?: string
+          operator_id?: string
+          payment_note?: string | null
+          payment_ref?: string | null
+          route_id?: string | null
+          status?: Database["public"]["Enums"]["jeepney_sub_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_subscriptions_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_operators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jeepney_subscriptions_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jeepney_vehicles: {
+        Row: {
+          active: boolean
+          created_at: string
+          device_token: string | null
+          id: string
+          label: string
+          plate_number: string | null
+          route_id: string
+          seats: number | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          device_token?: string | null
+          id?: string
+          label: string
+          plate_number?: string | null
+          route_id: string
+          seats?: number | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          device_token?: string | null
+          id?: string
+          label?: string
+          plate_number?: string | null
+          route_id?: string
+          seats?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_vehicles_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listings: {
         Row: {
           business_id: string
@@ -1387,6 +1782,8 @@ export type Database = {
       fuel_type: "gasoline_91" | "gasoline_95" | "gasoline_97" | "diesel"
       group_role: "owner" | "admin" | "member"
       group_type: "league" | "club" | "interest_group"
+      jeepney_route_status: "draft" | "pending" | "published" | "suspended"
+      jeepney_sub_status: "trialing" | "active" | "past_due" | "cancelled"
       membership_status: "pending" | "active" | "expired" | "cancelled"
       membership_tier: "supporter" | "player"
       team_member_status: "invited" | "confirmed" | "removed"
@@ -1558,6 +1955,8 @@ export const Constants = {
       fuel_type: ["gasoline_91", "gasoline_95", "gasoline_97", "diesel"],
       group_role: ["owner", "admin", "member"],
       group_type: ["league", "club", "interest_group"],
+      jeepney_route_status: ["draft", "pending", "published", "suspended"],
+      jeepney_sub_status: ["trialing", "active", "past_due", "cancelled"],
       membership_status: ["pending", "active", "expired", "cancelled"],
       membership_tier: ["supporter", "player"],
       team_member_status: ["invited", "confirmed", "removed"],
