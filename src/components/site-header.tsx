@@ -114,6 +114,12 @@ export function SiteHeader() {
             <Fuel className="h-4 w-4" /> Fuel Buddy
           </Link>
           <Link
+            to="/jeepney"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            <Bus className="h-4 w-4" /> Jeepney
+          </Link>
+          <Link
             to="/groups"
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
