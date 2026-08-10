@@ -141,7 +141,7 @@ export default function JeepneyMap({
     if (bounds.length) {
       map.fitBounds(L.latLngBounds(bounds).pad(0.15), { maxZoom: 15 });
     }
-  }, [routes, activeRouteId]);
+  }, [routes, activeRouteId, congestion]);
 
   // Live vehicles
   useEffect(() => {
