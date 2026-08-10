@@ -60,6 +60,15 @@ export const Route = createFileRoute("/jeepney/$slug")({
 
 type RouteWithStops = JeepneyRoute & { stops: JeepneyStop[]; operator: string | null };
 
+type RouteAlert = {
+  id: string;
+  kind: "breakdown" | "repaired";
+  headline: string;
+  message: string | null;
+  created_at: string;
+};
+
+
 function JeepneyRoutePage() {
   const { slug } = Route.useParams();
   const [route, setRoute] = useState<RouteWithStops | null>(null);
