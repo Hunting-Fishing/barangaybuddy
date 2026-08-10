@@ -9,7 +9,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Trophy, Fuel, Sparkles, Car } from "lucide-react";
+import { ArrowRight, Trophy, Fuel, Sparkles, Car, Bus } from "lucide-react";
 import flyerAsset from "@/assets/pool-league-flyer.png.asset.json";
 import billiardsLogo from "@/assets/billiards-logo.png.asset.json";
 
@@ -52,6 +52,16 @@ const SLIDES: Slide[] = [
     icon: Fuel,
     gradient: "from-sea/90 via-sea to-blue-900",
     to: "/fuel",
+  },
+  {
+    id: "jeepney",
+    eyebrow: "New — Jeepney Planner",
+    title: "Know when your jeepney is coming",
+    body: "Routes, stops, fares and first/last trip times — with live jeepneys on the map. Operators can list a route for ₱100/month.",
+    cta: "Open Jeepney Planner",
+    icon: Bus,
+    gradient: "from-amber-900 via-amber-800 to-yellow-950",
+    to: "/jeepney",
   },
   {
     id: "import",
