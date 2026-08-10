@@ -160,15 +160,19 @@ function JeepneyRoutePage() {
       .sort((a, b) => a.km - b.km)[0]!;
   }, [route, me]);
 
+  const speeds = useMemo(() => segmentSpeedMap(segmentRows, currentHour), [segmentRows, currentHour]);
+
   const eta = useMemo(() => {
     if (!route || !position || !nearestStop || !isLive(position.recorded_at)) return null;
-    return etaMinutes(
+    return etaMinutesWithTraffic(
       route.path,
       { lat: Number(position.latitude), lng: Number(position.longitude) },
       { lat: Number(nearestStop.stop.latitude), lng: Number(nearestStop.stop.longitude) },
       position.speed_kph,
+      speeds,
     );
-  }, [route, position, nearestStop]);
+  }, [route, position, nearestStop, speeds]);
+
 
   if (loading) {
     return (
