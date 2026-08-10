@@ -260,13 +260,22 @@ function JeepneyOperatorPage() {
                     onChanged={loadAll}
                   />
 
-                  {route.status === "published" ? (
-                    <JeepneyLiveToggle routeId={route.id} />
+                  {route.status === "published" || route.status === "suspended" ? (
+                    <>
+                      <JeepneyBreakdownCard
+                        routeId={route.id}
+                        status={route.status}
+                        notes={route.notes}
+                        onChanged={loadAll}
+                      />
+                      {route.status === "published" && <JeepneyLiveToggle routeId={route.id} />}
+                    </>
                   ) : (
                     <p className="text-xs text-muted-foreground">
                       Live tracking turns on once your listing is active.
                     </p>
                   )}
+
                 </Card>
               );
             })}
