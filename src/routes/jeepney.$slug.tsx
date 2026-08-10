@@ -379,6 +379,10 @@ function JeepneyRoutePage() {
               </ol>
             </Card>
 
+            <JeepneyInsightsCard routeId={route.id} />
+
+
+
             <Card className="p-4">
               <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
                 <Bell className="h-4 w-4" /> Service alerts
