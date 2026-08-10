@@ -92,6 +92,57 @@ async function activateMemberships(session: any, env: StripeEnv) {
   );
 }
 
+async function activateJeepneyListing(session: any, env: StripeEnv) {
+  const meta = session.metadata ?? {};
+  const operatorId: string | undefined = meta.operatorId;
+  const routeId: string | undefined = meta.routeId;
+  if (!operatorId || !routeId) return;
+
+  const db = getSupabase();
+  const now = new Date();
+  const periodEnd = new Date(now.getTime() + 31 * 24 * 60 * 60 * 1000);
+
+  await db.from("jeepney_subscriptions").insert({
+    operator_id: operatorId,
+    route_id: routeId,
+    status: "active",
+    amount_php: majorUnit(Number(session.amount_total ?? 10000), session.currency ?? "php"),
+    current_period_end: periodEnd.toISOString(),
+    stripe_customer_id: session.customer ?? null,
+    stripe_subscription_id: session.subscription ?? null,
+    payment_ref: session.id,
+    payment_note: "Paid online",
+    environment: env,
+  });
+
+  await db.from("jeepney_routes").update({ status: "published" }).eq("id", routeId);
+}
+
+async function syncJeepneySubscription(subscription: any, env: StripeEnv) {
+  const meta = subscription.metadata ?? {};
+  if (meta.kind !== "jeepney" || !meta.routeId) return;
+
+  const db = getSupabase();
+  const item = subscription.items?.data?.[0];
+  const periodEnd = item?.current_period_end ?? subscription.current_period_end;
+  const active = subscription.status === "active" || subscription.status === "trialing";
+
+  await db
+    .from("jeepney_subscriptions")
+    .update({
+      status: active ? "active" : subscription.status === "canceled" ? "cancelled" : "past_due",
+      current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("stripe_subscription_id", subscription.id)
+    .eq("environment", env);
+
+  await db
+    .from("jeepney_routes")
+    .update({ status: active ? "published" : "suspended" })
+    .eq("id", meta.routeId);
+}
+
 async function handleWebhook(req: Request, env: StripeEnv) {
   const event = await verifyWebhook(req, env);
 
@@ -99,12 +150,26 @@ async function handleWebhook(req: Request, env: StripeEnv) {
     case "checkout.session.completed": {
       const session = event.data.object;
       if (session.payment_status !== "unpaid") {
+        if ((session.metadata ?? {}).kind === "jeepney") {
+          await activateJeepneyListing(session, env);
+        } else {
+          await activateMemberships(session, env);
+        }
+      }
+      break;
+    }
+    case "checkout.session.async_payment_succeeded": {
+      const session = event.data.object;
+      if ((session.metadata ?? {}).kind === "jeepney") {
+        await activateJeepneyListing(session, env);
+      } else {
         await activateMemberships(session, env);
       }
       break;
     }
-    case "checkout.session.async_payment_succeeded":
-      await activateMemberships(event.data.object, env);
+    case "customer.subscription.updated":
+    case "customer.subscription.deleted":
+      await syncJeepneySubscription(event.data.object, env);
       break;
     default:
       console.log("Unhandled payment event:", event.type);
