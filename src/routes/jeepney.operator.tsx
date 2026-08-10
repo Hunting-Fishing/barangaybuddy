@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { Bus, Plus } from "lucide-react";
 import { JeepneyRouteForm } from "@/components/jeepney-route-form";
 import { JeepneyLiveToggle } from "@/components/jeepney-live-toggle";
+import { JeepneyBreakdownCard } from "@/components/jeepney-breakdown-card";
+
 import {
   JeepneySubscriptionCard,
   type SubscriptionRow,
