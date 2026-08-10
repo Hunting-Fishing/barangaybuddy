@@ -33,6 +33,7 @@ import { Route as GroupsSlugRouteImport } from './routes/groups.$slug'
 import { Route as InventoryBusinessIdRouteImport } from './routes/inventory.$businessId'
 import { Route as JeepneyIndexRouteImport } from './routes/jeepney.index'
 import { Route as JeepneySlugRouteImport } from './routes/jeepney.$slug'
+import { Route as JeepneyAdminRouteImport } from './routes/jeepney.admin'
 import { Route as JeepneyOperatorRouteImport } from './routes/jeepney.operator'
 import { Route as MessagesConversationIdRouteImport } from './routes/messages.$conversationId'
 import { Route as ProvincesProvinceRouteImport } from './routes/provinces.$province'
@@ -56,6 +57,7 @@ import { Route as ApiPublicHooksBusinessOsmSyncRouteImport } from './routes/api/
 import { Route as ApiPublicHooksFuelStationsSyncRouteImport } from './routes/api/public/hooks/fuel-stations-sync'
 import { Route as ApiPublicHooksFuelSyncRouteImport } from './routes/api/public/hooks/fuel-sync'
 import { Route as ApiPublicHooksJeepneyRollupRouteImport } from './routes/api/public/hooks/jeepney-rollup'
+import { Route as ApiPublicHooksJeepneyRoutesSyncRouteImport } from './routes/api/public/hooks/jeepney-routes-sync'
 import { Route as ApiPublicHooksRoadsafeDeliverRouteImport } from './routes/api/public/hooks/roadsafe-deliver'
 import { Route as ApiPublicHooksRoadsafeIngestRouteImport } from './routes/api/public/hooks/roadsafe-ingest'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -181,6 +183,11 @@ const JeepneySlugRoute = JeepneySlugRouteImport.update({
   path: '/jeepney/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JeepneyAdminRoute = JeepneyAdminRouteImport.update({
+  id: '/jeepney/admin',
+  path: '/jeepney/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JeepneyOperatorRoute = JeepneyOperatorRouteImport.update({
   id: '/jeepney/operator',
   path: '/jeepney/operator',
@@ -299,6 +306,12 @@ const ApiPublicHooksJeepneyRollupRoute =
     path: '/api/public/hooks/jeepney-rollup',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksJeepneyRoutesSyncRoute =
+  ApiPublicHooksJeepneyRoutesSyncRouteImport.update({
+    id: '/api/public/hooks/jeepney-routes-sync',
+    path: '/api/public/hooks/jeepney-routes-sync',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksRoadsafeDeliverRoute =
   ApiPublicHooksRoadsafeDeliverRouteImport.update({
     id: '/api/public/hooks/roadsafe-deliver',
@@ -346,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/jeepney/$slug': typeof JeepneySlugRoute
+  '/jeepney/admin': typeof JeepneyAdminRoute
   '/jeepney/operator': typeof JeepneyOperatorRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
@@ -372,6 +386,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
   '/api/public/hooks/jeepney-rollup': typeof ApiPublicHooksJeepneyRollupRoute
+  '/api/public/hooks/jeepney-routes-sync': typeof ApiPublicHooksJeepneyRoutesSyncRoute
   '/api/public/hooks/roadsafe-deliver': typeof ApiPublicHooksRoadsafeDeliverRoute
   '/api/public/hooks/roadsafe-ingest': typeof ApiPublicHooksRoadsafeIngestRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -399,6 +414,7 @@ export interface FileRoutesByTo {
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/jeepney/$slug': typeof JeepneySlugRoute
+  '/jeepney/admin': typeof JeepneyAdminRoute
   '/jeepney/operator': typeof JeepneyOperatorRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
@@ -425,6 +441,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
   '/api/public/hooks/jeepney-rollup': typeof ApiPublicHooksJeepneyRollupRoute
+  '/api/public/hooks/jeepney-routes-sync': typeof ApiPublicHooksJeepneyRoutesSyncRoute
   '/api/public/hooks/roadsafe-deliver': typeof ApiPublicHooksRoadsafeDeliverRoute
   '/api/public/hooks/roadsafe-ingest': typeof ApiPublicHooksRoadsafeIngestRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -453,6 +470,7 @@ export interface FileRoutesById {
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/jeepney/$slug': typeof JeepneySlugRoute
+  '/jeepney/admin': typeof JeepneyAdminRoute
   '/jeepney/operator': typeof JeepneyOperatorRoute
   '/messages/$conversationId': typeof MessagesConversationIdRoute
   '/provinces/$province': typeof ProvincesProvinceRoute
@@ -479,6 +497,7 @@ export interface FileRoutesById {
   '/api/public/hooks/fuel-stations-sync': typeof ApiPublicHooksFuelStationsSyncRoute
   '/api/public/hooks/fuel-sync': typeof ApiPublicHooksFuelSyncRoute
   '/api/public/hooks/jeepney-rollup': typeof ApiPublicHooksJeepneyRollupRoute
+  '/api/public/hooks/jeepney-routes-sync': typeof ApiPublicHooksJeepneyRoutesSyncRoute
   '/api/public/hooks/roadsafe-deliver': typeof ApiPublicHooksRoadsafeDeliverRoute
   '/api/public/hooks/roadsafe-ingest': typeof ApiPublicHooksRoadsafeIngestRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
@@ -508,6 +527,7 @@ export interface FileRouteTypes {
     | '/groups/$slug'
     | '/inventory/$businessId'
     | '/jeepney/$slug'
+    | '/jeepney/admin'
     | '/jeepney/operator'
     | '/messages/$conversationId'
     | '/provinces/$province'
@@ -534,6 +554,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
     | '/api/public/hooks/jeepney-rollup'
+    | '/api/public/hooks/jeepney-routes-sync'
     | '/api/public/hooks/roadsafe-deliver'
     | '/api/public/hooks/roadsafe-ingest'
     | '/api/public/payments/webhook'
@@ -561,6 +582,7 @@ export interface FileRouteTypes {
     | '/groups/$slug'
     | '/inventory/$businessId'
     | '/jeepney/$slug'
+    | '/jeepney/admin'
     | '/jeepney/operator'
     | '/messages/$conversationId'
     | '/provinces/$province'
@@ -587,6 +609,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
     | '/api/public/hooks/jeepney-rollup'
+    | '/api/public/hooks/jeepney-routes-sync'
     | '/api/public/hooks/roadsafe-deliver'
     | '/api/public/hooks/roadsafe-ingest'
     | '/api/public/payments/webhook'
@@ -614,6 +637,7 @@ export interface FileRouteTypes {
     | '/groups/$slug'
     | '/inventory/$businessId'
     | '/jeepney/$slug'
+    | '/jeepney/admin'
     | '/jeepney/operator'
     | '/messages/$conversationId'
     | '/provinces/$province'
@@ -640,6 +664,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/fuel-stations-sync'
     | '/api/public/hooks/fuel-sync'
     | '/api/public/hooks/jeepney-rollup'
+    | '/api/public/hooks/jeepney-routes-sync'
     | '/api/public/hooks/roadsafe-deliver'
     | '/api/public/hooks/roadsafe-ingest'
     | '/api/public/payments/webhook'
@@ -668,6 +693,7 @@ export interface RootRouteChildren {
   GroupsSlugRoute: typeof GroupsSlugRouteWithChildren
   InventoryBusinessIdRoute: typeof InventoryBusinessIdRoute
   JeepneySlugRoute: typeof JeepneySlugRoute
+  JeepneyAdminRoute: typeof JeepneyAdminRoute
   JeepneyOperatorRoute: typeof JeepneyOperatorRoute
   ProvincesProvinceRoute: typeof ProvincesProvinceRoute
   RegionsRegionRoute: typeof RegionsRegionRoute
@@ -688,6 +714,7 @@ export interface RootRouteChildren {
   ApiPublicHooksFuelStationsSyncRoute: typeof ApiPublicHooksFuelStationsSyncRoute
   ApiPublicHooksFuelSyncRoute: typeof ApiPublicHooksFuelSyncRoute
   ApiPublicHooksJeepneyRollupRoute: typeof ApiPublicHooksJeepneyRollupRoute
+  ApiPublicHooksJeepneyRoutesSyncRoute: typeof ApiPublicHooksJeepneyRoutesSyncRoute
   ApiPublicHooksRoadsafeDeliverRoute: typeof ApiPublicHooksRoadsafeDeliverRoute
   ApiPublicHooksRoadsafeIngestRoute: typeof ApiPublicHooksRoadsafeIngestRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
@@ -863,6 +890,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JeepneySlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/jeepney/admin': {
+      id: '/jeepney/admin'
+      path: '/jeepney/admin'
+      fullPath: '/jeepney/admin'
+      preLoaderRoute: typeof JeepneyAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/jeepney/operator': {
       id: '/jeepney/operator'
       path: '/jeepney/operator'
@@ -1024,6 +1058,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksJeepneyRollupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/jeepney-routes-sync': {
+      id: '/api/public/hooks/jeepney-routes-sync'
+      path: '/api/public/hooks/jeepney-routes-sync'
+      fullPath: '/api/public/hooks/jeepney-routes-sync'
+      preLoaderRoute: typeof ApiPublicHooksJeepneyRoutesSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/roadsafe-deliver': {
       id: '/api/public/hooks/roadsafe-deliver'
       path: '/api/public/hooks/roadsafe-deliver'
@@ -1130,6 +1171,7 @@ const rootRouteChildren: RootRouteChildren = {
   GroupsSlugRoute: GroupsSlugRouteWithChildren,
   InventoryBusinessIdRoute: InventoryBusinessIdRoute,
   JeepneySlugRoute: JeepneySlugRoute,
+  JeepneyAdminRoute: JeepneyAdminRoute,
   JeepneyOperatorRoute: JeepneyOperatorRoute,
   ProvincesProvinceRoute: ProvincesProvinceRoute,
   RegionsRegionRoute: RegionsRegionRoute,
@@ -1150,6 +1192,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksFuelStationsSyncRoute: ApiPublicHooksFuelStationsSyncRoute,
   ApiPublicHooksFuelSyncRoute: ApiPublicHooksFuelSyncRoute,
   ApiPublicHooksJeepneyRollupRoute: ApiPublicHooksJeepneyRollupRoute,
+  ApiPublicHooksJeepneyRoutesSyncRoute: ApiPublicHooksJeepneyRoutesSyncRoute,
   ApiPublicHooksRoadsafeDeliverRoute: ApiPublicHooksRoadsafeDeliverRoute,
   ApiPublicHooksRoadsafeIngestRoute: ApiPublicHooksRoadsafeIngestRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
@@ -1157,13 +1200,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

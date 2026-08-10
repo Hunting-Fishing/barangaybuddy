@@ -23,7 +23,7 @@ import {
   type LatLng,
 } from "@/lib/jeepney";
 
-export type DraftStop = { name: string; lat: number; lng: number };
+export type DraftStop = { name: string; address?: string | null; lat: number; lng: number };
 
 type Props = {
   path: LatLng[];

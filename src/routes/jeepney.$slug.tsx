@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Bell, Bus, Locate, Radio, TriangleAlert, Wrench } from "lucide-react";
 import { JeepneyFollowButton } from "@/components/jeepney-follow-button";
+import { JeepneyClaimDialog } from "@/components/jeepney-claim-dialog";
 import { JeepneyInsightsCard } from "@/components/jeepney-insights-card";
 
 import {
@@ -231,7 +232,9 @@ function JeepneyRoutePage() {
           <h1 className="font-display text-2xl font-bold sm:text-3xl">{route.name}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {route.code ? `Route ${route.code} · ` : ""}
-            {route.operator ? `Operated by ${route.operator}` : "Jeepney route"}
+            {route.operator
+              ? `Operated by ${route.operator}`
+              : "Community route — not claimed by an operator yet"}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{formatPhpAmount(route.fare_php)} fare</Badge>
@@ -246,7 +249,11 @@ function JeepneyRoutePage() {
               </Badge>
             )}
             <JeepneyFollowButton routeId={route.id} routeName={route.name} />
+            {!route.operator_id && (
+              <JeepneyClaimDialog routeId={route.id} routeName={route.name} onSubmitted={load} />
+            )}
           </div>
+
         </header>
 
         {route.status === "suspended" && (

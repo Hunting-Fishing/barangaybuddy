@@ -12,13 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { ClientOnly } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DAYS, ROUTE_COLOURS, jeepneySlug, type LatLng } from "@/lib/jeepney";
 import type { DraftStop } from "@/components/jeepney-route-editor";
-import { Trash2 } from "lucide-react";
+import { JeepneyStopPlanner } from "@/components/jeepney-stop-planner";
+import { snapStopsToRoads } from "@/lib/jeepney-geo.functions";
 
 const JeepneyRouteEditor = lazy(() => import("@/components/jeepney-route-editor"));
 
@@ -65,6 +65,7 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
   const [path, setPath] = useState<LatLng[]>(existing?.path ?? []);
   const [stops, setStops] = useState<DraftStop[]>(existing?.stops ?? []);
   const [saving, setSaving] = useState(false);
+  const [snapping, setSnapping] = useState(false);
 
   function toggleDay(day: string) {
     setDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
@@ -76,17 +77,45 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
     setStops((prev) => [...prev, { name: stopName.trim().slice(0, 80), lat: point.lat, lng: point.lng }]);
   }
 
+  async function snapToRoads() {
+    if (stops.length < 2) {
+      toast.error("Add at least two stops first — the route follows them in order.");
+      return;
+    }
+    setSnapping(true);
+    try {
+      const res = await snapStopsToRoads({
+        data: { points: stops.map((s) => ({ lat: s.lat, lng: s.lng })) },
+      });
+      setPath(res.path);
+      if (res.snapped) toast.success("Route now follows the roads between your stops.");
+      else toast.error(res.error ?? "Drew straight lines between your stops instead.");
+    } catch {
+      toast.error("Could not build the road route. Please try again.");
+    } finally {
+      setSnapping(false);
+    }
+  }
+
+
   async function save() {
     if (name.trim().length < 3) {
       setTab("route");
       toast.error("Give your route a clear name, e.g. “Terminal – Palengke – Poblacion”.");
       return;
     }
-    if (path.length < 2) {
+    let linePath = path;
+    if (linePath.length < 2 && stops.length >= 2) {
+      linePath = stops.map((s) => ({ lat: s.lat, lng: s.lng }));
+    }
+    if (linePath.length < 2) {
       setTab("map");
-      toast.error("Draw or track at least two points so the route shows as a line on the map.");
+      toast.error(
+        "Add at least two stops (type the addresses) or draw two points so the route shows as a line.",
+      );
       return;
     }
+    if (linePath !== path) setPath(linePath);
     setSaving(true);
 
     const payload = {
@@ -103,7 +132,7 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
       operating_days: days,
       colour,
       notes: notes.trim() || null,
-      path: path as unknown as never,
+      path: linePath as unknown as never,
     };
 
     let routeId = existing?.id;
@@ -134,6 +163,7 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
         stops.map((s, i) => ({
           route_id: routeId!,
           name: s.name,
+          address: s.address ?? null,
           position: i,
           latitude: s.lat,
           longitude: s.lng,
@@ -227,25 +257,13 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
               </Suspense>
             </ClientOnly>
 
-            {stops.length > 0 && (
-              <div className="space-y-1.5">
-                <Label>Stops in order</Label>
-                <div className="flex flex-wrap gap-1.5">
-                  {stops.map((s, i) => (
-                    <Badge key={`${s.name}-${i}`} variant="secondary" className="gap-1">
-                      {i + 1}. {s.name}
-                      <button
-                        type="button"
-                        aria-label={`Remove ${s.name}`}
-                        onClick={() => setStops((prev) => prev.filter((_, idx) => idx !== i))}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
+            <JeepneyStopPlanner
+              stops={stops}
+              onChange={setStops}
+              onSnap={snapToRoads}
+              snapping={snapping}
+            />
+
           </TabsContent>
 
           <TabsContent value="schedule" className="space-y-4 pt-3">

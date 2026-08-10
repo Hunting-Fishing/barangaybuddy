@@ -1102,6 +1102,42 @@ export type Database = {
           },
         ]
       }
+      jeepney_import_runs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: string
+          routes_upserted: number
+          source: string
+          started_at: string
+          status: string
+          stops_upserted: number
+          total_fetched: number
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          routes_upserted?: number
+          source?: string
+          started_at?: string
+          status?: string
+          stops_upserted?: number
+          total_fetched?: number
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          routes_upserted?: number
+          source?: string
+          started_at?: string
+          status?: string
+          stops_upserted?: number
+          total_fetched?: number
+        }
+        Relationships: []
+      }
       jeepney_operator_contacts: {
         Row: {
           contact_phone: string | null
@@ -1255,6 +1291,68 @@ export type Database = {
           },
         ]
       }
+      jeepney_route_claims: {
+        Row: {
+          body_number: string
+          contact_phone: string | null
+          created_at: string
+          document_path: string | null
+          franchise_number: string | null
+          id: string
+          operator_name: string
+          photo_path: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          route_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body_number: string
+          contact_phone?: string | null
+          created_at?: string
+          document_path?: string | null
+          franchise_number?: string | null
+          id?: string
+          operator_name: string
+          photo_path: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          route_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body_number?: string
+          contact_phone?: string | null
+          created_at?: string
+          document_path?: string | null
+          franchise_number?: string | null
+          id?: string
+          operator_name?: string
+          photo_path?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          route_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_route_claims_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jeepney_route_follows: {
         Row: {
           created_at: string
@@ -1346,14 +1444,17 @@ export type Database = {
           fare_php: number | null
           first_run: string | null
           id: string
+          import_source_id: string | null
+          imported_from: string | null
           last_pickup: string | null
           last_run: string | null
           name: string
           notes: string | null
           operating_days: string[]
-          operator_id: string
+          operator_id: string | null
           path: Json
           slug: string
+          source_url: string | null
           status: Database["public"]["Enums"]["jeepney_route_status"]
           trips_per_day: number | null
           updated_at: string
@@ -1369,14 +1470,17 @@ export type Database = {
           fare_php?: number | null
           first_run?: string | null
           id?: string
+          import_source_id?: string | null
+          imported_from?: string | null
           last_pickup?: string | null
           last_run?: string | null
           name: string
           notes?: string | null
           operating_days?: string[]
-          operator_id: string
+          operator_id?: string | null
           path?: Json
           slug: string
+          source_url?: string | null
           status?: Database["public"]["Enums"]["jeepney_route_status"]
           trips_per_day?: number | null
           updated_at?: string
@@ -1392,14 +1496,17 @@ export type Database = {
           fare_php?: number | null
           first_run?: string | null
           id?: string
+          import_source_id?: string | null
+          imported_from?: string | null
           last_pickup?: string | null
           last_run?: string | null
           name?: string
           notes?: string | null
           operating_days?: string[]
-          operator_id?: string
+          operator_id?: string | null
           path?: Json
           slug?: string
+          source_url?: string | null
           status?: Database["public"]["Enums"]["jeepney_route_status"]
           trips_per_day?: number | null
           updated_at?: string
@@ -1468,6 +1575,7 @@ export type Database = {
       }
       jeepney_stops: {
         Row: {
+          address: string | null
           created_at: string
           id: string
           latitude: number
@@ -1478,6 +1586,7 @@ export type Database = {
           route_id: string
         }
         Insert: {
+          address?: string | null
           created_at?: string
           id?: string
           latitude: number
@@ -1488,6 +1597,7 @@ export type Database = {
           route_id: string
         }
         Update: {
+          address?: string | null
           created_at?: string
           id?: string
           latitude?: number
@@ -1632,8 +1742,10 @@ export type Database = {
           active: boolean
           created_at: string
           device_token: string | null
+          franchise_number: string | null
           id: string
           label: string
+          photo_url: string | null
           plate_number: string | null
           route_id: string
           seats: number | null
@@ -1643,8 +1755,10 @@ export type Database = {
           active?: boolean
           created_at?: string
           device_token?: string | null
+          franchise_number?: string | null
           id?: string
           label: string
+          photo_url?: string | null
           plate_number?: string | null
           route_id: string
           seats?: number | null
@@ -1654,8 +1768,10 @@ export type Database = {
           active?: boolean
           created_at?: string
           device_token?: string | null
+          franchise_number?: string | null
           id?: string
           label?: string
+          photo_url?: string | null
           plate_number?: string | null
           route_id?: string
           seats?: number | null

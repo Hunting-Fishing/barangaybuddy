@@ -34,3 +34,11 @@ export const runBusinessImportSync = createServerFn({ method: "POST" })
     const { runBusinessOsmSync } = await import("@/lib/business-osm-import.server");
     return await runBusinessOsmSync();
   });
+
+export const runJeepneyRouteImport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { runJeepneyRouteSync } = await import("@/lib/jeepney-osm-import.server");
+    return await runJeepneyRouteSync();
+  });

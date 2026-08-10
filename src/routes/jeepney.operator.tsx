@@ -99,7 +99,12 @@ function JeepneyOperatorPage() {
           stops: (r.jeepney_stops ?? [])
             .slice()
             .sort((a: any, b: any) => a.position - b.position)
-            .map((s: any) => ({ name: s.name, lat: Number(s.latitude), lng: Number(s.longitude) })),
+            .map((s: any) => ({
+              name: s.name,
+              address: s.address ?? null,
+              lat: Number(s.latitude),
+              lng: Number(s.longitude),
+            })),
         })),
       );
       setSubs((subRows ?? []) as SubscriptionRow[]);
