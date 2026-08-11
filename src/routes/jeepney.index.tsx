@@ -70,7 +70,23 @@ function JeepneyIndexPage() {
   useEffect(() => {
     void load();
     const timer = setInterval(() => void loadLive(), 20000);
-    return () => clearInterval(timer);
+    const channel = supabase
+      .channel("public-jeepney-position-feed")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "jeepney_positions" },
+        (payload) => {
+          const next = payload.new as JeepneyPosition;
+          if (!next?.route_id || !isLive(next.recorded_at)) return;
+          setLive((current) => ({ ...current, [next.route_id]: next }));
+        },
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(timer);
+      void supabase.removeChannel(channel);
+    };
   }, []);
 
   async function load() {
