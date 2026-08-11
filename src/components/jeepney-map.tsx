@@ -2,7 +2,13 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { JeepneyPosition, JeepneyRoute, JeepneyStop, LatLng } from "@/lib/jeepney";
-import { CONGESTION_COLOURS, SEGMENT_KM, congestionLevel, haversineKm, isLive } from "@/lib/jeepney";
+import {
+  CONGESTION_COLOURS,
+  SEGMENT_KM,
+  congestionLevel,
+  haversineKm,
+  isLive,
+} from "@/lib/jeepney";
 
 export type MapRoute = JeepneyRoute & { stops: JeepneyStop[] };
 
@@ -17,12 +23,26 @@ type Props = {
   congestion?: Record<string, Map<number, number>>;
 };
 
-
 function esc(s: string) {
   return s.replace(
     /[&<>"']/g,
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
   );
+}
+
+function jeepneyMarkerHtml(label: string) {
+  const safeLabel = esc(label);
+  return `
+    <div style="display:flex;align-items:center;gap:6px;transform:translate(-19px,-17px);white-space:nowrap;filter:drop-shadow(0 4px 8px rgba(7,29,73,.28))">
+      <div style="width:38px;height:34px;border-radius:11px;background:#071d49;border:3px solid #fff;position:relative;box-sizing:border-box;overflow:hidden">
+        <div style="position:absolute;left:3px;right:3px;top:4px;height:7px;border-radius:4px;background:#f5b400"></div>
+        <div style="position:absolute;left:6px;right:6px;top:13px;height:7px;border-radius:2px;background:#9ed7ff;border:1px solid rgba(255,255,255,.8)"></div>
+        <div style="position:absolute;left:4px;right:4px;bottom:5px;height:5px;border-radius:3px;background:#1465ff"></div>
+        <div style="position:absolute;left:6px;bottom:1px;width:6px;height:6px;border-radius:999px;background:#111827;border:2px solid #fff"></div>
+        <div style="position:absolute;right:6px;bottom:1px;width:6px;height:6px;border-radius:999px;background:#111827;border:2px solid #fff"></div>
+      </div>
+      <div style="background:#071d49;color:#fff;border:2px solid #fff;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:800;letter-spacing:.01em;box-shadow:0 3px 8px rgba(7,29,73,.2)">${safeLabel}</div>
+    </div>`;
 }
 
 export default function JeepneyMap({
@@ -34,7 +54,6 @@ export default function JeepneyMap({
   height = "70vh",
   congestion = {},
 }: Props) {
-
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
@@ -45,10 +64,7 @@ export default function JeepneyMap({
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
-    const map = L.map(containerRef.current, { scrollWheelZoom: true }).setView(
-      [12.8797, 121.774],
-      6,
-    );
+    const map = L.map(containerRef.current, { scrollWheelZoom: true }).setView([12.8797, 121.774], 6);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
@@ -64,7 +80,6 @@ export default function JeepneyMap({
     };
   }, []);
 
-  // Routes + stops
   useEffect(() => {
     const map = mapRef.current;
     const layer = layerRef.current;
@@ -83,24 +98,29 @@ export default function JeepneyMap({
       const speeds = congestion[route.id];
 
       if (speeds && speeds.size && !dimmed) {
-        // Colour the line segment by segment using measured speeds.
         let running = 0;
         for (let i = 1; i < path.length; i += 1) {
           const a = path[i - 1]!;
           const b = path[i]!;
           const speed = speeds.get(Math.floor(running / SEGMENT_KM));
           running += haversineKm(a, b);
-          const seg = L.polyline(
-            [
-              [a.lat, a.lng],
-              [b.lat, b.lng],
-            ],
-            {
-              color: speed === undefined ? route.colour || "#f59e0b" : CONGESTION_COLOURS[congestionLevel(speed)],
-              weight: 6,
-              opacity: 0.9,
-            },
-          ).addTo(layer);
+          const segmentPoints: [number, number][] = [
+            [a.lat, a.lng],
+            [b.lat, b.lng],
+          ];
+          L.polyline(segmentPoints, {
+            color: "#071d49",
+            weight: 9,
+            opacity: 0.14,
+          }).addTo(layer);
+          const seg = L.polyline(segmentPoints, {
+            color:
+              speed === undefined
+                ? route.colour || "#1465ff"
+                : CONGESTION_COLOURS[congestionLevel(speed)],
+            weight: 6,
+            opacity: 0.95,
+          }).addTo(layer);
           seg.bindTooltip(
             speed === undefined
               ? esc(route.name)
@@ -110,26 +130,33 @@ export default function JeepneyMap({
           seg.on("click", () => selectRef.current?.(route.id));
         }
       } else {
+        if (!dimmed) {
+          L.polyline(latlngs, {
+            color: "#071d49",
+            weight: 9,
+            opacity: 0.14,
+          }).addTo(layer);
+        }
         const line = L.polyline(latlngs, {
-          color: route.colour || "#f59e0b",
-          weight: dimmed ? 3 : 5,
-          opacity: dimmed ? 0.35 : 0.9,
+          color: route.colour || "#1465ff",
+          weight: dimmed ? 3 : 6,
+          opacity: dimmed ? 0.3 : 0.95,
         }).addTo(layer);
         line.bindTooltip(esc(route.name), { sticky: true });
         line.on("click", () => selectRef.current?.(route.id));
       }
 
-
       route.stops
         .slice()
         .sort((a, b) => a.position - b.position)
-        .forEach((stop) => {
+        .forEach((stop, index) => {
+          const terminal = index === 0 || index === route.stops.length - 1;
           L.circleMarker([Number(stop.latitude), Number(stop.longitude)], {
-            radius: dimmed ? 4 : 6,
+            radius: dimmed ? 4 : terminal ? 8 : 6,
             color: "#ffffff",
-            weight: 2,
-            fillColor: route.colour || "#f59e0b",
-            fillOpacity: dimmed ? 0.5 : 1,
+            weight: terminal ? 3 : 2,
+            fillColor: terminal ? "#f5b400" : route.colour || "#1465ff",
+            fillOpacity: dimmed ? 0.45 : 1,
           })
             .addTo(layer)
             .bindPopup(
@@ -143,7 +170,6 @@ export default function JeepneyMap({
     }
   }, [routes, activeRouteId, congestion]);
 
-  // Live vehicles
   useEffect(() => {
     const layer = liveLayerRef.current;
     if (!layer) return;
@@ -151,14 +177,13 @@ export default function JeepneyMap({
     routes.forEach((route) => {
       const position = live[route.id];
       if (!position || !isLive(position.recorded_at)) return;
+      const label = route.code || route.name.slice(0, 16);
       const marker = L.marker([Number(position.latitude), Number(position.longitude)], {
         icon: L.divIcon({
           className: "",
-          html: `<div style="background:${route.colour || "#f59e0b"};color:#fff;border-radius:9999px;padding:2px 8px;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.35);white-space:nowrap">🚐 ${esc(
-            route.code || route.name.slice(0, 12),
-          )}</div>`,
-          iconSize: [0, 0],
-          iconAnchor: [20, 12],
+          html: jeepneyMarkerHtml(label),
+          iconSize: [1, 1],
+          iconAnchor: [0, 0],
         }),
       }).addTo(layer);
       marker.bindPopup(
@@ -169,7 +194,6 @@ export default function JeepneyMap({
     });
   }, [routes, live]);
 
-  // Rider location
   useEffect(() => {
     const layer = userLayerRef.current;
     if (!layer) return;
@@ -179,12 +203,18 @@ export default function JeepneyMap({
       radius: 8,
       color: "#ffffff",
       weight: 3,
-      fillColor: "#2563eb",
+      fillColor: "#1465ff",
       fillOpacity: 1,
     })
       .addTo(layer)
       .bindTooltip("You are here");
   }, [userLocation]);
 
-  return <div ref={containerRef} style={{ height }} className="w-full rounded-xl border border-border" />;
+  return (
+    <div
+      ref={containerRef}
+      style={{ height }}
+      className="w-full overflow-hidden rounded-2xl border border-blue-100 bg-slate-100"
+    />
+  );
 }
