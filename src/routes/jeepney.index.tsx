@@ -1,16 +1,25 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { ClientOnly } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import {
+  ArrowRight,
+  Bus,
+  Clock3,
+  Locate,
+  MapPin,
+  Navigation,
+  Radio,
+  Search,
+  Sparkles,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Bus, Locate, Radio, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { JeepneyFollowButton } from "@/components/jeepney-follow-button";
-
+import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
+import { supabase } from "@/integrations/supabase/client";
 import {
   formatPhpAmount,
   formatTime,
@@ -29,16 +38,16 @@ const JeepneyMap = lazy(() => import("@/components/jeepney-map"));
 export const Route = createFileRoute("/jeepney/")({
   head: () => ({
     meta: [
-      { title: "Jeepney Planner — Routes, times and live jeepneys in the Philippines" },
+      { title: "Jeepney Planner — Live routes, pickup times and service alerts" },
       {
         name: "description",
         content:
-          "See jeepney routes on a map with first run, last run and last pickup times, plus live jeepneys sharing their location right now.",
+          "Plan jeepney trips with route maps, approximate pickup times, daily service hours, live vehicle positions and breakdown alerts.",
       },
-      { property: "og:title", content: "Jeepney Planner — routes, times and live jeepneys" },
+      { property: "og:title", content: "Barangay Buddy Jeepney Planner" },
       {
         property: "og:description",
-        content: "Find the jeepney that passes near you, see its schedule and track it live.",
+        content: "Know the route. Know the pickup time. Know whether the jeepney already passed or is still coming.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -70,11 +79,12 @@ function JeepneyIndexPage() {
       .select("*, jeepney_stops(*)")
       .eq("status", "published")
       .order("name");
+
     setRoutes(
       (data ?? []).map((r: any) => ({
         ...r,
         path: parsePath(r.path),
-        stops: (r.jeepney_stops ?? []) as JeepneyStop[],
+        stops: ((r.jeepney_stops ?? []) as JeepneyStop[]).sort((a, b) => a.position - b.position),
       })),
     );
     setLoading(false);
@@ -89,6 +99,7 @@ function JeepneyIndexPage() {
       .gte("recorded_at", since)
       .order("recorded_at", { ascending: false })
       .limit(500);
+
     const latest: Record<string, JeepneyPosition> = {};
     (data ?? []).forEach((p: any) => {
       if (!latest[p.route_id]) latest[p.route_id] = p as JeepneyPosition;
@@ -128,123 +139,222 @@ function JeepneyIndexPage() {
   const liveCount = Object.values(live).filter((p) => isLive(p.recorded_at)).length;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50/80 via-background to-background">
       <SiteHeader />
-      <main className="container mx-auto px-4 py-6">
-        <header className="mb-5">
-          <h1 className="font-display text-2xl font-bold sm:text-3xl">Jeepney Planner</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Jeepney routes drawn by the operators themselves — with times, fares and live jeepneys
-            on the road right now.
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Badge variant="secondary" className="gap-1">
-              <Bus className="h-3.5 w-3.5" /> {routes.length} routes
-            </Badge>
-            <Badge variant={liveCount ? "default" : "secondary"} className="gap-1">
-              <Radio className="h-3.5 w-3.5" /> {liveCount} live now
-            </Badge>
-            <Button size="sm" variant="outline" asChild>
-              <Link to="/jeepney/operator">I drive a jeepney — list my route</Link>
-            </Button>
-          </div>
-        </header>
+      <main className="container mx-auto px-4 py-6 sm:py-8">
+        <section className="relative overflow-hidden rounded-[2rem] bg-[#071d49] px-5 py-8 text-white shadow-xl sm:px-8 sm:py-10 lg:px-10">
+          <div className="pointer-events-none absolute -right-20 -top-24 h-80 w-80 rounded-full bg-blue-500/25 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 right-1/4 h-40 w-40 rounded-full bg-[#f5b400]/20 blur-3xl" />
+          <div className="relative grid gap-8 lg:grid-cols-[1.2fr_.8fr] lg:items-end">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-blue-100">
+                <Bus className="h-4 w-4 text-[#f5b400]" /> Barangay Buddy Transit
+              </div>
+              <h1 className="mt-5 max-w-3xl font-display text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+                Jeepney <span className="text-[#4d8cff]">Planner</span>
+              </h1>
+              <p className="mt-4 max-w-2xl text-base leading-relaxed text-blue-100/85 sm:text-lg">
+                Know where the jeepney is, when it should reach your stop, whether it already passed,
+                and when the route starts or ends for the day.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-2">
+                <Badge className="border-white/15 bg-white/10 text-white hover:bg-white/10">
+                  <Navigation className="mr-1 h-3.5 w-3.5" /> Live route position
+                </Badge>
+                <Badge className="border-white/15 bg-white/10 text-white hover:bg-white/10">
+                  <Clock3 className="mr-1 h-3.5 w-3.5" /> Approx. pickup times
+                </Badge>
+                <Badge className="border-white/15 bg-white/10 text-white hover:bg-white/10">
+                  <Radio className="mr-1 h-3.5 w-3.5" /> Breakdown status
+                </Badge>
+              </div>
+            </div>
 
-        <div className="mb-4 flex flex-wrap gap-2">
-          <div className="relative min-w-56 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search route, code or stop"
-              className="pl-9"
-            />
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+                <p className="text-2xl font-black text-[#f5b400]">{routes.length}</p>
+                <p className="mt-1 text-xs text-blue-100/80">Published routes</p>
+              </div>
+              <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+                <p className="text-2xl font-black text-emerald-300">{liveCount}</p>
+                <p className="mt-1 text-xs text-blue-100/80">Live right now</p>
+              </div>
+              <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
+                <p className="text-2xl font-black text-blue-200">24/7</p>
+                <p className="mt-1 text-xs text-blue-100/80">Route lookup</p>
+              </div>
+            </div>
           </div>
-          <Button variant={nearOnly ? "default" : "outline"} onClick={locate}>
-            <Locate className="mr-1.5 h-4 w-4" /> Passes near me
-          </Button>
-          {nearOnly && (
-            <Button variant="ghost" onClick={() => setNearOnly(false)}>
-              Show all
-            </Button>
-          )}
-        </div>
+        </section>
 
-        <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-          <ClientOnly fallback={<div className="h-[70vh] rounded-xl border border-border" />}>
-            <Suspense fallback={<div className="h-[70vh] rounded-xl border border-border" />}>
-              <JeepneyMap
-                routes={filtered}
-                live={live}
-                userLocation={me}
-                activeRouteId={activeRouteId}
-                onSelectRoute={setActiveRouteId}
+        <section className="relative z-10 -mt-4 mx-2 rounded-3xl border border-blue-100 bg-white p-4 shadow-lg sm:mx-6 sm:p-5">
+          <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto] lg:items-center">
+            <div className="relative min-w-0">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search route, route code, terminal or stop"
+                className="h-11 rounded-xl pl-9"
               />
-            </Suspense>
-          </ClientOnly>
+            </div>
+            <Button
+              variant={nearOnly ? "default" : "outline"}
+              onClick={locate}
+              className={nearOnly ? "bg-[#1465ff] hover:bg-[#0f56dc]" : ""}
+            >
+              <Locate className="mr-1.5 h-4 w-4" /> Passes near me
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/jeepney/operator">List a jeepney route</Link>
+            </Button>
+          </div>
+          {nearOnly ? (
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <MapPin className="h-3.5 w-3.5" /> Showing routes that pass within about 3 km of you.
+              <button type="button" className="font-semibold text-blue-700 underline" onClick={() => setNearOnly(false)}>
+                Show all
+              </button>
+            </div>
+          ) : null}
+        </section>
 
-          <div className="space-y-3">
-            {loading && <p className="text-sm text-muted-foreground">Loading routes…</p>}
-            {!loading && filtered.length === 0 && (
-              <Card className="p-4 text-sm text-muted-foreground">
-                No routes here yet. If you drive a jeepney,{" "}
-                <Link to="/jeepney/operator" className="font-medium text-foreground underline">
-                  add your route
-                </Link>{" "}
-                for ₱100 a month.
+        <section className="mt-6 grid gap-5 xl:grid-cols-[1.45fr_1fr]">
+          <Card className="overflow-hidden rounded-3xl border-blue-100 p-0 shadow-lg">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-100 bg-white px-4 py-3">
+              <div>
+                <h2 className="font-display text-lg font-bold">Route map</h2>
+                <p className="text-xs text-muted-foreground">Select a route line or card to focus it.</p>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#071d49] text-[#f5b400]">
+                  <Bus className="h-4 w-4" />
+                </span>
+                Barangay Buddy live marker
+              </div>
+            </div>
+            <ClientOnly fallback={<div className="h-[72vh] min-h-[520px] bg-slate-100" />}>
+              <Suspense fallback={<div className="h-[72vh] min-h-[520px] bg-slate-100" />}>
+                <JeepneyMap
+                  routes={filtered}
+                  live={live}
+                  userLocation={me}
+                  activeRouteId={activeRouteId}
+                  onSelectRoute={setActiveRouteId}
+                  height="72vh"
+                />
+              </Suspense>
+            </ClientOnly>
+          </Card>
+
+          <div className="space-y-3 xl:max-h-[calc(72vh+72px)] xl:overflow-y-auto xl:pr-1">
+            {loading ? (
+              <Card className="rounded-2xl p-5 text-sm text-muted-foreground">Loading jeepney routes…</Card>
+            ) : null}
+
+            {!loading && filtered.length === 0 ? (
+              <Card className="rounded-2xl p-6 text-sm text-muted-foreground">
+                <p className="font-semibold text-foreground">No matching jeepney route yet.</p>
+                <p className="mt-1">
+                  Operators can add actual route paths, stops, service hours and live GPS broadcasting.
+                </p>
+                <Button size="sm" className="mt-4" asChild>
+                  <Link to="/jeepney/operator">Add a route</Link>
+                </Button>
               </Card>
-            )}
+            ) : null}
+
             {filtered.map((route) => {
               const position = live[route.id];
-              const onRoad = position && isLive(position.recorded_at);
+              const onRoad = Boolean(position && isLive(position.recorded_at));
+              const active = activeRouteId === route.id;
               return (
                 <Card
                   key={route.id}
-                  className={`cursor-pointer p-4 transition ${
-                    activeRouteId === route.id ? "ring-2 ring-primary" : ""
+                  className={`cursor-pointer overflow-hidden rounded-2xl border p-0 transition-all hover:-translate-y-0.5 hover:shadow-md ${
+                    active ? "border-blue-300 ring-2 ring-blue-500/20" : "border-border"
                   }`}
                   onMouseEnter={() => setActiveRouteId(route.id)}
                   onClick={() => setActiveRouteId(route.id)}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="flex items-center gap-2 font-semibold">
-                        <span
-                          className="inline-block h-3 w-3 shrink-0 rounded-full"
-                          style={{ background: route.colour }}
-                        />
-                        <span className="truncate">{route.name}</span>
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {route.code ? `${route.code} · ` : ""}
-                        {formatPhpAmount(route.fare_php)} fare
-                        {headwayLabel(route) ? ` · ${headwayLabel(route)}` : ""}
-                      </p>
-                    </div>
-                    {onRoad && (
-                      <Badge className="shrink-0 gap-1">
-                        <Radio className="h-3 w-3" /> Live
+                  <div className="h-1.5" style={{ background: route.colour || "#1465ff" }} />
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#071d49] text-[#f5b400]">
+                            <Bus className="h-4 w-4" />
+                          </span>
+                          <div className="min-w-0">
+                            <h3 className="truncate font-display text-lg font-bold">{route.name}</h3>
+                            <p className="text-xs text-muted-foreground">
+                              {route.code ? `Route ${route.code}` : "Community route"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <Badge className={onRoad ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700"}>
+                        <Radio className="mr-1 h-3 w-3" /> {onRoad ? "Live" : "Scheduled"}
                       </Badge>
-                    )}
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    First {formatTime(route.first_run)} · Last {formatTime(route.last_run)} · Last
-                    pickup {formatTime(route.last_pickup)}
-                  </p>
-                  <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <Button size="sm" variant="link" className="h-auto p-0" asChild>
-                      <Link to="/jeepney/$slug" params={{ slug: route.slug }}>
-                        View route & stops
-                      </Link>
-                    </Button>
-                    <JeepneyFollowButton routeId={route.id} routeName={route.name} />
-                  </div>
+                    </div>
 
+                    <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                      <div className="rounded-xl bg-slate-50 px-2 py-2.5">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Fare</p>
+                        <p className="mt-0.5 text-sm font-bold">{formatPhpAmount(route.fare_php)}</p>
+                      </div>
+                      <div className="rounded-xl bg-slate-50 px-2 py-2.5">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">First</p>
+                        <p className="mt-0.5 text-sm font-bold">{formatTime(route.first_run)}</p>
+                      </div>
+                      <div className="rounded-xl bg-slate-50 px-2 py-2.5">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Last</p>
+                        <p className="mt-0.5 text-sm font-bold">{formatTime(route.last_run)}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      {headwayLabel(route) ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Clock3 className="h-3.5 w-3.5" /> {headwayLabel(route)}
+                        </span>
+                      ) : null}
+                      <span>·</span>
+                      <span>{route.stops.length} mapped stops</span>
+                    </div>
+
+                    {route.stops.length ? (
+                      <p className="mt-2 line-clamp-1 text-xs text-muted-foreground">
+                        {route.stops.slice(0, 4).map((stop) => stop.name).join(" → ")}
+                        {route.stops.length > 4 ? " → …" : ""}
+                      </p>
+                    ) : null}
+
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+                      <div onClick={(event) => event.stopPropagation()}>
+                        <JeepneyFollowButton routeId={route.id} routeName={route.name} />
+                      </div>
+                      <Button size="sm" className="bg-[#1465ff] hover:bg-[#0f56dc]" asChild>
+                        <Link to="/jeepney/$slug" params={{ slug: route.slug }} onClick={(event) => event.stopPropagation()}>
+                          Track route <ArrowRight className="ml-1.5 h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
                 </Card>
               );
             })}
+
+            <Card className="rounded-2xl border-amber-200 bg-amber-50 p-4">
+              <p className="flex items-center gap-2 font-semibold text-slate-900">
+                <Sparkles className="h-4 w-4 text-amber-600" /> How live tracking works
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Operators broadcast GPS while on shift. If GPS stops updating for five minutes, the route automatically falls back to schedule mode instead of showing stale location data.
+              </p>
+            </Card>
           </div>
-        </div>
+        </section>
       </main>
       <SiteFooter />
     </div>
