@@ -28,6 +28,23 @@ export type JeepneyRoute = {
   updated_at: string;
 };
 
+export type StopKind = "stop" | "waiting" | "terminal" | "landmark";
+
+export const STOP_KINDS: { value: StopKind; label: string; colour: string }[] = [
+  { value: "stop", label: "Stop", colour: "#0f766e" },
+  { value: "waiting", label: "Waiting area", colour: "#7c3aed" },
+  { value: "terminal", label: "Terminal", colour: "#b91c1c" },
+  { value: "landmark", label: "Landmark", colour: "#a16207" },
+];
+
+export function stopKindColour(kind?: string | null) {
+  return STOP_KINDS.find((k) => k.value === kind)?.colour ?? "#0f766e";
+}
+
+export function stopKindLabel(kind?: string | null) {
+  return STOP_KINDS.find((k) => k.value === kind)?.label ?? "Stop";
+}
+
 export type JeepneyStop = {
   id: string;
   route_id: string;
@@ -36,6 +53,8 @@ export type JeepneyStop = {
   latitude: number;
   longitude: number;
   offset_minutes: number | null;
+  kind?: string | null;
+  address?: string | null;
 };
 
 export type JeepneyPosition = {
