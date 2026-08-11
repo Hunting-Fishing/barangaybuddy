@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, MapPin, Search, Trash2, Waypoints } from "lucide-react";
 import { searchPhilippinesPlaces, type GeoPlace } from "@/lib/jeepney-geo.functions";
+import { STOP_KINDS } from "@/lib/jeepney";
 import type { DraftStop } from "@/components/jeepney-route-editor";
 
 type Props = {
@@ -46,7 +47,13 @@ export function JeepneyStopPlanner({ stops, onChange, onSnap, snapping }: Props)
   function addPlace(place: GeoPlace) {
     onChange([
       ...stops,
-      { name: place.name.slice(0, 80), address: place.address, lat: place.lat, lng: place.lng },
+      {
+        name: place.name.slice(0, 80),
+        address: place.address,
+        lat: place.lat,
+        lng: place.lng,
+        kind: "stop" as const,
+      },
     ]);
     setQuery("");
     setResults([]);
@@ -138,7 +145,26 @@ export function JeepneyStopPlanner({ stops, onChange, onSnap, snapping }: Props)
                     placeholder="Street address (optional)"
                     className="h-8 text-xs"
                   />
+                  <div className="flex flex-wrap gap-1">
+                    {STOP_KINDS.map((k) => (
+                      <Button
+                        key={k.value}
+                        type="button"
+                        size="sm"
+                        variant={(stop.kind ?? "stop") === k.value ? "default" : "outline"}
+                        className="h-7 px-2 text-[11px]"
+                        onClick={() => update(i, { kind: k.value })}
+                      >
+                        <span
+                          className="mr-1 inline-block h-2 w-2 rounded-full"
+                          style={{ background: k.colour }}
+                        />
+                        {k.label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
+
                 <div className="mt-1 flex shrink-0 gap-1 sm:mt-0">
                   <Button
                     type="button"

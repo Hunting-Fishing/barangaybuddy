@@ -18,26 +18,45 @@ import {
   haversineKm,
   pathLengthKm,
   simplifyPath,
+  STOP_KINDS,
+  stopKindColour,
   TRACK_MAX_ACCURACY_M,
   TRACK_MIN_METRES,
   type LatLng,
+  type StopKind,
 } from "@/lib/jeepney";
 
-export type DraftStop = { name: string; address?: string | null; lat: number; lng: number };
+export type DraftStop = {
+  name: string;
+  address?: string | null;
+  lat: number;
+  lng: number;
+  kind?: StopKind;
+};
 
 type Props = {
+  /** Rendered line — road-followed when snapping is on. */
   path: LatLng[];
+  /** The numbered points the operator tapped. */
+  anchors: LatLng[];
   stops: DraftStop[];
   colour: string;
-  onPathChange: (path: LatLng[]) => void;
+  followRoads: boolean;
+  snapping?: boolean;
+  onFollowRoadsChange: (v: boolean) => void;
+  onAnchorsChange: (anchors: LatLng[]) => void;
   onAddStop: (point: LatLng) => void;
 };
 
 export default function JeepneyRouteEditor({
   path,
+  anchors,
   stops,
   colour,
-  onPathChange,
+  followRoads,
+  snapping = false,
+  onFollowRoadsChange,
+  onAnchorsChange,
   onAddStop,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -54,14 +73,14 @@ export default function JeepneyRouteEditor({
   traceRef.current = trace;
   const modeRef = useRef(mode);
   modeRef.current = mode;
-  const pathRef = useRef(path);
-  pathRef.current = path;
-  const handlersRef = useRef({ onPathChange, onAddStop });
-  handlersRef.current = { onPathChange, onAddStop };
+  const anchorsRef = useRef(anchors);
+  anchorsRef.current = anchors;
+  const handlersRef = useRef({ onAnchorsChange, onAddStop });
+  handlersRef.current = { onAnchorsChange, onAddStop };
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
-    const first = pathRef.current[0];
+    const first = anchorsRef.current[0];
     const start: [number, number] = first ? [first.lat, first.lng] : [14.5995, 120.9842];
     const map = L.map(containerRef.current, { scrollWheelZoom: true }).setView(
       start,
@@ -76,7 +95,7 @@ export default function JeepneyRouteEditor({
       if (trackingRef.current !== "off") return;
       const point = { lat: e.latlng.lat, lng: e.latlng.lng };
       if (modeRef.current === "path") {
-        handlersRef.current.onPathChange([...pathRef.current, point]);
+        handlersRef.current.onAnchorsChange([...anchorsRef.current, point]);
       } else {
         handlersRef.current.onAddStop(point);
       }
@@ -107,16 +126,17 @@ export default function JeepneyRouteEditor({
         { color: colour, weight: 5, opacity: 0.9 },
       ).addTo(layer);
     }
-    path.forEach((p, i) => {
-      L.circleMarker([p.lat, p.lng], {
-        radius: 4,
-        color: colour,
-        weight: 2,
-        fillColor: "#ffffff",
-        fillOpacity: 1,
+    anchors.forEach((p, i) => {
+      L.marker([p.lat, p.lng], {
+        icon: L.divIcon({
+          className: "",
+          html: `<div style="background:${colour};color:#fff;border-radius:9999px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)">${i + 1}</div>`,
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
+        }),
       })
         .addTo(layer)
-        .bindTooltip(`Point ${i + 1}`);
+        .bindTooltip(`Route point ${i + 1}`);
     });
     if (trace.length >= 2) {
       L.polyline(
@@ -124,18 +144,18 @@ export default function JeepneyRouteEditor({
         { color: "#2563eb", weight: 5, opacity: 0.8, dashArray: "6 6" },
       ).addTo(layer);
     }
-    stops.forEach((s) => {
+    stops.forEach((s, i) => {
       L.circleMarker([s.lat, s.lng], {
         radius: 7,
         color: "#ffffff",
         weight: 2,
-        fillColor: "#0f766e",
+        fillColor: stopKindColour(s.kind),
         fillOpacity: 1,
       })
         .addTo(layer)
-        .bindTooltip(s.name);
+        .bindTooltip(`#${i + 1} ${s.name}`);
     });
-  }, [path, stops, colour, trace]);
+  }, [path, anchors, stops, colour, trace]);
 
   function showMe(point: LatLng, zoom: number) {
     const map = mapRef.current;
@@ -225,10 +245,12 @@ export default function JeepneyRouteEditor({
       setTrace([]);
       return;
     }
-    const simplified = simplifyPath(trace, 25);
-    onPathChange(simplified);
+    const simplified = simplifyPath(trace, 60).slice(0, 40);
+    onAnchorsChange(simplified);
     setTrace([]);
-    toast.success(`Route recorded — ${simplified.length} points, ${pathLengthKm(simplified).toFixed(1)} km.`);
+    toast.success(
+      `Route recorded — ${simplified.length} points, ${pathLengthKm(simplified).toFixed(1)} km.`,
+    );
   }
 
   function discardTracking() {
@@ -261,6 +283,16 @@ export default function JeepneyRouteEditor({
         >
           <MapPin className="mr-1.5 h-4 w-4" /> Add stop
         </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={followRoads ? "default" : "outline"}
+          onClick={() => onFollowRoadsChange(!followRoads)}
+          disabled={tracking !== "off"}
+        >
+          <RouteIcon className="mr-1.5 h-4 w-4" />
+          {followRoads ? "Following roads" : "Straight lines"}
+        </Button>
         <Button type="button" size="sm" variant="outline" onClick={useMyLocation}>
           <Locate className="mr-1.5 h-4 w-4" /> Use my location
         </Button>
@@ -268,8 +300,8 @@ export default function JeepneyRouteEditor({
           type="button"
           size="sm"
           variant="ghost"
-          onClick={() => onPathChange(path.slice(0, -1))}
-          disabled={!path.length || tracking !== "off"}
+          onClick={() => onAnchorsChange(anchors.slice(0, -1))}
+          disabled={!anchors.length || tracking !== "off"}
         >
           <Undo2 className="mr-1.5 h-4 w-4" /> Undo point
         </Button>
@@ -277,8 +309,8 @@ export default function JeepneyRouteEditor({
           type="button"
           size="sm"
           variant="ghost"
-          onClick={() => onPathChange([])}
-          disabled={!path.length || tracking !== "off"}
+          onClick={() => onAnchorsChange([])}
+          disabled={!anchors.length || tracking !== "off"}
         >
           <Trash2 className="mr-1.5 h-4 w-4" /> Clear
         </Button>
@@ -330,14 +362,28 @@ export default function JeepneyRouteEditor({
         {tracking !== "off"
           ? "Recording your path — the blue dashed line is what we have so far."
           : mode === "path"
-            ? "Tap the map along the roads your jeepney travels — start at the terminal and follow the route."
-            : "Tap where passengers wait to add a named stop."}
+            ? followRoads
+              ? "Tap along your route — we bend the line to follow the actual roads between your numbered points."
+              : "Tap the map along the roads your jeepney travels — the line goes straight between points."
+            : "Tap where passengers wait to add a stop or waiting area."}
+        {snapping ? " Following the roads…" : ""}
       </p>
       <div ref={containerRef} className="h-72 w-full rounded-md border border-border" />
-      <p className="text-xs text-muted-foreground">
-        {path.length} route point{path.length === 1 ? "" : "s"} · {stops.length} stop
-        {stops.length === 1 ? "" : "s"}
-      </p>
+      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+        <span>
+          {anchors.length} route point{anchors.length === 1 ? "" : "s"} · {stops.length} stop
+          {stops.length === 1 ? "" : "s"}
+        </span>
+        {STOP_KINDS.map((k) => (
+          <span key={k.value} className="inline-flex items-center gap-1">
+            <span
+              className="inline-block h-2.5 w-2.5 rounded-full"
+              style={{ background: k.colour }}
+            />
+            {k.label}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
