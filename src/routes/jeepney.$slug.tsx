@@ -88,6 +88,43 @@ function JeepneyRoutePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
+  useEffect(() => {
+    if (!route?.id) return;
+    const routeId = route.id;
+    const channel = supabase
+      .channel(`public-jeepney-route-${routeId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "jeepney_positions", filter: `route_id=eq.${routeId}` },
+        (payload) => {
+          const next = payload.new as JeepneyPosition;
+          if (next?.route_id === routeId) setPosition(next);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "jeepney_route_alerts", filter: `route_id=eq.${routeId}` },
+        (payload) => {
+          const next = payload.new as JeepneyRouteAlert;
+          if (!next?.id) return;
+          setAlerts((current) => [next, ...current.filter((item) => item.id !== next.id)].slice(0, 10));
+          setRoute((current) =>
+            current
+              ? {
+                  ...current,
+                  status: next.kind === "breakdown" ? "suspended" : "published",
+                }
+              : current,
+          );
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [route?.id]);
+
   async function load() {
     const { data } = await supabase
       .from("jeepney_routes")
