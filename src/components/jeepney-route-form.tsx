@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { DAYS, ROUTE_COLOURS, jeepneySlug, type LatLng } from "@/lib/jeepney";
 import type { DraftStop } from "@/components/jeepney-route-editor";
 import { JeepneyStopPlanner } from "@/components/jeepney-stop-planner";
+import { JeepneyPointList } from "@/components/jeepney-point-list";
 import { snapStopsToRoads } from "@/lib/jeepney-geo.functions";
 
 const JeepneyRouteEditor = lazy(() => import("@/components/jeepney-route-editor"));
@@ -62,7 +63,9 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
   const [days, setDays] = useState<string[]>(existing?.operating_days ?? [...DAYS]);
   const [colour, setColour] = useState(existing?.colour ?? ROUTE_COLOURS[0]!);
   const [notes, setNotes] = useState(existing?.notes ?? "");
+  const [anchors, setAnchors] = useState<LatLng[]>(existing?.path ?? []);
   const [path, setPath] = useState<LatLng[]>(existing?.path ?? []);
+  const [followRoads, setFollowRoads] = useState((existing?.path?.length ?? 0) <= 40);
   const [stops, setStops] = useState<DraftStop[]>(existing?.stops ?? []);
   const [saving, setSaving] = useState(false);
   const [snapping, setSnapping] = useState(false);
@@ -74,8 +77,39 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
   function addStop(point: LatLng) {
     const stopName = window.prompt("Stop name (e.g. Palengke, Terminal, City Hall)");
     if (!stopName) return;
-    setStops((prev) => [...prev, { name: stopName.trim().slice(0, 80), lat: point.lat, lng: point.lng }]);
+    setStops((prev) => [
+      ...prev,
+      { name: stopName.trim().slice(0, 80), lat: point.lat, lng: point.lng, kind: "stop" as const },
+    ]);
   }
+
+  const snapSeq = useRef(0);
+
+  // Keep the drawn line following the actual roads between the numbered points.
+  useEffect(() => {
+    if (anchors.length < 2) {
+      setPath(anchors);
+      return;
+    }
+    if (!followRoads) {
+      setPath(anchors);
+      return;
+    }
+    const mine = ++snapSeq.current;
+    setSnapping(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await snapStopsToRoads({ data: { points: anchors } });
+        if (mine !== snapSeq.current) return;
+        setPath(res.snapped ? res.path : anchors);
+      } catch {
+        if (mine === snapSeq.current) setPath(anchors);
+      } finally {
+        if (mine === snapSeq.current) setSnapping(false);
+      }
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [anchors, followRoads]);
 
   async function snapToRoads() {
     if (stops.length < 2) {
@@ -87,6 +121,7 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
       const res = await snapStopsToRoads({
         data: { points: stops.map((s) => ({ lat: s.lat, lng: s.lng })) },
       });
+      setAnchors(stops.map((s) => ({ lat: s.lat, lng: s.lng })));
       setPath(res.path);
       if (res.snapped) toast.success("Route now follows the roads between your stops.");
       else toast.error(res.error ?? "Drew straight lines between your stops instead.");
@@ -96,7 +131,6 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
       setSnapping(false);
     }
   }
-
 
   async function save() {
     if (name.trim().length < 3) {
@@ -164,6 +198,7 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
           route_id: routeId!,
           name: s.name,
           address: s.address ?? null,
+          kind: s.kind ?? "stop",
           position: i,
           latitude: s.lat,
           longitude: s.lng,
@@ -249,13 +284,19 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
               <Suspense fallback={<div className="h-72 rounded-md border border-border" />}>
                 <JeepneyRouteEditor
                   path={path}
+                  anchors={anchors}
                   stops={stops}
                   colour={colour}
-                  onPathChange={setPath}
+                  followRoads={followRoads}
+                  snapping={snapping}
+                  onFollowRoadsChange={setFollowRoads}
+                  onAnchorsChange={setAnchors}
                   onAddStop={addStop}
                 />
               </Suspense>
             </ClientOnly>
+
+            <JeepneyPointList anchors={anchors} onChange={setAnchors} />
 
             <JeepneyStopPlanner
               stops={stops}
