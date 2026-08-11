@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, MapPin, Search, Trash2, Waypoints } from "lucide-react";
 import { searchPhilippinesPlaces, type GeoPlace } from "@/lib/jeepney-geo.functions";
+import { STOP_KINDS } from "@/lib/jeepney";
 import type { DraftStop } from "@/components/jeepney-route-editor";
 
 type Props = {
@@ -46,7 +47,13 @@ export function JeepneyStopPlanner({ stops, onChange, onSnap, snapping }: Props)
   function addPlace(place: GeoPlace) {
     onChange([
       ...stops,
-      { name: place.name.slice(0, 80), address: place.address, lat: place.lat, lng: place.lng },
+      {
+        name: place.name.slice(0, 80),
+        address: place.address,
+        lat: place.lat,
+        lng: place.lng,
+        kind: "stop" as const,
+      },
     ]);
     setQuery("");
     setResults([]);
