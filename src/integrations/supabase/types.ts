@@ -1578,6 +1578,7 @@ export type Database = {
           address: string | null
           created_at: string
           id: string
+          kind: string
           latitude: number
           longitude: number
           name: string
@@ -1589,6 +1590,7 @@ export type Database = {
           address?: string | null
           created_at?: string
           id?: string
+          kind?: string
           latitude: number
           longitude: number
           name: string
@@ -1600,6 +1602,7 @@ export type Database = {
           address?: string | null
           created_at?: string
           id?: string
+          kind?: string
           latitude?: number
           longitude?: number
           name?: string
