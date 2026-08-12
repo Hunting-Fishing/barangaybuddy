@@ -1067,6 +1067,50 @@ export type Database = {
         }
         Relationships: []
       }
+      jeepney_day_schedule: {
+        Row: {
+          active: boolean
+          created_at: string
+          day: string
+          first_run: string | null
+          id: string
+          last_pickup: string | null
+          last_run: string | null
+          route_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          day: string
+          first_run?: string | null
+          id?: string
+          last_pickup?: string | null
+          last_run?: string | null
+          route_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          day?: string
+          first_run?: string | null
+          id?: string
+          last_pickup?: string | null
+          last_run?: string | null
+          route_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_day_schedule_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jeepney_device_requests: {
         Row: {
           created_at: string
@@ -1256,6 +1300,77 @@ export type Database = {
           },
         ]
       }
+      jeepney_rental_requests: {
+        Row: {
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          dropoff_address: string | null
+          event_date: string
+          event_type: string
+          hours: number | null
+          id: string
+          message: string | null
+          operator_reply: string | null
+          passengers: number | null
+          pickup_address: string
+          quoted_php: number | null
+          route_id: string
+          start_time: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_name: string
+          contact_phone: string
+          created_at?: string
+          dropoff_address?: string | null
+          event_date: string
+          event_type?: string
+          hours?: number | null
+          id?: string
+          message?: string | null
+          operator_reply?: string | null
+          passengers?: number | null
+          pickup_address: string
+          quoted_php?: number | null
+          route_id: string
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_name?: string
+          contact_phone?: string
+          created_at?: string
+          dropoff_address?: string | null
+          event_date?: string
+          event_type?: string
+          hours?: number | null
+          id?: string
+          message?: string | null
+          operator_reply?: string | null
+          passengers?: number | null
+          pickup_address?: string
+          quoted_php?: number | null
+          route_id?: string
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_rental_requests_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jeepney_route_alerts: {
         Row: {
           created_at: string
@@ -1284,6 +1399,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "jeepney_route_alerts_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jeepney_route_calendar: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          entry_date: string
+          id: string
+          kind: string
+          not_running: boolean
+          note: string | null
+          route_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          entry_date: string
+          id?: string
+          kind?: string
+          not_running?: boolean
+          note?: string | null
+          route_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          entry_date?: string
+          id?: string
+          kind?: string
+          not_running?: boolean
+          note?: string | null
+          route_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_route_calendar_route_id_fkey"
             columns: ["route_id"]
             isOneToOne: false
             referencedRelation: "jeepney_routes"
@@ -1346,6 +1511,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "jeepney_route_claims_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jeepney_route_fares: {
+        Row: {
+          amount_php: number
+          created_at: string
+          id: string
+          label: string
+          note: string | null
+          position: number
+          route_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_php: number
+          created_at?: string
+          id?: string
+          label: string
+          note?: string | null
+          position?: number
+          route_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_php?: number
+          created_at?: string
+          id?: string
+          label?: string
+          note?: string | null
+          position?: number
+          route_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_route_fares_route_id_fkey"
             columns: ["route_id"]
             isOneToOne: false
             referencedRelation: "jeepney_routes"
@@ -1453,6 +1659,9 @@ export type Database = {
           operating_days: string[]
           operator_id: string | null
           path: Json
+          rental_available: boolean
+          rental_day_rate_php: number | null
+          rental_note: string | null
           slug: string
           source_url: string | null
           status: Database["public"]["Enums"]["jeepney_route_status"]
@@ -1479,6 +1688,9 @@ export type Database = {
           operating_days?: string[]
           operator_id?: string | null
           path?: Json
+          rental_available?: boolean
+          rental_day_rate_php?: number | null
+          rental_note?: string | null
           slug: string
           source_url?: string | null
           status?: Database["public"]["Enums"]["jeepney_route_status"]
@@ -1505,6 +1717,9 @@ export type Database = {
           operating_days?: string[]
           operator_id?: string | null
           path?: Json
+          rental_available?: boolean
+          rental_day_rate_php?: number | null
+          rental_note?: string | null
           slug?: string
           source_url?: string | null
           status?: Database["public"]["Enums"]["jeepney_route_status"]
@@ -1583,6 +1798,7 @@ export type Database = {
           longitude: number
           name: string
           offset_minutes: number | null
+          photo_url: string | null
           position: number
           route_id: string
         }
@@ -1595,6 +1811,7 @@ export type Database = {
           longitude: number
           name: string
           offset_minutes?: number | null
+          photo_url?: string | null
           position?: number
           route_id: string
         }
@@ -1607,6 +1824,7 @@ export type Database = {
           longitude?: number
           name?: string
           offset_minutes?: number | null
+          photo_url?: string | null
           position?: number
           route_id?: string
         }
