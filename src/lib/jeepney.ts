@@ -385,3 +385,138 @@ export function busyLabel(score: number): string {
   if (score >= 0.25) return "Steady";
   return "Quiet";
 }
+
+/* ------------------------------------------------------------------ */
+/* Route points, fares, service calendar and rentals                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * One numbered point on the route. Points with a name are shown to riders as
+ * stops / waiting areas / terminals / landmarks; unnamed points only shape the
+ * drawn line.
+ */
+export type RoutePoint = {
+  lat: number;
+  lng: number;
+  name?: string;
+  address?: string | null;
+  kind?: StopKind;
+  photo_url?: string | null;
+};
+
+export function isNamedPoint(point: RoutePoint): boolean {
+  return Boolean(point.name && point.name.trim().length > 0);
+}
+
+export type FareLine = {
+  id?: string;
+  label: string;
+  amount_php: number | string;
+  note?: string | null;
+};
+
+export const FARE_PRESETS = [
+  "Zone 1 (first 4 km)",
+  "Zone 2",
+  "Zone 3",
+  "Student / senior / PWD",
+  "Day rental",
+];
+
+export type DaySchedule = {
+  day: string;
+  active: boolean;
+  first_run: string | null;
+  last_run: string | null;
+  last_pickup: string | null;
+};
+
+export function emptyDaySchedule(days: readonly string[] = DAYS): DaySchedule[] {
+  return days.map((day) => ({
+    day,
+    active: true,
+    first_run: null,
+    last_run: null,
+    last_pickup: null,
+  }));
+}
+
+export type CalendarKind = "maintenance" | "breakdown" | "holiday" | "notice" | "rental";
+
+export const CALENDAR_KINDS: {
+  value: CalendarKind;
+  label: string;
+  colour: string;
+  notRunning: boolean;
+}[] = [
+  { value: "maintenance", label: "Maintenance / not running", colour: "#b45309", notRunning: true },
+  { value: "breakdown", label: "Breakdown", colour: "#b91c1c", notRunning: true },
+  { value: "holiday", label: "Holiday / special schedule", colour: "#7c3aed", notRunning: false },
+  { value: "notice", label: "Notice", colour: "#0f766e", notRunning: false },
+  { value: "rental", label: "Booked for a charter", colour: "#2563eb", notRunning: true },
+];
+
+export function calendarKindLabel(kind?: string | null) {
+  return CALENDAR_KINDS.find((k) => k.value === kind)?.label ?? "Notice";
+}
+
+export function calendarKindColour(kind?: string | null) {
+  return CALENDAR_KINDS.find((k) => k.value === kind)?.colour ?? "#0f766e";
+}
+
+export type CalendarEntry = {
+  id: string;
+  route_id: string;
+  entry_date: string;
+  end_date: string | null;
+  kind: string;
+  title: string;
+  note: string | null;
+  not_running: boolean;
+};
+
+export const RENTAL_EVENT_TYPES = [
+  { value: "wedding", label: "Wedding" },
+  { value: "fiesta", label: "Fiesta / barangay event" },
+  { value: "school", label: "School trip" },
+  { value: "company", label: "Company outing" },
+  { value: "funeral", label: "Funeral service" },
+  { value: "other", label: "Other" },
+];
+
+export function rentalEventLabel(value?: string | null) {
+  return RENTAL_EVENT_TYPES.find((e) => e.value === value)?.label ?? "Other";
+}
+
+export type RentalRequest = {
+  id: string;
+  route_id: string;
+  user_id: string;
+  event_type: string;
+  event_date: string;
+  start_time: string | null;
+  hours: number | null;
+  pickup_address: string;
+  dropoff_address: string | null;
+  passengers: number | null;
+  contact_name: string;
+  contact_phone: string;
+  message: string | null;
+  status: string;
+  operator_reply: string | null;
+  quoted_php: number | null;
+  created_at: string;
+};
+
+export function formatDayDate(value: string): string {
+  const d = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("en-PH", { weekday: "short", day: "numeric", month: "short" });
+}
+
+export function isoDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = `${date.getMonth() + 1}`.padStart(2, "0");
+  const d = `${date.getDate()}`.padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
