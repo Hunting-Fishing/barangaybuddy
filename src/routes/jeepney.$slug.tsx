@@ -249,9 +249,18 @@ function JeepneyRoutePage() {
               </Badge>
             )}
             <JeepneyFollowButton routeId={route.id} routeName={route.name} />
+            {rental.available && (
+              <JeepneyRentalDialog
+                routeId={route.id}
+                routeName={route.name}
+                dayRatePhp={rental.dayRate}
+                rentalNote={rental.note}
+              />
+            )}
             {!route.operator_id && (
               <JeepneyClaimDialog routeId={route.id} routeName={route.name} onSubmitted={load} />
             )}
+
           </div>
 
         </header>
