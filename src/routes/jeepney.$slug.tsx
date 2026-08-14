@@ -11,6 +11,9 @@ import { ArrowLeft, Bell, Bus, Locate, Radio, TriangleAlert, Wrench } from "luci
 import { JeepneyFollowButton } from "@/components/jeepney-follow-button";
 import { JeepneyClaimDialog } from "@/components/jeepney-claim-dialog";
 import { JeepneyInsightsCard } from "@/components/jeepney-insights-card";
+import { JeepneyServiceCalendar } from "@/components/jeepney-service-calendar";
+import { JeepneyRentalDialog } from "@/components/jeepney-rental-dialog";
+import { JeepneyPhotoThumb } from "@/components/jeepney-photo-thumb";
 
 import {
   CONGESTION_COLOURS,
@@ -24,12 +27,17 @@ import {
   isLive,
   parsePath,
   segmentSpeedMap,
+  stopKindColour,
+  stopKindLabel,
+  type DaySchedule,
+  type FareLine,
   type JeepneyPosition,
   type JeepneyRoute,
   type JeepneyStop,
   type LatLng,
   type SegmentSpeed,
 } from "@/lib/jeepney";
+
 
 
 const JeepneyMap = lazy(() => import("@/components/jeepney-map"));
