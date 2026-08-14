@@ -18,6 +18,8 @@ import { JeepneyPhotoThumb } from "@/components/jeepney-photo-thumb";
 import {
   CONGESTION_COLOURS,
   CONGESTION_LABELS,
+  DAYS,
+
   etaMinutesWithTraffic,
   etaRangeLabel,
   formatPhpAmount,
