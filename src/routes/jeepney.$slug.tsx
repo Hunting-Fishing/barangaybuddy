@@ -371,22 +371,43 @@ function JeepneyRoutePage() {
               {route.stops.length === 0 && (
                 <p className="text-xs text-muted-foreground">No stops listed yet.</p>
               )}
-              <ol className="space-y-1.5">
+              <ol className="space-y-2">
                 {route.stops.map((stop, i) => (
-                  <li key={stop.id} className="flex items-baseline gap-2 text-sm">
+                  <li key={stop.id} className="flex items-start gap-2 text-sm">
                     <span className="text-xs text-muted-foreground">{i + 1}.</span>
-                    <span className="flex-1">{stop.name}</span>
+                    <span
+                      className="mt-1.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ background: stopKindColour(stop.kind) }}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="font-medium">{stop.name}</span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        {stopKindLabel(stop.kind)}
+                        {stop.address ? ` · ${stop.address}` : ""}
+                      </span>
+                    </span>
                     {stop.offset_minutes !== null && (
                       <span className="text-xs text-muted-foreground">
                         +{stop.offset_minutes} min
                       </span>
                     )}
+                    <JeepneyPhotoThumb
+                      path={(stop as JeepneyStop & { photo_url?: string | null }).photo_url}
+                      alt={stop.name}
+                      className="h-10 w-10 shrink-0 rounded-md border border-border object-cover"
+                    />
                   </li>
                 ))}
               </ol>
             </Card>
 
+            <Card className="p-4">
+              <p className="mb-2 text-sm font-semibold">Service calendar</p>
+              <JeepneyServiceCalendar routeId={route.id} />
+            </Card>
+
             <JeepneyInsightsCard routeId={route.id} />
+
 
 
 
