@@ -322,7 +322,45 @@ function JeepneyRoutePage() {
                 Runs on {route.operating_days.join(", ")}
                 {route.avg_trip_minutes ? ` · about ${route.avg_trip_minutes} min per trip` : ""}
               </p>
+              {daySchedule.length > 0 && (
+                <ul className="mt-2 space-y-1 border-t border-border pt-2 text-xs">
+                  {daySchedule.map((row) => (
+                    <li key={row.day} className="flex items-center justify-between gap-2">
+                      <span className="font-medium">{row.day}</span>
+                      <span className="text-muted-foreground">
+                        {row.active
+                          ? `${formatTime(row.first_run ?? route.first_run)} – ${formatTime(
+                              row.last_run ?? route.last_run,
+                            )} · last pickup ${formatTime(row.last_pickup ?? route.last_pickup)}`
+                          : "No trips"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </Card>
+
+            {fares.length > 0 && (
+              <Card className="space-y-2 p-4">
+                <p className="text-sm font-semibold">Fares</p>
+                <ul className="space-y-1.5 text-sm">
+                  {fares.map((fare) => (
+                    <li key={fare.id ?? fare.label} className="flex items-start justify-between gap-3">
+                      <span className="min-w-0">
+                        <span className="font-medium">{fare.label}</span>
+                        {fare.note && (
+                          <span className="block text-xs text-muted-foreground">{fare.note}</span>
+                        )}
+                      </span>
+                      <span className="shrink-0 font-semibold">
+                        {formatPhpAmount(Number(fare.amount_php))}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
+
 
             <Card className="space-y-2 p-4">
               <div className="flex items-center justify-between gap-2">
