@@ -92,6 +92,13 @@ function JeepneyRoutePage() {
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<RouteAlert[]>([]);
   const [segmentRows, setSegmentRows] = useState<SegmentSpeed[]>([]);
+  const [fares, setFares] = useState<FareLine[]>([]);
+  const [daySchedule, setDaySchedule] = useState<DaySchedule[]>([]);
+  const [rental, setRental] = useState<{
+    available: boolean;
+    dayRate: number | null;
+    note: string | null;
+  }>({ available: false, dayRate: null, note: null });
   const currentHour = useMemo(() => {
     const now = new Date();
     return new Date(now.getTime() + (8 * 60 + now.getTimezoneOffset()) * 60000).getHours();
@@ -126,11 +133,37 @@ function JeepneyRoutePage() {
       operator: (data as any).jeepney_operators?.display_name ?? null,
     };
     setRoute(parsed);
+    setRental({
+      available: Boolean((data as any).rental_available),
+      dayRate: (data as any).rental_day_rate_php ?? null,
+      note: (data as any).rental_note ?? null,
+    });
     setLoading(false);
     void loadLive(parsed.id);
     void loadAlerts(parsed.id);
     void loadSegments(parsed.id);
+    void loadFaresAndDays(parsed.id);
   }
+
+  async function loadFaresAndDays(routeId: string) {
+    const [{ data: fareRows }, { data: dayRows }] = await Promise.all([
+      supabase
+        .from("jeepney_route_fares")
+        .select("id, label, amount_php, note")
+        .eq("route_id", routeId)
+        .order("position", { ascending: true }),
+      supabase
+        .from("jeepney_day_schedule")
+        .select("day, active, first_run, last_run, last_pickup")
+        .eq("route_id", routeId),
+    ]);
+    setFares((fareRows ?? []) as FareLine[]);
+    const byDay = new Map((dayRows ?? []).map((d) => [d.day, d]));
+    setDaySchedule(
+      DAYS.filter((d) => byDay.has(d)).map((d) => byDay.get(d)! as DaySchedule),
+    );
+  }
+
 
   async function loadSegments(routeId: string) {
     const { data } = await supabase
