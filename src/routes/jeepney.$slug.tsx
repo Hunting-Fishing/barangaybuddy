@@ -11,10 +11,15 @@ import { ArrowLeft, Bell, Bus, Locate, Radio, TriangleAlert, Wrench } from "luci
 import { JeepneyFollowButton } from "@/components/jeepney-follow-button";
 import { JeepneyClaimDialog } from "@/components/jeepney-claim-dialog";
 import { JeepneyInsightsCard } from "@/components/jeepney-insights-card";
+import { JeepneyServiceCalendar } from "@/components/jeepney-service-calendar";
+import { JeepneyRentalDialog } from "@/components/jeepney-rental-dialog";
+import { JeepneyPhotoThumb } from "@/components/jeepney-photo-thumb";
 
 import {
   CONGESTION_COLOURS,
   CONGESTION_LABELS,
+  DAYS,
+
   etaMinutesWithTraffic,
   etaRangeLabel,
   formatPhpAmount,
@@ -24,12 +29,17 @@ import {
   isLive,
   parsePath,
   segmentSpeedMap,
+  stopKindColour,
+  stopKindLabel,
+  type DaySchedule,
+  type FareLine,
   type JeepneyPosition,
   type JeepneyRoute,
   type JeepneyStop,
   type LatLng,
   type SegmentSpeed,
 } from "@/lib/jeepney";
+
 
 
 const JeepneyMap = lazy(() => import("@/components/jeepney-map"));
@@ -84,6 +94,13 @@ function JeepneyRoutePage() {
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<RouteAlert[]>([]);
   const [segmentRows, setSegmentRows] = useState<SegmentSpeed[]>([]);
+  const [fares, setFares] = useState<FareLine[]>([]);
+  const [daySchedule, setDaySchedule] = useState<DaySchedule[]>([]);
+  const [rental, setRental] = useState<{
+    available: boolean;
+    dayRate: number | null;
+    note: string | null;
+  }>({ available: false, dayRate: null, note: null });
   const currentHour = useMemo(() => {
     const now = new Date();
     return new Date(now.getTime() + (8 * 60 + now.getTimezoneOffset()) * 60000).getHours();
@@ -118,11 +135,37 @@ function JeepneyRoutePage() {
       operator: (data as any).jeepney_operators?.display_name ?? null,
     };
     setRoute(parsed);
+    setRental({
+      available: Boolean((data as any).rental_available),
+      dayRate: (data as any).rental_day_rate_php ?? null,
+      note: (data as any).rental_note ?? null,
+    });
     setLoading(false);
     void loadLive(parsed.id);
     void loadAlerts(parsed.id);
     void loadSegments(parsed.id);
+    void loadFaresAndDays(parsed.id);
   }
+
+  async function loadFaresAndDays(routeId: string) {
+    const [{ data: fareRows }, { data: dayRows }] = await Promise.all([
+      supabase
+        .from("jeepney_route_fares")
+        .select("id, label, amount_php, note")
+        .eq("route_id", routeId)
+        .order("position", { ascending: true }),
+      supabase
+        .from("jeepney_day_schedule")
+        .select("day, active, first_run, last_run, last_pickup")
+        .eq("route_id", routeId),
+    ]);
+    setFares((fareRows ?? []) as FareLine[]);
+    const byDay = new Map((dayRows ?? []).map((d) => [d.day, d]));
+    setDaySchedule(
+      DAYS.filter((d) => byDay.has(d)).map((d) => byDay.get(d)! as DaySchedule),
+    );
+  }
+
 
   async function loadSegments(routeId: string) {
     const { data } = await supabase
@@ -249,9 +292,18 @@ function JeepneyRoutePage() {
               </Badge>
             )}
             <JeepneyFollowButton routeId={route.id} routeName={route.name} />
+            {rental.available && (
+              <JeepneyRentalDialog
+                routeId={route.id}
+                routeName={route.name}
+                dayRatePhp={rental.dayRate}
+                rentalNote={rental.note}
+              />
+            )}
             {!route.operator_id && (
               <JeepneyClaimDialog routeId={route.id} routeName={route.name} onSubmitted={load} />
             )}
+
           </div>
 
         </header>
@@ -322,7 +374,45 @@ function JeepneyRoutePage() {
                 Runs on {route.operating_days.join(", ")}
                 {route.avg_trip_minutes ? ` · about ${route.avg_trip_minutes} min per trip` : ""}
               </p>
+              {daySchedule.length > 0 && (
+                <ul className="mt-2 space-y-1 border-t border-border pt-2 text-xs">
+                  {daySchedule.map((row) => (
+                    <li key={row.day} className="flex items-center justify-between gap-2">
+                      <span className="font-medium">{row.day}</span>
+                      <span className="text-muted-foreground">
+                        {row.active
+                          ? `${formatTime(row.first_run ?? route.first_run)} – ${formatTime(
+                              row.last_run ?? route.last_run,
+                            )} · last pickup ${formatTime(row.last_pickup ?? route.last_pickup)}`
+                          : "No trips"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </Card>
+
+            {fares.length > 0 && (
+              <Card className="space-y-2 p-4">
+                <p className="text-sm font-semibold">Fares</p>
+                <ul className="space-y-1.5 text-sm">
+                  {fares.map((fare) => (
+                    <li key={fare.id ?? fare.label} className="flex items-start justify-between gap-3">
+                      <span className="min-w-0">
+                        <span className="font-medium">{fare.label}</span>
+                        {fare.note && (
+                          <span className="block text-xs text-muted-foreground">{fare.note}</span>
+                        )}
+                      </span>
+                      <span className="shrink-0 font-semibold">
+                        {formatPhpAmount(Number(fare.amount_php))}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
+
 
             <Card className="space-y-2 p-4">
               <div className="flex items-center justify-between gap-2">
@@ -371,22 +461,43 @@ function JeepneyRoutePage() {
               {route.stops.length === 0 && (
                 <p className="text-xs text-muted-foreground">No stops listed yet.</p>
               )}
-              <ol className="space-y-1.5">
+              <ol className="space-y-2">
                 {route.stops.map((stop, i) => (
-                  <li key={stop.id} className="flex items-baseline gap-2 text-sm">
+                  <li key={stop.id} className="flex items-start gap-2 text-sm">
                     <span className="text-xs text-muted-foreground">{i + 1}.</span>
-                    <span className="flex-1">{stop.name}</span>
+                    <span
+                      className="mt-1.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ background: stopKindColour(stop.kind) }}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="font-medium">{stop.name}</span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        {stopKindLabel(stop.kind)}
+                        {stop.address ? ` · ${stop.address}` : ""}
+                      </span>
+                    </span>
                     {stop.offset_minutes !== null && (
                       <span className="text-xs text-muted-foreground">
                         +{stop.offset_minutes} min
                       </span>
                     )}
+                    <JeepneyPhotoThumb
+                      path={(stop as JeepneyStop & { photo_url?: string | null }).photo_url}
+                      alt={stop.name}
+                      className="h-10 w-10 shrink-0 rounded-md border border-border object-cover"
+                    />
                   </li>
                 ))}
               </ol>
             </Card>
 
+            <Card className="p-4">
+              <p className="mb-2 text-sm font-semibold">Service calendar</p>
+              <JeepneyServiceCalendar routeId={route.id} />
+            </Card>
+
             <JeepneyInsightsCard routeId={route.id} />
+
 
 
 
