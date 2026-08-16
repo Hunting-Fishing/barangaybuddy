@@ -150,26 +150,18 @@ async function handleWebhook(req: Request, env: StripeEnv) {
     case "checkout.session.completed": {
       const session = event.data.object;
       if (session.payment_status !== "unpaid") {
-        if ((session.metadata ?? {}).kind === "jeepney") {
-          await activateJeepneyListing(session, env);
-        } else {
-          await activateMemberships(session, env);
-        }
+        await routeCheckoutSession(session, env);
       }
       break;
     }
     case "checkout.session.async_payment_succeeded": {
-      const session = event.data.object;
-      if ((session.metadata ?? {}).kind === "jeepney") {
-        await activateJeepneyListing(session, env);
-      } else {
-        await activateMemberships(session, env);
-      }
+      await routeCheckoutSession(event.data.object, env);
       break;
     }
     case "customer.subscription.updated":
     case "customer.subscription.deleted":
       await syncJeepneySubscription(event.data.object, env);
+      await syncDeliverySubscription(event.data.object, env);
       break;
     default:
       console.log("Unhandled payment event:", event.type);
