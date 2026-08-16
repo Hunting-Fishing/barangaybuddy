@@ -143,6 +143,80 @@ async function syncJeepneySubscription(subscription: any, env: StripeEnv) {
     .eq("id", meta.routeId);
 }
 
+async function activateDeliveryRider(session: any, env: StripeEnv) {
+  const meta = session.metadata ?? {};
+  const riderId: string | undefined = meta.riderId;
+  if (!riderId) return;
+
+  const db = getSupabase();
+  const now = new Date();
+  const periodEnd = new Date(now.getTime() + 31 * 24 * 60 * 60 * 1000);
+
+  await db.from("delivery_rider_subscriptions").insert({
+    rider_id: riderId,
+    status: "active",
+    amount_php: majorUnit(Number(session.amount_total ?? 8000), session.currency ?? "php"),
+    current_period_end: periodEnd.toISOString(),
+    stripe_customer_id: session.customer ?? null,
+    stripe_subscription_id: session.subscription ?? null,
+    payment_ref: session.id,
+    payment_note: "Paid online",
+    environment: env,
+  });
+}
+
+async function markDeliveryJobPaid(session: any) {
+  const meta = session.metadata ?? {};
+  const jobId: string | undefined = meta.jobId;
+  if (!jobId) return;
+
+  await getSupabase()
+    .from("delivery_jobs")
+    .update({
+      is_prepaid: true,
+      payment_method: "online",
+      payment_ref: session.id,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", jobId);
+}
+
+async function syncDeliverySubscription(subscription: any, env: StripeEnv) {
+  const meta = subscription.metadata ?? {};
+  if (meta.kind !== "delivery_rider") return;
+
+  const db = getSupabase();
+  const item = subscription.items?.data?.[0];
+  const periodEnd = item?.current_period_end ?? subscription.current_period_end;
+  const active = subscription.status === "active" || subscription.status === "trialing";
+
+  await db
+    .from("delivery_rider_subscriptions")
+    .update({
+      status: active ? "active" : subscription.status === "canceled" ? "cancelled" : "past_due",
+      current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("stripe_subscription_id", subscription.id)
+    .eq("environment", env);
+
+  if (!active) {
+    await db
+      .from("delivery_riders")
+      .update({ is_online: false })
+      .eq("id", meta.riderId ?? "");
+  }
+}
+
+async function routeCheckoutSession(session: any, env: StripeEnv) {
+  const kind = (session.metadata ?? {}).kind;
+  if (kind === "jeepney") return activateJeepneyListing(session, env);
+  if (kind === "delivery_rider") return activateDeliveryRider(session, env);
+  if (kind === "delivery_job") return markDeliveryJobPaid(session);
+  return activateMemberships(session, env);
+}
+
+
 async function handleWebhook(req: Request, env: StripeEnv) {
   const event = await verifyWebhook(req, env);
 
