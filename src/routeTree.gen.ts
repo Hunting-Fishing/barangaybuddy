@@ -29,6 +29,7 @@ import { Route as BusinessSlugRouteImport } from './routes/business.$slug'
 import { Route as CategoriesCategoryRouteImport } from './routes/categories.$category'
 import { Route as CitiesCityRouteImport } from './routes/cities.$city'
 import { Route as DeliveryIndexRouteImport } from './routes/delivery.index'
+import { Route as DeliveryOrdersRouteImport } from './routes/delivery.orders'
 import { Route as DeliveryRequestRouteImport } from './routes/delivery.request'
 import { Route as GroupsIndexRouteImport } from './routes/groups.index'
 import { Route as GroupsSlugRouteImport } from './routes/groups.$slug'
@@ -163,6 +164,11 @@ const CitiesCityRoute = CitiesCityRouteImport.update({
 const DeliveryIndexRoute = DeliveryIndexRouteImport.update({
   id: '/delivery/',
   path: '/delivery/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeliveryOrdersRoute = DeliveryOrdersRouteImport.update({
+  id: '/delivery/orders',
+  path: '/delivery/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeliveryRequestRoute = DeliveryRequestRouteImport.update({
@@ -368,6 +374,7 @@ export interface FileRoutesByFullPath {
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/delivery/orders': typeof DeliveryOrdersRoute
   '/delivery/request': typeof DeliveryRequestRoute
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
@@ -425,6 +432,7 @@ export interface FileRoutesByTo {
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/delivery/orders': typeof DeliveryOrdersRoute
   '/delivery/request': typeof DeliveryRequestRoute
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
@@ -483,6 +491,7 @@ export interface FileRoutesById {
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/delivery/orders': typeof DeliveryOrdersRoute
   '/delivery/request': typeof DeliveryRequestRoute
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
@@ -542,6 +551,7 @@ export interface FileRouteTypes {
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
+    | '/delivery/orders'
     | '/delivery/request'
     | '/groups/$slug'
     | '/inventory/$businessId'
@@ -599,6 +609,7 @@ export interface FileRouteTypes {
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
+    | '/delivery/orders'
     | '/delivery/request'
     | '/groups/$slug'
     | '/inventory/$businessId'
@@ -656,6 +667,7 @@ export interface FileRouteTypes {
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
+    | '/delivery/orders'
     | '/delivery/request'
     | '/groups/$slug'
     | '/inventory/$businessId'
@@ -714,6 +726,7 @@ export interface RootRouteChildren {
   BusinessSlugRoute: typeof BusinessSlugRoute
   CategoriesCategoryRoute: typeof CategoriesCategoryRoute
   CitiesCityRoute: typeof CitiesCityRoute
+  DeliveryOrdersRoute: typeof DeliveryOrdersRoute
   DeliveryRequestRoute: typeof DeliveryRequestRoute
   GroupsSlugRoute: typeof GroupsSlugRouteWithChildren
   InventoryBusinessIdRoute: typeof InventoryBusinessIdRoute
@@ -886,6 +899,13 @@ declare module '@tanstack/react-router' {
       path: '/delivery'
       fullPath: '/delivery/'
       preLoaderRoute: typeof DeliveryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delivery/orders': {
+      id: '/delivery/orders'
+      path: '/delivery/orders'
+      fullPath: '/delivery/orders'
+      preLoaderRoute: typeof DeliveryOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/delivery/request': {
@@ -1208,6 +1228,7 @@ const rootRouteChildren: RootRouteChildren = {
   BusinessSlugRoute: BusinessSlugRoute,
   CategoriesCategoryRoute: CategoriesCategoryRoute,
   CitiesCityRoute: CitiesCityRoute,
+  DeliveryOrdersRoute: DeliveryOrdersRoute,
   DeliveryRequestRoute: DeliveryRequestRoute,
   GroupsSlugRoute: GroupsSlugRouteWithChildren,
   InventoryBusinessIdRoute: InventoryBusinessIdRoute,
