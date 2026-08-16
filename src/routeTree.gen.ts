@@ -28,6 +28,9 @@ import { Route as BarangaysIndexRouteImport } from './routes/barangays.index'
 import { Route as BusinessSlugRouteImport } from './routes/business.$slug'
 import { Route as CategoriesCategoryRouteImport } from './routes/categories.$category'
 import { Route as CitiesCityRouteImport } from './routes/cities.$city'
+import { Route as DeliveryIndexRouteImport } from './routes/delivery.index'
+import { Route as DeliveryOrdersRouteImport } from './routes/delivery.orders'
+import { Route as DeliveryRequestRouteImport } from './routes/delivery.request'
 import { Route as GroupsIndexRouteImport } from './routes/groups.index'
 import { Route as GroupsSlugRouteImport } from './routes/groups.$slug'
 import { Route as InventoryBusinessIdRouteImport } from './routes/inventory.$businessId'
@@ -156,6 +159,21 @@ const CategoriesCategoryRoute = CategoriesCategoryRouteImport.update({
 const CitiesCityRoute = CitiesCityRouteImport.update({
   id: '/cities/$city',
   path: '/cities/$city',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeliveryIndexRoute = DeliveryIndexRouteImport.update({
+  id: '/delivery/',
+  path: '/delivery/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeliveryOrdersRoute = DeliveryOrdersRouteImport.update({
+  id: '/delivery/orders',
+  path: '/delivery/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeliveryRequestRoute = DeliveryRequestRouteImport.update({
+  id: '/delivery/request',
+  path: '/delivery/request',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GroupsIndexRoute = GroupsIndexRouteImport.update({
@@ -356,6 +374,8 @@ export interface FileRoutesByFullPath {
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/delivery/orders': typeof DeliveryOrdersRoute
+  '/delivery/request': typeof DeliveryRequestRoute
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/jeepney/$slug': typeof JeepneySlugRoute
@@ -370,6 +390,7 @@ export interface FileRoutesByFullPath {
   '/spotlight/star-of-the-month': typeof SpotlightStarOfTheMonthRoute
   '/spotlight/submit': typeof SpotlightSubmitRoute
   '/barangays/': typeof BarangaysIndexRoute
+  '/delivery/': typeof DeliveryIndexRoute
   '/groups/': typeof GroupsIndexRoute
   '/jeepney/': typeof JeepneyIndexRoute
   '/regions/': typeof RegionsIndexRoute
@@ -411,6 +432,8 @@ export interface FileRoutesByTo {
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/delivery/orders': typeof DeliveryOrdersRoute
+  '/delivery/request': typeof DeliveryRequestRoute
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/jeepney/$slug': typeof JeepneySlugRoute
@@ -425,6 +448,7 @@ export interface FileRoutesByTo {
   '/spotlight/star-of-the-month': typeof SpotlightStarOfTheMonthRoute
   '/spotlight/submit': typeof SpotlightSubmitRoute
   '/barangays': typeof BarangaysIndexRoute
+  '/delivery': typeof DeliveryIndexRoute
   '/groups': typeof GroupsIndexRoute
   '/jeepney': typeof JeepneyIndexRoute
   '/regions': typeof RegionsIndexRoute
@@ -467,6 +491,8 @@ export interface FileRoutesById {
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/delivery/orders': typeof DeliveryOrdersRoute
+  '/delivery/request': typeof DeliveryRequestRoute
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/jeepney/$slug': typeof JeepneySlugRoute
@@ -481,6 +507,7 @@ export interface FileRoutesById {
   '/spotlight/star-of-the-month': typeof SpotlightStarOfTheMonthRoute
   '/spotlight/submit': typeof SpotlightSubmitRoute
   '/barangays/': typeof BarangaysIndexRoute
+  '/delivery/': typeof DeliveryIndexRoute
   '/groups/': typeof GroupsIndexRoute
   '/jeepney/': typeof JeepneyIndexRoute
   '/regions/': typeof RegionsIndexRoute
@@ -524,6 +551,8 @@ export interface FileRouteTypes {
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
+    | '/delivery/orders'
+    | '/delivery/request'
     | '/groups/$slug'
     | '/inventory/$businessId'
     | '/jeepney/$slug'
@@ -538,6 +567,7 @@ export interface FileRouteTypes {
     | '/spotlight/star-of-the-month'
     | '/spotlight/submit'
     | '/barangays/'
+    | '/delivery/'
     | '/groups/'
     | '/jeepney/'
     | '/regions/'
@@ -579,6 +609,8 @@ export interface FileRouteTypes {
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
+    | '/delivery/orders'
+    | '/delivery/request'
     | '/groups/$slug'
     | '/inventory/$businessId'
     | '/jeepney/$slug'
@@ -593,6 +625,7 @@ export interface FileRouteTypes {
     | '/spotlight/star-of-the-month'
     | '/spotlight/submit'
     | '/barangays'
+    | '/delivery'
     | '/groups'
     | '/jeepney'
     | '/regions'
@@ -634,6 +667,8 @@ export interface FileRouteTypes {
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
+    | '/delivery/orders'
+    | '/delivery/request'
     | '/groups/$slug'
     | '/inventory/$businessId'
     | '/jeepney/$slug'
@@ -648,6 +683,7 @@ export interface FileRouteTypes {
     | '/spotlight/star-of-the-month'
     | '/spotlight/submit'
     | '/barangays/'
+    | '/delivery/'
     | '/groups/'
     | '/jeepney/'
     | '/regions/'
@@ -690,6 +726,8 @@ export interface RootRouteChildren {
   BusinessSlugRoute: typeof BusinessSlugRoute
   CategoriesCategoryRoute: typeof CategoriesCategoryRoute
   CitiesCityRoute: typeof CitiesCityRoute
+  DeliveryOrdersRoute: typeof DeliveryOrdersRoute
+  DeliveryRequestRoute: typeof DeliveryRequestRoute
   GroupsSlugRoute: typeof GroupsSlugRouteWithChildren
   InventoryBusinessIdRoute: typeof InventoryBusinessIdRoute
   JeepneySlugRoute: typeof JeepneySlugRoute
@@ -703,6 +741,7 @@ export interface RootRouteChildren {
   SpotlightStarOfTheMonthRoute: typeof SpotlightStarOfTheMonthRoute
   SpotlightSubmitRoute: typeof SpotlightSubmitRoute
   BarangaysIndexRoute: typeof BarangaysIndexRoute
+  DeliveryIndexRoute: typeof DeliveryIndexRoute
   GroupsIndexRoute: typeof GroupsIndexRoute
   JeepneyIndexRoute: typeof JeepneyIndexRoute
   RegionsIndexRoute: typeof RegionsIndexRoute
@@ -853,6 +892,27 @@ declare module '@tanstack/react-router' {
       path: '/cities/$city'
       fullPath: '/cities/$city'
       preLoaderRoute: typeof CitiesCityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delivery/': {
+      id: '/delivery/'
+      path: '/delivery'
+      fullPath: '/delivery/'
+      preLoaderRoute: typeof DeliveryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delivery/orders': {
+      id: '/delivery/orders'
+      path: '/delivery/orders'
+      fullPath: '/delivery/orders'
+      preLoaderRoute: typeof DeliveryOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delivery/request': {
+      id: '/delivery/request'
+      path: '/delivery/request'
+      fullPath: '/delivery/request'
+      preLoaderRoute: typeof DeliveryRequestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/groups/': {
@@ -1168,6 +1228,8 @@ const rootRouteChildren: RootRouteChildren = {
   BusinessSlugRoute: BusinessSlugRoute,
   CategoriesCategoryRoute: CategoriesCategoryRoute,
   CitiesCityRoute: CitiesCityRoute,
+  DeliveryOrdersRoute: DeliveryOrdersRoute,
+  DeliveryRequestRoute: DeliveryRequestRoute,
   GroupsSlugRoute: GroupsSlugRouteWithChildren,
   InventoryBusinessIdRoute: InventoryBusinessIdRoute,
   JeepneySlugRoute: JeepneySlugRoute,
@@ -1181,6 +1243,7 @@ const rootRouteChildren: RootRouteChildren = {
   SpotlightStarOfTheMonthRoute: SpotlightStarOfTheMonthRoute,
   SpotlightSubmitRoute: SpotlightSubmitRoute,
   BarangaysIndexRoute: BarangaysIndexRoute,
+  DeliveryIndexRoute: DeliveryIndexRoute,
   GroupsIndexRoute: GroupsIndexRoute,
   JeepneyIndexRoute: JeepneyIndexRoute,
   RegionsIndexRoute: RegionsIndexRoute,
