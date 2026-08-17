@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { Bus, Clock3, Gauge, MapPin, Radio } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 import {
   distanceAlongPathKm,
   etaMinutesWithTraffic,
@@ -29,7 +31,12 @@ type VehicleRow = {
   passedTarget: boolean;
 };
 
-function unitLabel(position: JeepneyPosition, index: number) {
+function unitLabel(
+  position: JeepneyPosition,
+  index: number,
+  labels: Record<string, string>,
+) {
+  if (position.vehicle_id && labels[position.vehicle_id]) return labels[position.vehicle_id];
   return position.vehicle_id
     ? `Unit …${position.vehicle_id.slice(-6).toUpperCase()}`
     : `Live unit ${index + 1}`;
@@ -42,6 +49,38 @@ function updatedLabel(recordedAt: string) {
 }
 
 export function JeepneyLiveVehicleList({ route, positions, userLocation, speeds }: Props) {
+  const [vehicleLabels, setVehicleLabels] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const ids = Array.from(
+      new Set(
+        positions
+          .map((position) => position.vehicle_id)
+          .filter((value): value is string => Boolean(value)),
+      ),
+    );
+    if (!ids.length) {
+      setVehicleLabels({});
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase
+        .from("jeepney_vehicles")
+        .select("id,label")
+        .in("id", ids);
+      if (cancelled) return;
+      setVehicleLabels(
+        Object.fromEntries((data ?? []).map((vehicle) => [vehicle.id, vehicle.label])),
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [positions]);
+
   if (!positions.length) return null;
 
   const userStop = userLocation && route.stops.length
@@ -136,7 +175,9 @@ export function JeepneyLiveVehicleList({ route, positions, userLocation, speeds 
           >
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="font-semibold text-slate-950">{unitLabel(row.position, index)}</p>
+                <p className="font-semibold text-slate-950">
+                  {unitLabel(row.position, index, vehicleLabels)}
+                </p>
                 {index === 0 && row.eta !== null ? (
                   <Badge variant="secondary" className="text-[10px]">Soonest</Badge>
                 ) : null}
