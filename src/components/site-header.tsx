@@ -7,6 +7,8 @@ import {
   Search,
   Fuel,
   Bus,
+  Bike,
+  PackageCheck,
   LayoutDashboard,
   MessageSquare,
   LogOut,
@@ -121,6 +123,12 @@ export function SiteHeader() {
             <Bus className="h-4 w-4" /> Jeepney
           </Link>
           <Link
+            to="/delivery"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            <PackageCheck className="h-4 w-4" /> Delivery
+          </Link>
+          <Link
             to="/groups"
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
@@ -178,6 +186,12 @@ export function SiteHeader() {
                 )}
                 <DropdownMenuItem onClick={() => navigate({ to: "/messages" })}>
                   <MessageSquare className="mr-2 h-4 w-4" /> Messages
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate({ to: "/delivery/orders" })}>
+                  <PackageCheck className="mr-2 h-4 w-4" /> My deliveries
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate({ to: "/delivery/rider" })}>
+                  <Bike className="mr-2 h-4 w-4" /> Rider portal
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate({ to: "/spotlight/submit" })}>
                   <Sparkles className="mr-2 h-4 w-4" /> Audition for Spotlight
