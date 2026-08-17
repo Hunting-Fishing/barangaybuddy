@@ -1,32 +1,28 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Bell, Bus, Radio, TriangleAlert, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Bell, Bus, Locate, Radio, TriangleAlert, Wrench } from "lucide-react";
 import { JeepneyFollowButton } from "@/components/jeepney-follow-button";
 import { JeepneyClaimDialog } from "@/components/jeepney-claim-dialog";
 import { JeepneyInsightsCard } from "@/components/jeepney-insights-card";
 import { JeepneyServiceCalendar } from "@/components/jeepney-service-calendar";
 import { JeepneyRentalDialog } from "@/components/jeepney-rental-dialog";
 import { JeepneyPhotoThumb } from "@/components/jeepney-photo-thumb";
-
+import { JeepneyLiveVehicleList } from "@/components/jeepney-live-vehicle-list";
+import { JeepneyArrivalSummary } from "@/components/jeepney-arrival-summary";
 import {
   CONGESTION_COLOURS,
   CONGESTION_LABELS,
   DAYS,
-
-  etaMinutesWithTraffic,
-  etaRangeLabel,
   formatPhpAmount,
   formatTime,
-  haversineKm,
   headwayLabel,
-  isLive,
   parsePath,
   segmentSpeedMap,
   stopKindColour,
@@ -39,19 +35,26 @@ import {
   type LatLng,
   type SegmentSpeed,
 } from "@/lib/jeepney";
-
-
+import {
+  buildLatestLivePositions,
+  livePositionsForRoute,
+  mergeLivePosition,
+  pruneStaleLivePositions,
+  type JeepneyLivePositions,
+} from "@/lib/jeepney-live";
 
 const JeepneyMap = lazy(() => import("@/components/jeepney-map"));
 
 export const Route = createFileRoute("/jeepney/$slug")({
   head: ({ params }) => ({
     meta: [
-      { title: `Jeepney route ${params.slug.replace(/-[a-z0-9]{5}$/, "").replace(/-/g, " ")} — schedule & live map` },
+      {
+        title: `Jeepney route ${params.slug.replace(/-[a-z0-9]{5}$/, "").replace(/-/g, " ")} — schedule & live map`,
+      },
       {
         name: "description",
         content:
-          "Jeepney route map with stops, fare, first run, last run and last pickup times, plus live tracking when the jeepney is on the road.",
+          "Jeepney route map with stops, fares, service times and multiple live jeepneys when vehicles are on the road.",
       },
       { property: "og:title", content: "Jeepney route — schedule & live map" },
       {
@@ -85,11 +88,10 @@ type RouteAlert = {
   created_at: string;
 };
 
-
 function JeepneyRoutePage() {
   const { slug } = Route.useParams();
   const [route, setRoute] = useState<RouteWithStops | null>(null);
-  const [position, setPosition] = useState<JeepneyPosition | null>(null);
+  const [live, setLive] = useState<JeepneyLivePositions>({});
   const [me, setMe] = useState<LatLng | null>(null);
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<RouteAlert[]>([]);
@@ -101,11 +103,11 @@ function JeepneyRoutePage() {
     dayRate: number | null;
     note: string | null;
   }>({ available: false, dayRate: null, note: null });
+
   const currentHour = useMemo(() => {
     const now = new Date();
     return new Date(now.getTime() + (8 * 60 + now.getTimezoneOffset()) * 60000).getHours();
   }, []);
-
 
   useEffect(() => {
     void load();
@@ -114,6 +116,54 @@ function JeepneyRoutePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
+  useEffect(() => {
+    if (!route?.id) return;
+    const routeId = route.id;
+    const channel = supabase
+      .channel(`public-jeepney-route-${routeId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "jeepney_positions",
+          filter: `route_id=eq.${routeId}`,
+        },
+        (payload) => {
+          const next = payload.new as JeepneyPosition;
+          if (next?.route_id !== routeId) return;
+          setLive((current) => pruneStaleLivePositions(mergeLivePosition(current, next)));
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "jeepney_route_alerts",
+          filter: `route_id=eq.${routeId}`,
+        },
+        (payload) => {
+          const next = payload.new as RouteAlert;
+          if (!next?.id) return;
+          setAlerts((current) => [next, ...current.filter((item) => item.id !== next.id)].slice(0, 5));
+          setRoute((current) =>
+            current
+              ? {
+                  ...current,
+                  status: next.kind === "breakdown" ? "suspended" : "published",
+                }
+              : current,
+          );
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [route?.id]);
+
   async function load() {
     const { data } = await supabase
       .from("jeepney_routes")
@@ -121,11 +171,14 @@ function JeepneyRoutePage() {
       .eq("slug", slug)
       .in("status", ["published", "suspended"])
       .maybeSingle();
+
     if (!data) {
       setRoute(null);
+      setLive({});
       setLoading(false);
       return;
     }
+
     const parsed: RouteWithStops = {
       ...(data as any),
       path: parsePath((data as any).path),
@@ -134,6 +187,7 @@ function JeepneyRoutePage() {
       ),
       operator: (data as any).jeepney_operators?.display_name ?? null,
     };
+
     setRoute(parsed);
     setRental({
       available: Boolean((data as any).rental_available),
@@ -161,11 +215,8 @@ function JeepneyRoutePage() {
     ]);
     setFares((fareRows ?? []) as FareLine[]);
     const byDay = new Map((dayRows ?? []).map((d) => [d.day, d]));
-    setDaySchedule(
-      DAYS.filter((d) => byDay.has(d)).map((d) => byDay.get(d)! as DaySchedule),
-    );
+    setDaySchedule(DAYS.filter((d) => byDay.has(d)).map((d) => byDay.get(d)! as DaySchedule));
   }
-
 
   async function loadSegments(routeId: string) {
     const { data } = await supabase
@@ -175,7 +226,6 @@ function JeepneyRoutePage() {
       .eq("hour", currentHour);
     setSegmentRows((data ?? []) as SegmentSpeed[]);
   }
-
 
   async function loadAlerts(routeId: string) {
     const { data } = await supabase
@@ -187,7 +237,6 @@ function JeepneyRoutePage() {
     setAlerts((data ?? []) as RouteAlert[]);
   }
 
-
   async function loadLive(routeId?: string) {
     const id = routeId ?? route?.id;
     if (!id) return;
@@ -198,8 +247,8 @@ function JeepneyRoutePage() {
       .eq("route_id", id)
       .gte("recorded_at", since)
       .order("recorded_at", { ascending: false })
-      .limit(1);
-    setPosition((data?.[0] as JeepneyPosition) ?? null);
+      .limit(500);
+    setLive(buildLatestLivePositions((data ?? []) as JeepneyPosition[]));
   }
 
   function locate() {
@@ -211,29 +260,15 @@ function JeepneyRoutePage() {
     );
   }
 
-  const nearestStop = useMemo(() => {
-    if (!route || !me || !route.stops.length) return null;
-    return route.stops
-      .map((s) => ({
-        stop: s,
-        km: haversineKm({ lat: Number(s.latitude), lng: Number(s.longitude) }, me),
-      }))
-      .sort((a, b) => a.km - b.km)[0]!;
-  }, [route, me]);
+  const speeds = useMemo(
+    () => segmentSpeedMap(segmentRows, currentHour),
+    [segmentRows, currentHour],
+  );
 
-  const speeds = useMemo(() => segmentSpeedMap(segmentRows, currentHour), [segmentRows, currentHour]);
-
-  const eta = useMemo(() => {
-    if (!route || !position || !nearestStop || !isLive(position.recorded_at)) return null;
-    return etaMinutesWithTraffic(
-      route.path,
-      { lat: Number(position.latitude), lng: Number(position.longitude) },
-      { lat: Number(nearestStop.stop.latitude), lng: Number(nearestStop.stop.longitude) },
-      position.speed_kph,
-      speeds,
-    );
-  }, [route, position, nearestStop, speeds]);
-
+  const routePositions = useMemo(
+    () => (route ? livePositionsForRoute(live, route.id) : []),
+    [live, route],
+  );
 
   if (loading) {
     return (
@@ -259,7 +294,7 @@ function JeepneyRoutePage() {
     );
   }
 
-  const onRoad = position && isLive(position.recorded_at);
+  const onRoad = routePositions.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -284,7 +319,10 @@ function JeepneyRoutePage() {
             {route.fare_note && <Badge variant="secondary">{route.fare_note}</Badge>}
             {headwayLabel(route) && <Badge variant="secondary">{headwayLabel(route)}</Badge>}
             <Badge variant={onRoad ? "default" : "secondary"} className="gap-1">
-              <Radio className="h-3 w-3" /> {onRoad ? "Live now" : "Not broadcasting"}
+              <Radio className="h-3 w-3" />
+              {onRoad
+                ? `${routePositions.length} live ${routePositions.length === 1 ? "unit" : "units"}`
+                : "Not broadcasting"}
             </Badge>
             {route.status === "suspended" && (
               <Badge variant="destructive" className="gap-1">
@@ -303,14 +341,12 @@ function JeepneyRoutePage() {
             {!route.operator_id && (
               <JeepneyClaimDialog routeId={route.id} routeName={route.name} onSubmitted={load} />
             )}
-
           </div>
-
         </header>
 
         {route.status === "suspended" && (
           <Card className="mb-4 border-destructive/40 bg-destructive/5 p-4 text-sm">
-            <p className="font-semibold">This jeepney has reported a breakdown.</p>
+            <p className="font-semibold">This route has reported a breakdown.</p>
             <p className="text-muted-foreground">
               {alerts.find((a) => a.kind === "breakdown")?.message ??
                 "The operator paused this route. Monitor it to be alerted the moment it's back."}
@@ -318,20 +354,27 @@ function JeepneyRoutePage() {
           </Card>
         )}
 
-
         <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-          <div className="space-y-2">
+          <div className="space-y-3">
             <ClientOnly fallback={<div className="h-[60vh] rounded-xl border border-border" />}>
               <Suspense fallback={<div className="h-[60vh] rounded-xl border border-border" />}>
                 <JeepneyMap
                   routes={[route]}
-                  live={position ? { [route.id]: position } : {}}
+                  live={live}
                   userLocation={me}
                   height="60vh"
                   congestion={speeds.size ? { [route.id]: speeds } : {}}
                 />
               </Suspense>
             </ClientOnly>
+
+            <JeepneyLiveVehicleList
+              route={route}
+              positions={routePositions}
+              userLocation={me}
+              speeds={speeds}
+            />
+
             {speeds.size > 0 && (
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 <span>Typical traffic at this hour:</span>
@@ -349,7 +392,6 @@ function JeepneyRoutePage() {
           </div>
 
           <div className="space-y-3">
-
             <Card className="space-y-2 p-4">
               <p className="text-sm font-semibold">Daily schedule</p>
               <dl className="grid grid-cols-2 gap-2 text-sm">
@@ -413,46 +455,13 @@ function JeepneyRoutePage() {
               </Card>
             )}
 
-
-            <Card className="space-y-2 p-4">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold">Arrival</p>
-                <Button size="sm" variant="outline" onClick={locate}>
-                  <Locate className="mr-1.5 h-4 w-4" /> Use my location
-                </Button>
-              </div>
-              {!me && (
-                <p className="text-xs text-muted-foreground">
-                  Share your location to see the nearest stop and how soon the jeepney reaches it.
-                </p>
-              )}
-              {me && nearestStop && (
-                <p className="text-sm">
-                  Nearest stop: <strong>{nearestStop.stop.name}</strong>{" "}
-                  <span className="text-muted-foreground">
-                    ({nearestStop.km < 1
-                      ? `${Math.round(nearestStop.km * 1000)} m`
-                      : `${nearestStop.km.toFixed(1)} km`}{" "}
-                    away)
-                  </span>
-                </p>
-              )}
-              {me && onRoad && eta && (
-                <p className="text-sm text-emerald-600">
-                  Jeepney arriving in about {etaRangeLabel(eta)}.
-                </p>
-              )}
-              {me && onRoad && !eta && (
-                <p className="text-xs text-muted-foreground">
-                  The jeepney has already passed this stop on its current trip.
-                </p>
-              )}
-              {me && !onRoad && (
-                <p className="text-xs text-muted-foreground">
-                  No live jeepney on this route right now — use the schedule above.
-                </p>
-              )}
-            </Card>
+            <JeepneyArrivalSummary
+              route={route}
+              positions={routePositions}
+              userLocation={me}
+              speeds={speeds}
+              onLocate={locate}
+            />
 
             <Card className="p-4">
               <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
@@ -477,9 +486,7 @@ function JeepneyRoutePage() {
                       </span>
                     </span>
                     {stop.offset_minutes !== null && (
-                      <span className="text-xs text-muted-foreground">
-                        +{stop.offset_minutes} min
-                      </span>
+                      <span className="text-xs text-muted-foreground">+{stop.offset_minutes} min</span>
                     )}
                     <JeepneyPhotoThumb
                       path={(stop as JeepneyStop & { photo_url?: string | null }).photo_url}
@@ -498,17 +505,13 @@ function JeepneyRoutePage() {
 
             <JeepneyInsightsCard routeId={route.id} />
 
-
-
-
             <Card className="p-4">
               <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
                 <Bell className="h-4 w-4" /> Service alerts
               </p>
               {alerts.length === 0 ? (
                 <p className="text-xs text-muted-foreground">
-                  No breakdowns reported. Monitor this route to get an alert if the jeepney breaks
-                  down or comes back into service.
+                  No breakdowns reported. Monitor this route to get an alert if a jeepney breaks down or comes back into service.
                 </p>
               ) : (
                 <ul className="space-y-2">
@@ -533,7 +536,6 @@ function JeepneyRoutePage() {
                 </ul>
               )}
             </Card>
-
 
             {route.notes && (
               <Card className="p-4 text-sm">

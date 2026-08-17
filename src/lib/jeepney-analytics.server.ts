@@ -1,21 +1,22 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- route-variant analytics are migration-backed ahead of regenerated Supabase types. */
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import {
-  DAYS,
-  SEGMENT_KM,
-  distanceAlongPathKm,
-  parsePath,
-  pathLengthKm,
-  phHolidayKey,
-  type LatLng,
-} from "@/lib/jeepney";
+import { DAYS, SEGMENT_KM, parsePath, phHolidayKey, type LatLng } from "@/lib/jeepney";
+import { projectDistanceAlongPathKm } from "@/lib/jeepney-variants";
 
 type Position = {
   route_id: string;
+  route_variant_id: string | null;
   latitude: number;
   longitude: number;
   speed_kph: number | null;
   recorded_at: string;
+};
+
+type Variant = {
+  id: string;
+  path: LatLng[];
+  isDefault: boolean;
 };
 
 function admin() {
@@ -51,8 +52,14 @@ function bucket(map: Map<string, Bucket>, key: string): Bucket {
 }
 
 /**
- * Rebuilds busy-time buckets and per-segment speeds for every live route from
- * the last 90 days of GPS pings.
+ * Rebuilds route busy-time buckets and exact-direction segment speeds from the
+ * last 90 days of GPS pings.
+ *
+ * Compatibility contract:
+ * - jeepney_route_stats remains route-wide.
+ * - jeepney_segment_stats remains canonical/default-direction only so existing
+ *   route maps and legacy consumers never mix incompatible segment indexes.
+ * - jeepney_variant_segment_stats stores every exact route variant independently.
  */
 export async function runJeepneyRollup(): Promise<{
   routes: number;
@@ -66,7 +73,7 @@ export async function runJeepneyRollup(): Promise<{
 
   const { data: routes, error: routeError } = await supabase
     .from("jeepney_routes")
-    .select("id, path")
+    .select("id")
     .in("status", ["published", "suspended"]);
   if (routeError) return { routes: 0, statRows: 0, segmentRows: 0, errors: [routeError.message] };
 
@@ -75,14 +82,29 @@ export async function runJeepneyRollup(): Promise<{
 
   for (const route of routes ?? []) {
     try {
-      const path: LatLng[] = parsePath((route as { path: unknown }).path);
-      const { data: pings } = await supabase
+      const { data: variantRows, error: variantError } = await (supabase as any)
+        .from("jeepney_route_variants")
+        .select("id,path,is_default")
+        .eq("route_id", route.id);
+      if (variantError) throw new Error(`variants: ${variantError.message}`);
+
+      const variants: Variant[] = (variantRows ?? []).map((row: any) => ({
+        id: String(row.id),
+        path: parsePath(row.path),
+        isDefault: Boolean(row.is_default),
+      }));
+      const defaultVariant = variants.find((variant) => variant.isDefault) ?? null;
+      if (!defaultVariant) throw new Error("route has no canonical/default direction variant");
+      const variantById = new Map(variants.map((variant) => [variant.id, variant]));
+
+      const { data: pings, error: pingError } = await (supabase as any)
         .from("jeepney_positions")
-        .select("route_id, latitude, longitude, speed_kph, recorded_at")
+        .select("route_id,route_variant_id,latitude,longitude,speed_kph,recorded_at")
         .eq("route_id", route.id)
         .gte("recorded_at", since)
         .order("recorded_at", { ascending: false })
         .limit(20000);
+      if (pingError) throw new Error(`positions: ${pingError.message}`);
 
       const rows = (pings ?? []) as Position[];
       if (!rows.length) continue;
@@ -96,7 +118,10 @@ export async function runJeepneyRollup(): Promise<{
       const hourDow = new Map<string, Bucket>();
       const months = new Map<string, Bucket>();
       const holidays = new Map<string, Bucket>();
-      const segments = new Map<string, { speed: number; samples: number }>();
+      const segments = new Map<
+        string,
+        { routeVariantId: string; segmentIndex: number; hour: number; speed: number; samples: number }
+      >();
 
       for (const ping of rows) {
         const parts = manilaParts(ping.recorded_at);
@@ -117,22 +142,33 @@ export async function runJeepneyRollup(): Promise<{
           }
         }
 
-        if (path.length >= 2 && hasSpeed) {
-          const index = Math.max(
-            0,
-            Math.floor(
-              distanceAlongPathKm(path, {
-                lat: Number(ping.latitude),
-                lng: Number(ping.longitude),
-              }) / SEGMENT_KM,
-            ),
-          );
-          const key = `${index}-${parts.hour}`;
-          const s = segments.get(key) ?? { speed: 0, samples: 0 };
-          s.speed += speed;
-          s.samples += 1;
-          segments.set(key, s);
-        }
+        if (!hasSpeed) continue;
+
+        // Positions written before route variants existed have no explicit
+        // direction. They are historical canonical/default samples only.
+        const variant = ping.route_variant_id
+          ? variantById.get(String(ping.route_variant_id)) ?? null
+          : defaultVariant;
+        if (!variant || variant.path.length < 2) continue;
+
+        const projection = projectDistanceAlongPathKm(variant.path, {
+          lat: Number(ping.latitude),
+          lng: Number(ping.longitude),
+        });
+        if (!projection) continue;
+
+        const segmentIndex = Math.max(0, Math.floor(projection.alongKm / SEGMENT_KM));
+        const key = `${variant.id}:${segmentIndex}:${parts.hour}`;
+        const segment = segments.get(key) ?? {
+          routeVariantId: variant.id,
+          segmentIndex,
+          hour: parts.hour,
+          speed: 0,
+          samples: 0,
+        };
+        segment.speed += speed;
+        segment.samples += 1;
+        segments.set(key, segment);
       }
 
       const maxPings = Math.max(...[...hourDow.values()].map((b) => b.pings), 1);
@@ -159,27 +195,36 @@ export async function runJeepneyRollup(): Promise<{
         else statRows += statPayload.length;
       }
 
-      const segmentPayload = [...segments.entries()].map(([key, s]) => {
-        const [index, hour] = key.split("-").map(Number);
-        return {
-          route_id: route.id,
-          segment_index: index!,
-          hour: hour!,
-          avg_speed_kph: Number((s.speed / s.samples).toFixed(1)),
-          sample_count: s.samples,
-          updated_at: new Date().toISOString(),
-        };
-      });
+      const variantSegmentPayload = [...segments.values()].map((segment) => ({
+        route_id: route.id,
+        route_variant_id: segment.routeVariantId,
+        segment_index: segment.segmentIndex,
+        hour: segment.hour,
+        avg_speed_kph: Number((segment.speed / segment.samples).toFixed(1)),
+        sample_count: segment.samples,
+        updated_at: new Date().toISOString(),
+      }));
 
-      if (segmentPayload.length) {
-        const { error } = await supabase
-          .from("jeepney_segment_stats")
-          .upsert(segmentPayload, { onConflict: "route_id,segment_index,hour" });
-        if (error) errors.push(`segments ${route.id}: ${error.message}`);
-        else segmentRows += segmentPayload.length;
+      if (variantSegmentPayload.length) {
+        const { error } = await (supabase as any)
+          .from("jeepney_variant_segment_stats")
+          .upsert(variantSegmentPayload, { onConflict: "route_variant_id,segment_index,hour" });
+        if (error) errors.push(`variant segments ${route.id}: ${error.message}`);
+        else segmentRows += variantSegmentPayload.length;
       }
 
-      void pathLengthKm(path);
+      // Preserve the pre-existing canonical table for the current route map and
+      // any older consumer. Only default-variant buckets are written here.
+      const canonicalSegmentPayload = variantSegmentPayload
+        .filter((segment) => segment.route_variant_id === defaultVariant.id)
+        .map(({ route_variant_id: _routeVariantId, ...segment }) => segment);
+
+      if (canonicalSegmentPayload.length) {
+        const { error } = await supabase
+          .from("jeepney_segment_stats")
+          .upsert(canonicalSegmentPayload, { onConflict: "route_id,segment_index,hour" });
+        if (error) errors.push(`canonical segments ${route.id}: ${error.message}`);
+      }
     } catch (e) {
       errors.push(`${route.id}: ${(e as Error).message}`);
     }

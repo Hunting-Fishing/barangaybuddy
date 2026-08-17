@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { JeepneyGpsAdmin } from "@/components/jeepney-gps-admin";
+import { JeepneyGpsLifecycleAdmin } from "@/components/jeepney-gps-lifecycle-admin";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,10 +20,10 @@ export const Route = createFileRoute("/jeepney/admin")({
       { title: "Jeepney route admin — Barangay Buddy" },
       {
         name: "description",
-        content: "Review jeepney route claims and import community routes from OpenStreetMap.",
+        content: "Review jeepney route claims, manage GPS hardware and import community routes from OpenStreetMap.",
       },
       { property: "og:title", content: "Jeepney route admin" },
-      { property: "og:description", content: "Review claims and import jeepney routes." },
+      { property: "og:description", content: "Review claims, provision GPS devices and import jeepney routes." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
@@ -116,8 +118,11 @@ function JeepneyAdminPage() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
-      <main className="container mx-auto max-w-3xl px-4 py-6">
+      <main className="container mx-auto max-w-5xl px-4 py-6">
         <h1 className="font-display text-2xl font-bold sm:text-3xl">Jeepney route admin</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Route review, public route imports, GPS tracker provisioning and fleet telemetry health.
+        </p>
 
         <Card className="mt-5 flex flex-wrap items-center justify-between gap-3 p-4">
           <div>
@@ -131,6 +136,9 @@ function JeepneyAdminPage() {
             {importing ? "Importing…" : "Import now"}
           </Button>
         </Card>
+
+        <JeepneyGpsAdmin />
+        <JeepneyGpsLifecycleAdmin />
 
         <h2 className="mt-8 font-display text-lg font-bold">Route claims</h2>
         {claims.length === 0 && (

@@ -70,7 +70,7 @@ export const listJeepneyClaims = createServerFn({ method: "GET" })
     return signed;
   });
 
-/** Admin: approve a claim — hands the route to the claimant and registers their jeepney. */
+/** Admin: approve a claim — hands the route to the claimant and registers their physical fleet unit. */
 export const reviewJeepneyClaim = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { claimId: string; approve: boolean; note?: string }) => {
@@ -102,7 +102,7 @@ export const reviewJeepneyClaim = createServerFn({ method: "POST" })
       return { ok: true };
     }
 
-    // Find or create the claimant's operator profile.
+    // Find or create the claimant's cooperative/operator profile.
     let operatorId: string | undefined;
     const { data: existing } = await supabaseAdmin
       .from("jeepney_operators")
@@ -120,23 +120,48 @@ export const reviewJeepneyClaim = createServerFn({ method: "POST" })
       operatorId = created.id;
     }
 
-    const { error: routeError } = await supabaseAdmin
+    // Only an unclaimed community route may be transferred. Return the row so a
+    // concurrent approval cannot silently create a fleet vehicle under the wrong route owner.
+    const { data: transferredRoute, error: routeError } = await supabaseAdmin
       .from("jeepney_routes")
       .update({ operator_id: operatorId })
       .eq("id", claim.route_id)
-      .is("operator_id", null);
+      .is("operator_id", null)
+      .select("id")
+      .maybeSingle();
     if (routeError) return { error: "Could not transfer the route." };
+    if (!transferredRoute) return { error: "This route was already claimed by another operator." };
 
-    await supabaseAdmin.from("jeepney_vehicles").insert({
-      route_id: claim.route_id,
-      label: `Jeepney ${claim.body_number}`,
-      plate_number: claim.body_number,
-      franchise_number: claim.franchise_number,
-      photo_url: claim.photo_path,
-      active: true,
-    });
+    // Phase 3 ownership: the physical jeepney belongs to the operator/cooperative.
+    // route_id remains only a nullable legacy/home-route hint; dispatch trips decide
+    // which route this unit is actually serving at any moment.
+    const { data: createdVehicle, error: vehicleError } = await (supabaseAdmin as any)
+      .from("jeepney_vehicles")
+      .insert({
+        operator_id: operatorId,
+        route_id: claim.route_id,
+        label: `Jeepney ${claim.body_number}`,
+        plate_number: claim.body_number,
+        franchise_number: claim.franchise_number,
+        photo_url: claim.photo_path,
+        active: true,
+      })
+      .select("id")
+      .maybeSingle();
 
-    await supabaseAdmin
+    if (vehicleError || !createdVehicle) {
+      // Supabase JS does not wrap these app-level steps in a transaction. Compensate
+      // the route transfer so the claim remains retryable instead of half-approved.
+      await supabaseAdmin
+        .from("jeepney_routes")
+        .update({ operator_id: null })
+        .eq("id", claim.route_id)
+        .eq("operator_id", operatorId);
+      console.error("Claim fleet vehicle creation failed; route transfer rolled back", vehicleError);
+      return { error: "Could not create the physical fleet unit. The route transfer was rolled back." };
+    }
+
+    const { error: claimUpdateError } = await supabaseAdmin
       .from("jeepney_route_claims")
       .update({
         status: "approved",
@@ -144,7 +169,20 @@ export const reviewJeepneyClaim = createServerFn({ method: "POST" })
         reviewed_by: context.userId,
         reviewed_at: new Date().toISOString(),
       })
-      .eq("id", data.claimId);
+      .eq("id", data.claimId)
+      .eq("status", "pending");
+
+    if (claimUpdateError) {
+      // Keep application state coherent if the final claim-state write fails.
+      await (supabaseAdmin as any).from("jeepney_vehicles").delete().eq("id", createdVehicle.id);
+      await supabaseAdmin
+        .from("jeepney_routes")
+        .update({ operator_id: null })
+        .eq("id", claim.route_id)
+        .eq("operator_id", operatorId);
+      console.error("Claim status update failed; vehicle and route transfer rolled back", claimUpdateError);
+      return { error: "Could not finalize the claim approval. No route ownership change was kept." };
+    }
 
     return { ok: true };
   });
