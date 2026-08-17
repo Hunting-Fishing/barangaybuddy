@@ -16,11 +16,13 @@ import {
   directionLabel,
   etaMinutesProjected,
   parseRouteVariant,
+  parseRouteVariantStop,
   pathForPosition,
   projectDistanceAlongPathKm,
-  stopsOrderedAlongPath,
+  stopsForVariant,
   variantForPosition,
   type JeepneyRouteVariant,
+  type JeepneyRouteVariantStop,
 } from "@/lib/jeepney-variants";
 
 type RouteWithStops = JeepneyRoute & { stops: JeepneyStop[] };
@@ -47,6 +49,7 @@ export function JeepneyArrivalSummary({
   onLocate: () => void;
 }) {
   const [variants, setVariants] = useState<JeepneyRouteVariant[]>([]);
+  const [variantStops, setVariantStops] = useState<JeepneyRouteVariantStop[]>([]);
   const [vehicleLabels, setVehicleLabels] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -59,7 +62,22 @@ export function JeepneyArrivalSummary({
         .eq("active", true)
         .order("created_at", { ascending: true });
       if (cancelled) return;
-      setVariants((data ?? []).map(parseRouteVariant));
+
+      const nextVariants = (data ?? []).map(parseRouteVariant);
+      setVariants(nextVariants);
+      const variantIds = nextVariants.map((variant) => variant.id);
+      if (!variantIds.length) {
+        setVariantStops([]);
+        return;
+      }
+
+      const { data: membershipRows } = await (supabase as any)
+        .from("jeepney_route_variant_stops")
+        .select("variant_id,stop_id,position")
+        .in("variant_id", variantIds)
+        .order("position", { ascending: true });
+      if (cancelled) return;
+      setVariantStops((membershipRows ?? []).map(parseRouteVariantStop));
     })();
     return () => {
       cancelled = true;
@@ -107,14 +125,14 @@ export function JeepneyArrivalSummary({
         const path = pathForPosition(position, variants, route.path);
         if (path.length < 2) return null;
 
-        const orderedStops = stopsOrderedAlongPath(route.stops, path);
-        if (!orderedStops.length) return null;
+        const eligibleStops = stopsForVariant(route.stops, variant, variantStops, path);
+        if (!eligibleStops.length) return null;
 
         const current = { lat: Number(position.latitude), lng: Number(position.longitude) };
         const currentProjection = projectDistanceAlongPathKm(path, current);
         if (!currentProjection) return null;
 
-        const aheadStops = orderedStops
+        const aheadStops = eligibleStops
           .map((stop) => {
             const point = { lat: Number(stop.latitude), lng: Number(stop.longitude) };
             const projection = projectDistanceAlongPathKm(path, point);
@@ -148,7 +166,7 @@ export function JeepneyArrivalSummary({
       })
       .filter((candidate): candidate is ArrivalCandidate => Boolean(candidate))
       .sort((a, b) => a.eta - b.eta || a.distanceFromUserKm - b.distanceFromUserKm);
-  }, [positions, route.path, route.stops, speeds, userLocation, variants]);
+  }, [positions, route.path, route.stops, speeds, userLocation, variantStops, variants]);
 
   const best = candidates[0] ?? null;
   const bestUnit = best?.position.vehicle_id
@@ -166,7 +184,7 @@ export function JeepneyArrivalSummary({
 
       {!userLocation ? (
         <p className="text-xs text-muted-foreground">
-          Share your location to rank live jeepneys by an approaching stop on each unit's assigned direction.
+          Share your location to rank live jeepneys by an eligible approaching stop on each unit's assigned direction.
         </p>
       ) : null}
 
@@ -199,7 +217,7 @@ export function JeepneyArrivalSummary({
 
       {userLocation && positions.length > 0 && !best ? (
         <p className="text-xs text-muted-foreground">
-          Live units are on this route, but none is currently approaching a mapped stop near you on its assigned direction.
+          Live units are on this route, but none is currently approaching an eligible mapped stop near you on its assigned direction.
         </p>
       ) : null}
 
