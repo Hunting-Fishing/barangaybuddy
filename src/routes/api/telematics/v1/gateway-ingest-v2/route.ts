@@ -2,6 +2,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  takeTelematicsRateSlot,
+  telemetryRateLimitResponse,
+} from "@/lib/jeepney-telematics-rate.server";
 
 const Input = z.object({
   external_vehicle_id: z.string().trim().min(1).max(180),
@@ -88,29 +92,9 @@ export const Route = createFileRoute("/api/telematics/v1/gateway-ingest-v2")({
         const externalVehicleId = parsed.data.external_vehicle_id;
         const sequenceKey = String(parsed.data.sequence);
 
-        // Fast duplicate path. The atomic RPC below performs the same unique-key
-        // reservation again, so concurrent replays are safe even if they both miss here.
-        const { data: duplicate, error: duplicateError } = await (supabaseAdmin as any)
-          .from("jeepney_gateway_ingest_receipts")
-          .select("position_id,vehicle_id,trip_id,route_id,route_variant_id,server_received_at")
-          .eq("gateway_id", gateway.id)
-          .eq("external_vehicle_id", externalVehicleId)
-          .eq("sequence_key", sequenceKey)
-          .maybeSingle();
-        if (duplicateError) {
-          console.error("Gateway duplicate lookup failed", duplicateError);
-          return jsonError("Telemetry service unavailable", 503);
-        }
-        if (duplicate) {
-          return Response.json({
-            accepted: true,
-            duplicate: true,
-            gateway_id: gatewayPublicId,
-            external_vehicle_id: externalVehicleId,
-            ...duplicate,
-          });
-        }
-
+        // Resolve a real mapped physical vehicle before allocating a per-source
+        // rate bucket. This prevents arbitrary external IDs from creating unbounded
+        // rate-window keys even when a gateway credential is valid.
         const { data: mapping, error: mappingError } = await (supabaseAdmin as any)
           .from("jeepney_external_vehicle_mappings")
           .select("vehicle_id,active")
@@ -124,6 +108,47 @@ export const Route = createFileRoute("/api/telematics/v1/gateway-ingest-v2")({
         if (!mapping || mapping.active === false) {
           return jsonError("External vehicle is not mapped to an active Barangay Buddy fleet unit", 409, {
             external_vehicle_id: externalVehicleId,
+          });
+        }
+
+        try {
+          const rate = await takeTelematicsRateSlot(
+            `gateway:${gateway.id}:${externalVehicleId}`,
+            300,
+          );
+          if (!rate.allowed) return telemetryRateLimitResponse(rate);
+        } catch (rateError) {
+          console.error("Gateway vehicle telemetry rate limiter failed", rateError);
+          return jsonError("Telemetry service unavailable", 503);
+        }
+
+        // Fast duplicate path. The atomic RPC performs the same unique-key
+        // reservation again, so concurrent replays are safe even if both miss here.
+        const { data: duplicate, error: duplicateError } = await (supabaseAdmin as any)
+          .from("jeepney_gateway_ingest_receipts")
+          .select("id,position_id,vehicle_id,trip_id,route_id,route_variant_id,server_received_at")
+          .eq("gateway_id", gateway.id)
+          .eq("external_vehicle_id", externalVehicleId)
+          .eq("sequence_key", sequenceKey)
+          .maybeSingle();
+        if (duplicateError) {
+          console.error("Gateway duplicate lookup failed", duplicateError);
+          return jsonError("Telemetry service unavailable", 503);
+        }
+        if (duplicate) {
+          if (!duplicate.position_id) {
+            return jsonError("Prior gateway telemetry receipt is incomplete and requires reconciliation", 409, {
+              receipt_id: duplicate.id,
+              sequence: sequenceKey,
+            });
+          }
+          return Response.json({
+            accepted: true,
+            duplicate: true,
+            gateway_id: gatewayPublicId,
+            provider: gateway.provider,
+            external_vehicle_id: externalVehicleId,
+            ...duplicate,
           });
         }
 
@@ -221,11 +246,15 @@ export const Route = createFileRoute("/api/telematics/v1/gateway-ingest-v2")({
 
         if (commitError) {
           console.error("Atomic gateway telemetry commit failed", commitError);
-          return jsonError("Could not atomically store normalized telemetry", 500);
+          const conflict = ["23503", "23514", "40001"].includes(String(commitError.code));
+          return jsonError(
+            conflict ? "Gateway telemetry assignment changed; refresh mapping/dispatch state and retry" : "Could not atomically store normalized telemetry",
+            conflict ? 409 : 500,
+          );
         }
 
         const result = Array.isArray(committed) ? committed[0] : committed;
-        if (!result?.accepted) return jsonError("Gateway telemetry commit returned no result", 500);
+        if (!result?.accepted || !result.position_id) return jsonError("Gateway telemetry commit returned no completed position", 500);
 
         const serverReceivedAt = result.server_received_at ?? new Date().toISOString();
         const { error: healthError } = await (supabaseAdmin as any)
@@ -234,18 +263,53 @@ export const Route = createFileRoute("/api/telematics/v1/gateway-ingest-v2")({
           .eq("id", gateway.id);
         if (healthError) console.warn("Gateway last_seen update failed", healthError);
 
+        let responseVehicleId = vehicleId;
+        let responseTripId = tripId;
+        let responseRouteId = routeId;
+        let responseVariantId = variantId;
+        let responseDirection: string | null = String(variant.direction);
+
+        if (result.duplicate && result.receipt_id) {
+          const { data: replayReceipt } = await (supabaseAdmin as any)
+            .from("jeepney_gateway_ingest_receipts")
+            .select("vehicle_id,trip_id,route_id,route_variant_id,position_id")
+            .eq("id", result.receipt_id)
+            .maybeSingle();
+
+          if (!replayReceipt?.position_id) {
+            return jsonError("Prior gateway telemetry receipt is incomplete and requires reconciliation", 409, {
+              receipt_id: result.receipt_id,
+              sequence: sequenceKey,
+            });
+          }
+
+          responseVehicleId = replayReceipt.vehicle_id ? String(replayReceipt.vehicle_id) : responseVehicleId;
+          responseTripId = replayReceipt.trip_id ? String(replayReceipt.trip_id) : responseTripId;
+          responseRouteId = replayReceipt.route_id ? String(replayReceipt.route_id) : responseRouteId;
+          responseVariantId = replayReceipt.route_variant_id ? String(replayReceipt.route_variant_id) : responseVariantId;
+
+          if (responseVariantId !== variantId) {
+            const { data: replayVariant } = await (supabaseAdmin as any)
+              .from("jeepney_route_variants")
+              .select("direction")
+              .eq("id", responseVariantId)
+              .maybeSingle();
+            responseDirection = replayVariant?.direction ? String(replayVariant.direction) : null;
+          }
+        }
+
         return Response.json({
           accepted: true,
           duplicate: Boolean(result.duplicate),
           gateway_id: gatewayPublicId,
           provider: gateway.provider,
           external_vehicle_id: externalVehicleId,
-          vehicle_id: vehicleId,
-          trip_id: tripId,
-          route_id: routeId,
-          route_variant_id: variantId,
-          direction: variant.direction,
-          position_id: result.position_id ?? null,
+          vehicle_id: responseVehicleId,
+          trip_id: responseTripId,
+          route_id: responseRouteId,
+          route_variant_id: responseVariantId,
+          direction: responseDirection,
+          position_id: result.position_id,
           receipt_id: result.receipt_id ?? null,
           recorded_at: recordedAt.toISOString(),
           server_received_at: serverReceivedAt,
