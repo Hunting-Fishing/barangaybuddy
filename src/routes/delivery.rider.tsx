@@ -210,10 +210,15 @@ function RiderPortal() {
   }
 
   async function advance(job: Job, status: DeliveryJobStatus) {
-    const patch: Record<string, unknown> = { status };
-    if (status === "picked_up") patch.picked_up_at = new Date().toISOString();
-    if (status === "delivered") patch.delivered_at = new Date().toISOString();
-    const { error } = await supabase.from("delivery_jobs").update(patch).eq("id", job.id);
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("delivery_jobs")
+      .update({
+        status,
+        ...(status === "picked_up" ? { picked_up_at: now } : {}),
+        ...(status === "delivered" ? { delivered_at: now } : {}),
+      })
+      .eq("id", job.id);
     if (error) return toast.error(error.message);
     toast.success(`Marked as ${JOB_STATUS_LABEL[status].toLowerCase()}.`);
     loadJobs();
