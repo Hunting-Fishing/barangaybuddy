@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { JeepneyGpsAdmin } from "@/components/jeepney-gps-admin";
+import { JeepneyGpsLifecycleAdmin } from "@/components/jeepney-gps-lifecycle-admin";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -137,6 +138,7 @@ function JeepneyAdminPage() {
         </Card>
 
         <JeepneyGpsAdmin />
+        <JeepneyGpsLifecycleAdmin />
 
         <h2 className="mt-8 font-display text-lg font-bold">Route claims</h2>
         {claims.length === 0 && (
