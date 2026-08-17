@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- fleet/variant columns are migration-backed ahead of regenerated Supabase types. */
+/* eslint-disable @typescript-eslint/no-explicit-any, prettier/prettier -- fleet/variant/source columns are migration-backed ahead of regenerated Supabase types. */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,7 @@ type ActiveTrip = {
   id: string;
   route_id: string;
   route_variant_id: string;
+  assignment_source: "legacy" | "phone" | "dispatch" | "api" | "import";
   started_at: string;
   createdByPhone: boolean;
 };
@@ -230,7 +231,7 @@ export function JeepneyLiveToggle({
 
     const { data: existing, error: existingError } = await (supabase as any)
       .from("jeepney_trips")
-      .select("id,route_id,route_variant_id,started_at")
+      .select("id,route_id,route_variant_id,assignment_source,started_at")
       .eq("vehicle_id", unitId)
       .is("ended_at", null)
       .order("started_at", { ascending: false })
@@ -249,7 +250,7 @@ export function JeepneyLiveToggle({
         return null;
       }
       setSelectedVariantId(trip.route_variant_id);
-      return { ...trip, createdByPhone: false };
+      return { ...trip, createdByPhone: trip.assignment_source === "phone" };
     }
 
     const variantId = selectedVariantId || variants.find((variant) => variant.is_default)?.id || variants[0]?.id;
@@ -266,8 +267,9 @@ export function JeepneyLiveToggle({
         route_variant_id: variant.id,
         operator_id: operatorId,
         vehicle_id: unitId,
+        assignment_source: "phone",
       })
-      .select("id,route_id,route_variant_id,started_at")
+      .select("id,route_id,route_variant_id,assignment_source,started_at")
       .maybeSingle();
 
     if (error || !data) {
@@ -356,9 +358,7 @@ export function JeepneyLiveToggle({
     setLive(true);
     const label = vehicles.find((unit) => unit.id === unitId)?.label;
     const variant = variants.find((candidate) => candidate.id === trip.route_variant_id);
-    toast.success(
-      `${label || "This jeepney"} is live · ${variant ? directionLabel(variant.direction) : "assigned direction"}.`,
-    );
+    toast.success(`${label || "This jeepney"} is live · ${variant ? directionLabel(variant.direction) : "assigned direction"}.`);
   }
 
   const selectedVehicle = vehicles.find((unit) => unit.id === selectedVehicleId) ?? null;
@@ -463,8 +463,7 @@ export function JeepneyLiveToggle({
       </div>
 
       <p className="mt-2 text-[11px] text-muted-foreground">
-        If dispatch already started this jeepney, the phone joins that exact trip/direction and cannot override it.
-        Stopping phone GPS leaves a dispatcher/hardwired trip running; a trip created by this phone ends with the shift.
+        A reopened phone-owned shift remains phone-owned and can be ended here. A dispatcher-owned trip is only joined for GPS and stays active for hardwired tracking when the phone stops.
       </p>
     </div>
   );
