@@ -15,10 +15,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { ClientOnly } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { DAYS, ROUTE_COLOURS, jeepneySlug, type LatLng } from "@/lib/jeepney";
+import {
+  DAYS,
+  ROUTE_COLOURS,
+  emptyDaySchedule,
+  haversineKm,
+  isNamedPoint,
+  jeepneySlug,
+  type DaySchedule,
+  type FareLine,
+  type LatLng,
+  type RoutePoint,
+} from "@/lib/jeepney";
 import type { DraftStop } from "@/components/jeepney-route-editor";
-import { JeepneyStopPlanner } from "@/components/jeepney-stop-planner";
 import { JeepneyPointList } from "@/components/jeepney-point-list";
+import { JeepneyScheduleGrid } from "@/components/jeepney-schedule-grid";
+import { JeepneyFareTable } from "@/components/jeepney-fare-table";
+import { JeepneyServiceCalendar } from "@/components/jeepney-service-calendar";
+import { JeepneyRentalPanel } from "@/components/jeepney-rental-panel";
 import { snapStopsToRoads } from "@/lib/jeepney-geo.functions";
 
 const JeepneyRouteEditor = lazy(() => import("@/components/jeepney-route-editor"));
@@ -44,15 +58,33 @@ type Props = {
     notes: string | null;
     path: LatLng[];
     stops: DraftStop[];
+    rental_available?: boolean;
+    rental_day_rate_php?: number | null;
+    rental_note?: string | null;
   } | null;
 };
+
+/** Merge the saved line and the saved stops into one ordered list of points. */
+function mergePoints(path: LatLng[], stops: DraftStop[]): RoutePoint[] {
+  const points: RoutePoint[] = path.map((p) => ({ lat: p.lat, lng: p.lng }));
+  stops.forEach((stop) => {
+    const index = points.findIndex((p) => haversineKm(p, stop) * 1000 < 20);
+    const meta = {
+      name: stop.name,
+      address: stop.address ?? null,
+      kind: stop.kind ?? ("stop" as const),
+      photo_url: (stop as DraftStop & { photo_url?: string | null }).photo_url ?? null,
+    };
+    if (index >= 0) points[index] = { ...points[index]!, ...meta };
+    else points.push({ lat: stop.lat, lng: stop.lng, ...meta });
+  });
+  return points;
+}
 
 export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, existing }: Props) {
   const [tab, setTab] = useState("route");
   const [name, setName] = useState(existing?.name ?? "");
   const [code, setCode] = useState(existing?.code ?? "");
-  const [fare, setFare] = useState(existing?.fare_php ? String(existing.fare_php) : "");
-  const [fareNote, setFareNote] = useState(existing?.fare_note ?? "");
   const [firstRun, setFirstRun] = useState(existing?.first_run ?? "05:00");
   const [lastRun, setLastRun] = useState(existing?.last_run ?? "21:00");
   const [lastPickup, setLastPickup] = useState(existing?.last_pickup ?? "21:30");
@@ -60,71 +92,121 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
   const [avgMinutes, setAvgMinutes] = useState(
     existing?.avg_trip_minutes ? String(existing.avg_trip_minutes) : "",
   );
-  const [days, setDays] = useState<string[]>(existing?.operating_days ?? [...DAYS]);
   const [colour, setColour] = useState(existing?.colour ?? ROUTE_COLOURS[0]!);
   const [notes, setNotes] = useState(existing?.notes ?? "");
-  const [anchors, setAnchors] = useState<LatLng[]>(existing?.path ?? []);
+  const [points, setPoints] = useState<RoutePoint[]>(
+    existing ? mergePoints(existing.path, existing.stops) : [],
+  );
   const [path, setPath] = useState<LatLng[]>(existing?.path ?? []);
   const [followRoads, setFollowRoads] = useState((existing?.path?.length ?? 0) <= 40);
-  const [stops, setStops] = useState<DraftStop[]>(existing?.stops ?? []);
+  const [schedule, setSchedule] = useState<DaySchedule[]>(() =>
+    emptyDaySchedule().map((row) => ({
+      ...row,
+      active: existing ? (existing.operating_days ?? [...DAYS]).includes(row.day) : true,
+    })),
+  );
+  const [fares, setFares] = useState<FareLine[]>(
+    existing?.fare_php
+      ? [{ label: "Base fare", amount_php: existing.fare_php, note: existing.fare_note ?? "" }]
+      : [],
+  );
+  const [rentalAvailable, setRentalAvailable] = useState(existing?.rental_available ?? false);
+  const [dayRate, setDayRate] = useState(
+    existing?.rental_day_rate_php ? String(existing.rental_day_rate_php) : "",
+  );
+  const [rentalNote, setRentalNote] = useState(existing?.rental_note ?? "");
   const [saving, setSaving] = useState(false);
   const [snapping, setSnapping] = useState(false);
 
-  function toggleDay(day: string) {
-    setDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
-  }
+  const routeId = existing?.id ?? null;
+
+  // Load the per-day times and fare lines saved for an existing route.
+  useEffect(() => {
+    if (!routeId || !open) return;
+    void (async () => {
+      const [{ data: dayRows }, { data: fareRows }] = await Promise.all([
+        supabase
+          .from("jeepney_day_schedule")
+          .select("day, active, first_run, last_run, last_pickup")
+          .eq("route_id", routeId),
+        supabase
+          .from("jeepney_route_fares")
+          .select("id, label, amount_php, note, position")
+          .eq("route_id", routeId)
+          .order("position", { ascending: true }),
+      ]);
+      if (dayRows?.length) {
+        setSchedule(
+          emptyDaySchedule().map((row) => {
+            const found = dayRows.find((d) => d.day === row.day);
+            return found ? { ...row, ...found } : row;
+          }),
+        );
+      }
+      if (fareRows?.length) {
+        setFares(
+          fareRows.map((f) => ({
+            id: f.id,
+            label: f.label,
+            amount_php: f.amount_php,
+            note: f.note ?? "",
+          })),
+        );
+      }
+    })();
+  }, [routeId, open]);
 
   function addStop(point: LatLng) {
-    const stopName = window.prompt("Stop name (e.g. Palengke, Terminal, City Hall)");
-    if (!stopName) return;
-    setStops((prev) => [
-      ...prev,
-      { name: stopName.trim().slice(0, 80), lat: point.lat, lng: point.lng, kind: "stop" as const },
-    ]);
+    setPoints((prev) => [...prev, { ...point, name: "", kind: "stop" as const }]);
+    toast.info("Point added — name it in the list below to show it to riders.");
   }
 
   const snapSeq = useRef(0);
+  const anchors: LatLng[] = points.map((p) => ({ lat: p.lat, lng: p.lng }));
+  const anchorKey = anchors.map((a) => `${a.lat.toFixed(5)},${a.lng.toFixed(5)}`).join("|");
+  const namedStops: DraftStop[] = points.filter(isNamedPoint).map((p) => ({
+    name: p.name!.trim(),
+    address: p.address ?? null,
+    lat: p.lat,
+    lng: p.lng,
+    kind: p.kind ?? "stop",
+  }));
 
   // Keep the drawn line following the actual roads between the numbered points.
   useEffect(() => {
-    if (anchors.length < 2) {
-      setPath(anchors);
-      return;
-    }
-    if (!followRoads) {
-      setPath(anchors);
+    const line = anchors;
+    if (line.length < 2 || !followRoads) {
+      setPath(line);
       return;
     }
     const mine = ++snapSeq.current;
     setSnapping(true);
     const timer = setTimeout(async () => {
       try {
-        const res = await snapStopsToRoads({ data: { points: anchors } });
+        const res = await snapStopsToRoads({ data: { points: line } });
         if (mine !== snapSeq.current) return;
-        setPath(res.snapped ? res.path : anchors);
+        setPath(res.snapped ? res.path : line);
       } catch {
-        if (mine === snapSeq.current) setPath(anchors);
+        if (mine === snapSeq.current) setPath(line);
       } finally {
         if (mine === snapSeq.current) setSnapping(false);
       }
     }, 450);
     return () => clearTimeout(timer);
-  }, [anchors, followRoads]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anchorKey, followRoads]);
 
   async function snapToRoads() {
-    if (stops.length < 2) {
-      toast.error("Add at least two stops first — the route follows them in order.");
+    if (anchors.length < 2) {
+      toast.error("Add at least two points first — the route follows them in order.");
       return;
     }
     setSnapping(true);
     try {
-      const res = await snapStopsToRoads({
-        data: { points: stops.map((s) => ({ lat: s.lat, lng: s.lng })) },
-      });
-      setAnchors(stops.map((s) => ({ lat: s.lat, lng: s.lng })));
+      const res = await snapStopsToRoads({ data: { points: anchors } });
       setPath(res.path);
-      if (res.snapped) toast.success("Route now follows the roads between your stops.");
-      else toast.error(res.error ?? "Drew straight lines between your stops instead.");
+      if (res.snapped) toast.success("Route now follows the roads between your points.");
+      else toast.error(res.error ?? "Drew straight lines between your points instead.");
     } catch {
       toast.error("Could not build the road route. Please try again.");
     } finally {
@@ -138,46 +220,50 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
       toast.error("Give your route a clear name, e.g. “Terminal – Palengke – Poblacion”.");
       return;
     }
-    let linePath = path;
-    if (linePath.length < 2 && stops.length >= 2) {
-      linePath = stops.map((s) => ({ lat: s.lat, lng: s.lng }));
-    }
+    const linePath = path.length >= 2 ? path : anchors;
     if (linePath.length < 2) {
       setTab("map");
-      toast.error(
-        "Add at least two stops (type the addresses) or draw two points so the route shows as a line.",
-      );
+      toast.error("Add at least two points — type the addresses or tap the map.");
       return;
     }
-    if (linePath !== path) setPath(linePath);
     setSaving(true);
+
+    const activeDays = schedule.filter((d) => d.active).map((d) => d.day);
+    const baseFare = fares.find((f) => Number(f.amount_php) > 0);
 
     const payload = {
       operator_id: operatorId,
       name: name.trim(),
       code: code.trim() || null,
-      fare_php: fare ? Number(fare) : null,
-      fare_note: fareNote.trim() || null,
+      fare_php: baseFare ? Number(baseFare.amount_php) : null,
+      fare_note: baseFare?.note?.trim() || null,
       first_run: firstRun || null,
       last_run: lastRun || null,
       last_pickup: lastPickup || null,
       trips_per_day: trips ? Number(trips) : null,
       avg_trip_minutes: avgMinutes ? Number(avgMinutes) : null,
-      operating_days: days,
+      operating_days: activeDays,
       colour,
       notes: notes.trim() || null,
+      rental_available: rentalAvailable,
+      rental_day_rate_php: rentalAvailable && dayRate ? Number(dayRate) : null,
+      rental_note: rentalAvailable ? rentalNote.trim() || null : null,
       path: linePath as unknown as never,
     };
 
-    let routeId = existing?.id;
-    if (routeId) {
-      const { error } = await supabase.from("jeepney_routes").update(payload).eq("id", routeId);
+    let savedId = existing?.id;
+    if (savedId) {
+      const { error } = await supabase.from("jeepney_routes").update(payload).eq("id", savedId);
       if (error) {
         setSaving(false);
         toast.error("Could not save the route. Please try again.");
         return;
       }
-      await supabase.from("jeepney_stops").delete().eq("route_id", routeId);
+      await Promise.all([
+        supabase.from("jeepney_stops").delete().eq("route_id", savedId),
+        supabase.from("jeepney_day_schedule").delete().eq("route_id", savedId),
+        supabase.from("jeepney_route_fares").delete().eq("route_id", savedId),
+      ]);
     } else {
       const { data, error } = await supabase
         .from("jeepney_routes")
@@ -189,19 +275,45 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
         toast.error("Could not create the route. Please try again.");
         return;
       }
-      routeId = data.id;
+      savedId = data.id;
     }
 
-    if (stops.length) {
+    const named = points.filter(isNamedPoint);
+    if (named.length) {
       await supabase.from("jeepney_stops").insert(
-        stops.map((s, i) => ({
-          route_id: routeId!,
-          name: s.name,
-          address: s.address ?? null,
-          kind: s.kind ?? "stop",
+        named.map((p, i) => ({
+          route_id: savedId!,
+          name: p.name!.trim(),
+          address: p.address ?? null,
+          kind: p.kind ?? "stop",
+          photo_url: p.photo_url ?? null,
           position: i,
-          latitude: s.lat,
-          longitude: s.lng,
+          latitude: p.lat,
+          longitude: p.lng,
+        })),
+      );
+    }
+
+    await supabase.from("jeepney_day_schedule").insert(
+      schedule.map((row) => ({
+        route_id: savedId!,
+        day: row.day,
+        active: row.active,
+        first_run: row.first_run,
+        last_run: row.last_run,
+        last_pickup: row.last_pickup,
+      })),
+    );
+
+    const fareRows = fares.filter((f) => f.label.trim() && Number(f.amount_php) >= 0);
+    if (fareRows.length) {
+      await supabase.from("jeepney_route_fares").insert(
+        fareRows.map((f, i) => ({
+          route_id: savedId!,
+          label: f.label.trim(),
+          amount_php: Number(f.amount_php) || 0,
+          note: f.note?.trim() || null,
+          position: i,
         })),
       );
     }
@@ -218,16 +330,19 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
         <DialogHeader>
           <DialogTitle>{existing ? "Edit route" : "Add a jeepney route"}</DialogTitle>
           <DialogDescription>
-            Draw the roads you drive, add your stops, then set your daily times.
+            Draw the roads you drive, name your stops and landmarks, then set your times, fares and
+            rentals.
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={setTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
             <TabsTrigger value="route">Route</TabsTrigger>
             <TabsTrigger value="map">Map</TabsTrigger>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            <TabsTrigger value="calendar">Calendar</TabsTrigger>
             <TabsTrigger value="fares">Fares</TabsTrigger>
+            <TabsTrigger value="rentals">Rentals</TabsTrigger>
           </TabsList>
 
           <TabsContent value="route" className="space-y-4 pt-3">
@@ -285,40 +400,58 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
                 <JeepneyRouteEditor
                   path={path}
                   anchors={anchors}
-                  stops={stops}
+                  stops={namedStops}
                   colour={colour}
                   followRoads={followRoads}
                   snapping={snapping}
                   onFollowRoadsChange={setFollowRoads}
-                  onAnchorsChange={setAnchors}
+                  onAnchorsChange={(next) =>
+                    setPoints((prev) =>
+                      next.map(
+                        (a, i) =>
+                          ({
+                            ...(prev[i] && haversineKm(prev[i]!, a) * 1000 < 5 ? prev[i]! : {}),
+                            lat: a.lat,
+                            lng: a.lng,
+                          }) as RoutePoint,
+                      ),
+                    )
+                  }
                   onAddStop={addStop}
                 />
               </Suspense>
             </ClientOnly>
 
-            <JeepneyPointList anchors={anchors} onChange={setAnchors} />
-
-            <JeepneyStopPlanner
-              stops={stops}
-              onChange={setStops}
+            <JeepneyPointList
+              points={points}
+              onChange={setPoints}
               onSnap={snapToRoads}
               snapping={snapping}
             />
-
           </TabsContent>
 
           <TabsContent value="schedule" className="space-y-4 pt-3">
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="space-y-1.5">
-                <Label htmlFor="jr-first">First run</Label>
-                <Input id="jr-first" type="time" value={firstRun} onChange={(e) => setFirstRun(e.target.value)} />
+                <Label htmlFor="jr-first">Default first run</Label>
+                <Input
+                  id="jr-first"
+                  type="time"
+                  value={firstRun}
+                  onChange={(e) => setFirstRun(e.target.value)}
+                />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="jr-last">Last run</Label>
-                <Input id="jr-last" type="time" value={lastRun} onChange={(e) => setLastRun(e.target.value)} />
+                <Label htmlFor="jr-last">Default last run</Label>
+                <Input
+                  id="jr-last"
+                  type="time"
+                  value={lastRun}
+                  onChange={(e) => setLastRun(e.target.value)}
+                />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="jr-pickup">Last pickup</Label>
+                <Label htmlFor="jr-pickup">Default last pickup</Label>
                 <Input
                   id="jr-pickup"
                   type="time"
@@ -328,7 +461,12 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="jr-trips">Trips per day</Label>
-                <Input id="jr-trips" type="number" value={trips} onChange={(e) => setTrips(e.target.value)} />
+                <Input
+                  id="jr-trips"
+                  type="number"
+                  value={trips}
+                  onChange={(e) => setTrips(e.target.value)}
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="jr-avg">Minutes per trip</Label>
@@ -341,49 +479,41 @@ export function JeepneyRouteForm({ open, onOpenChange, operatorId, onSaved, exis
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Operating days</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {DAYS.map((d) => (
-                  <Button
-                    key={d}
-                    type="button"
-                    size="sm"
-                    variant={days.includes(d) ? "default" : "outline"}
-                    onClick={() => toggleDay(d)}
-                  >
-                    {d}
-                  </Button>
-                ))}
-              </div>
+            <div className="space-y-2">
+              <Label>Operating days and times</Label>
+              <JeepneyScheduleGrid
+                schedule={schedule}
+                defaults={{ first_run: firstRun, last_run: lastRun, last_pickup: lastPickup }}
+                onChange={setSchedule}
+              />
             </div>
+          </TabsContent>
+
+          <TabsContent value="calendar" className="space-y-3 pt-3">
+            <p className="text-xs text-muted-foreground">
+              Mark maintenance days, record breakdowns and add holiday notices so riders know when
+              you are not running.
+            </p>
+            <JeepneyServiceCalendar routeId={routeId} canEdit />
           </TabsContent>
 
           <TabsContent value="fares" className="space-y-4 pt-3">
             <p className="text-xs text-muted-foreground">
-              Optional — leave blank if your fares vary or you follow the LTFRB matrix.
+              Add a line for each zone or service you charge — label them however you like.
             </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="jr-fare">Fare (₱)</Label>
-                <Input
-                  id="jr-fare"
-                  type="number"
-                  value={fare}
-                  onChange={(e) => setFare(e.target.value)}
-                  placeholder="13"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="jr-farenote">Fare note</Label>
-                <Input
-                  id="jr-farenote"
-                  value={fareNote}
-                  onChange={(e) => setFareNote(e.target.value)}
-                  placeholder="₱1.80 per km after 4 km"
-                />
-              </div>
-            </div>
+            <JeepneyFareTable fares={fares} onChange={setFares} />
+          </TabsContent>
+
+          <TabsContent value="rentals" className="space-y-3 pt-3">
+            <JeepneyRentalPanel
+              routeId={routeId}
+              rentalAvailable={rentalAvailable}
+              dayRate={dayRate}
+              rentalNote={rentalNote}
+              onAvailableChange={setRentalAvailable}
+              onDayRateChange={setDayRate}
+              onNoteChange={setRentalNote}
+            />
           </TabsContent>
         </Tabs>
 

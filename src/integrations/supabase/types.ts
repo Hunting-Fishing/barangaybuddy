@@ -340,6 +340,502 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_job_contacts: {
+        Row: {
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          job_id: string
+          recipient_name: string | null
+          recipient_phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          job_id: string
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          job_id?: string
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_job_contacts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "delivery_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_job_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          id: string
+          job_id: string
+          note: string | null
+          status: Database["public"]["Enums"]["delivery_job_status"]
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          job_id: string
+          note?: string | null
+          status: Database["public"]["Enums"]["delivery_job_status"]
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string
+          note?: string | null
+          status?: Database["public"]["Enums"]["delivery_job_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_job_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_jobs: {
+        Row: {
+          accepted_at: string | null
+          base_fare_php: number
+          cancel_reason: string | null
+          cancelled_at: string | null
+          created_at: string
+          customer_id: string
+          delivered_at: string | null
+          distance_fare_php: number
+          distance_km: number
+          dropoff_address: string
+          dropoff_lat: number
+          dropoff_lng: number
+          id: string
+          is_prepaid: boolean
+          item_description: string | null
+          item_size: string
+          notes: string | null
+          payment_method: Database["public"]["Enums"]["delivery_payment_method"]
+          payment_ref: string | null
+          picked_up_at: string | null
+          pickup_address: string
+          pickup_lat: number
+          pickup_lng: number
+          rider_id: string | null
+          scheduled_for: string | null
+          service_type: Database["public"]["Enums"]["delivery_service_type"]
+          status: Database["public"]["Enums"]["delivery_job_status"]
+          total_fare_php: number
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          base_fare_php?: number
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          customer_id: string
+          delivered_at?: string | null
+          distance_fare_php?: number
+          distance_km?: number
+          dropoff_address: string
+          dropoff_lat: number
+          dropoff_lng: number
+          id?: string
+          is_prepaid?: boolean
+          item_description?: string | null
+          item_size?: string
+          notes?: string | null
+          payment_method?: Database["public"]["Enums"]["delivery_payment_method"]
+          payment_ref?: string | null
+          picked_up_at?: string | null
+          pickup_address: string
+          pickup_lat: number
+          pickup_lng: number
+          rider_id?: string | null
+          scheduled_for?: string | null
+          service_type: Database["public"]["Enums"]["delivery_service_type"]
+          status?: Database["public"]["Enums"]["delivery_job_status"]
+          total_fare_php?: number
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          base_fare_php?: number
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          customer_id?: string
+          delivered_at?: string | null
+          distance_fare_php?: number
+          distance_km?: number
+          dropoff_address?: string
+          dropoff_lat?: number
+          dropoff_lng?: number
+          id?: string
+          is_prepaid?: boolean
+          item_description?: string | null
+          item_size?: string
+          notes?: string | null
+          payment_method?: Database["public"]["Enums"]["delivery_payment_method"]
+          payment_ref?: string | null
+          picked_up_at?: string | null
+          pickup_address?: string
+          pickup_lat?: number
+          pickup_lng?: number
+          rider_id?: string | null
+          scheduled_for?: string | null
+          service_type?: Database["public"]["Enums"]["delivery_service_type"]
+          status?: Database["public"]["Enums"]["delivery_job_status"]
+          total_fare_php?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_jobs_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_payouts: {
+        Row: {
+          collected_in_cash: boolean
+          commission_php: number
+          created_at: string
+          gross_php: number
+          id: string
+          job_id: string
+          rider_id: string
+          rider_php: number
+          settled: boolean
+        }
+        Insert: {
+          collected_in_cash?: boolean
+          commission_php?: number
+          created_at?: string
+          gross_php?: number
+          id?: string
+          job_id: string
+          rider_id: string
+          rider_php?: number
+          settled?: boolean
+        }
+        Update: {
+          collected_in_cash?: boolean
+          commission_php?: number
+          created_at?: string
+          gross_php?: number
+          id?: string
+          job_id?: string
+          rider_id?: string
+          rider_php?: number
+          settled?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_payouts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "delivery_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_payouts_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_positions: {
+        Row: {
+          heading: number | null
+          id: string
+          job_id: string | null
+          latitude: number
+          longitude: number
+          recorded_at: string
+          rider_id: string
+          speed_kph: number | null
+        }
+        Insert: {
+          heading?: number | null
+          id?: string
+          job_id?: string | null
+          latitude: number
+          longitude: number
+          recorded_at?: string
+          rider_id: string
+          speed_kph?: number | null
+        }
+        Update: {
+          heading?: number | null
+          id?: string
+          job_id?: string | null
+          latitude?: number
+          longitude?: number
+          recorded_at?: string
+          rider_id?: string
+          speed_kph?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_positions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_positions_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          job_id: string
+          rating: number
+          rider_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          job_id: string
+          rating: number
+          rider_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          job_id?: string
+          rating?: number
+          rider_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_ratings_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "delivery_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_ratings_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_rider_contacts: {
+        Row: {
+          contact_phone: string | null
+          created_at: string
+          rider_id: string
+          updated_at: string
+        }
+        Insert: {
+          contact_phone?: string | null
+          created_at?: string
+          rider_id: string
+          updated_at?: string
+        }
+        Update: {
+          contact_phone?: string | null
+          created_at?: string
+          rider_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_rider_contacts_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: true
+            referencedRelation: "delivery_riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_rider_subscriptions: {
+        Row: {
+          amount_php: number
+          created_at: string
+          current_period_end: string | null
+          environment: string
+          id: string
+          payment_note: string | null
+          payment_ref: string | null
+          rider_id: string
+          status: Database["public"]["Enums"]["delivery_sub_status"]
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_php?: number
+          created_at?: string
+          current_period_end?: string | null
+          environment?: string
+          id?: string
+          payment_note?: string | null
+          payment_ref?: string | null
+          rider_id: string
+          status?: Database["public"]["Enums"]["delivery_sub_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_php?: number
+          created_at?: string
+          current_period_end?: string | null
+          environment?: string
+          id?: string
+          payment_note?: string | null
+          payment_ref?: string | null
+          rider_id?: string
+          status?: Database["public"]["Enums"]["delivery_sub_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_rider_subscriptions_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_riders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_riders: {
+        Row: {
+          barangay_code: string | null
+          branding_agreed: boolean
+          city_code: string | null
+          created_at: string
+          display_name: string
+          id: string
+          is_online: boolean
+          jobs_completed: number
+          last_online_at: string | null
+          licence_number: string | null
+          plate_number: string | null
+          rating_avg: number | null
+          rating_count: number
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          service_notes: string | null
+          status: Database["public"]["Enums"]["delivery_rider_status"]
+          uniform_photo_path: string | null
+          updated_at: string
+          user_id: string
+          vehicle_photo_path: string | null
+          vehicle_type: string
+        }
+        Insert: {
+          barangay_code?: string | null
+          branding_agreed?: boolean
+          city_code?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          is_online?: boolean
+          jobs_completed?: number
+          last_online_at?: string | null
+          licence_number?: string | null
+          plate_number?: string | null
+          rating_avg?: number | null
+          rating_count?: number
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          service_notes?: string | null
+          status?: Database["public"]["Enums"]["delivery_rider_status"]
+          uniform_photo_path?: string | null
+          updated_at?: string
+          user_id: string
+          vehicle_photo_path?: string | null
+          vehicle_type?: string
+        }
+        Update: {
+          barangay_code?: string | null
+          branding_agreed?: boolean
+          city_code?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_online?: boolean
+          jobs_completed?: number
+          last_online_at?: string | null
+          licence_number?: string | null
+          plate_number?: string | null
+          rating_avg?: number | null
+          rating_count?: number
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          service_notes?: string | null
+          status?: Database["public"]["Enums"]["delivery_rider_status"]
+          uniform_photo_path?: string | null
+          updated_at?: string
+          user_id?: string
+          vehicle_photo_path?: string | null
+          vehicle_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_riders_barangay_code_fkey"
+            columns: ["barangay_code"]
+            isOneToOne: false
+            referencedRelation: "barangays"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "delivery_riders_city_code_fkey"
+            columns: ["city_code"]
+            isOneToOne: false
+            referencedRelation: "cities_municipalities"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       favorites: {
         Row: {
           business_id: string
@@ -1067,6 +1563,50 @@ export type Database = {
         }
         Relationships: []
       }
+      jeepney_day_schedule: {
+        Row: {
+          active: boolean
+          created_at: string
+          day: string
+          first_run: string | null
+          id: string
+          last_pickup: string | null
+          last_run: string | null
+          route_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          day: string
+          first_run?: string | null
+          id?: string
+          last_pickup?: string | null
+          last_run?: string | null
+          route_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          day?: string
+          first_run?: string | null
+          id?: string
+          last_pickup?: string | null
+          last_run?: string | null
+          route_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_day_schedule_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jeepney_device_requests: {
         Row: {
           created_at: string
@@ -1256,6 +1796,77 @@ export type Database = {
           },
         ]
       }
+      jeepney_rental_requests: {
+        Row: {
+          contact_name: string
+          contact_phone: string
+          created_at: string
+          dropoff_address: string | null
+          event_date: string
+          event_type: string
+          hours: number | null
+          id: string
+          message: string | null
+          operator_reply: string | null
+          passengers: number | null
+          pickup_address: string
+          quoted_php: number | null
+          route_id: string
+          start_time: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_name: string
+          contact_phone: string
+          created_at?: string
+          dropoff_address?: string | null
+          event_date: string
+          event_type?: string
+          hours?: number | null
+          id?: string
+          message?: string | null
+          operator_reply?: string | null
+          passengers?: number | null
+          pickup_address: string
+          quoted_php?: number | null
+          route_id: string
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_name?: string
+          contact_phone?: string
+          created_at?: string
+          dropoff_address?: string | null
+          event_date?: string
+          event_type?: string
+          hours?: number | null
+          id?: string
+          message?: string | null
+          operator_reply?: string | null
+          passengers?: number | null
+          pickup_address?: string
+          quoted_php?: number | null
+          route_id?: string
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_rental_requests_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jeepney_route_alerts: {
         Row: {
           created_at: string
@@ -1284,6 +1895,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "jeepney_route_alerts_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jeepney_route_calendar: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          entry_date: string
+          id: string
+          kind: string
+          not_running: boolean
+          note: string | null
+          route_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          entry_date: string
+          id?: string
+          kind?: string
+          not_running?: boolean
+          note?: string | null
+          route_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          entry_date?: string
+          id?: string
+          kind?: string
+          not_running?: boolean
+          note?: string | null
+          route_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_route_calendar_route_id_fkey"
             columns: ["route_id"]
             isOneToOne: false
             referencedRelation: "jeepney_routes"
@@ -1346,6 +2007,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "jeepney_route_claims_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "jeepney_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jeepney_route_fares: {
+        Row: {
+          amount_php: number
+          created_at: string
+          id: string
+          label: string
+          note: string | null
+          position: number
+          route_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_php: number
+          created_at?: string
+          id?: string
+          label: string
+          note?: string | null
+          position?: number
+          route_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_php?: number
+          created_at?: string
+          id?: string
+          label?: string
+          note?: string | null
+          position?: number
+          route_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jeepney_route_fares_route_id_fkey"
             columns: ["route_id"]
             isOneToOne: false
             referencedRelation: "jeepney_routes"
@@ -1453,6 +2155,9 @@ export type Database = {
           operating_days: string[]
           operator_id: string | null
           path: Json
+          rental_available: boolean
+          rental_day_rate_php: number | null
+          rental_note: string | null
           slug: string
           source_url: string | null
           status: Database["public"]["Enums"]["jeepney_route_status"]
@@ -1479,6 +2184,9 @@ export type Database = {
           operating_days?: string[]
           operator_id?: string | null
           path?: Json
+          rental_available?: boolean
+          rental_day_rate_php?: number | null
+          rental_note?: string | null
           slug: string
           source_url?: string | null
           status?: Database["public"]["Enums"]["jeepney_route_status"]
@@ -1505,6 +2213,9 @@ export type Database = {
           operating_days?: string[]
           operator_id?: string | null
           path?: Json
+          rental_available?: boolean
+          rental_day_rate_php?: number | null
+          rental_note?: string | null
           slug?: string
           source_url?: string | null
           status?: Database["public"]["Enums"]["jeepney_route_status"]
@@ -1583,6 +2294,7 @@ export type Database = {
           longitude: number
           name: string
           offset_minutes: number | null
+          photo_url: string | null
           position: number
           route_id: string
         }
@@ -1595,6 +2307,7 @@ export type Database = {
           longitude: number
           name: string
           offset_minutes?: number | null
+          photo_url?: string | null
           position?: number
           route_id: string
         }
@@ -1607,6 +2320,7 @@ export type Database = {
           longitude?: number
           name?: string
           offset_minutes?: number | null
+          photo_url?: string | null
           position?: number
           route_id?: string
         }
@@ -2106,6 +2820,24 @@ export type Database = {
         | "transport"
         | "agri_supply"
         | "livestock"
+      delivery_job_status:
+        | "open"
+        | "accepted"
+        | "picked_up"
+        | "delivered"
+        | "cancelled"
+      delivery_payment_method: "cash" | "online"
+      delivery_rider_status: "pending" | "approved" | "rejected" | "suspended"
+      delivery_service_type:
+        | "parcel"
+        | "food"
+        | "grocery"
+        | "laundry"
+        | "medication"
+        | "auto_parts"
+        | "agriculture"
+        | "airport"
+      delivery_sub_status: "trialing" | "active" | "past_due" | "cancelled"
       event_status: "scheduled" | "cancelled" | "completed"
       fuel_type: "gasoline_91" | "gasoline_95" | "gasoline_97" | "diesel"
       group_role: "owner" | "admin" | "member"
@@ -2279,6 +3011,26 @@ export const Constants = {
         "agri_supply",
         "livestock",
       ],
+      delivery_job_status: [
+        "open",
+        "accepted",
+        "picked_up",
+        "delivered",
+        "cancelled",
+      ],
+      delivery_payment_method: ["cash", "online"],
+      delivery_rider_status: ["pending", "approved", "rejected", "suspended"],
+      delivery_service_type: [
+        "parcel",
+        "food",
+        "grocery",
+        "laundry",
+        "medication",
+        "auto_parts",
+        "agriculture",
+        "airport",
+      ],
+      delivery_sub_status: ["trialing", "active", "past_due", "cancelled"],
       event_status: ["scheduled", "cancelled", "completed"],
       fuel_type: ["gasoline_91", "gasoline_95", "gasoline_97", "diesel"],
       group_role: ["owner", "admin", "member"],
