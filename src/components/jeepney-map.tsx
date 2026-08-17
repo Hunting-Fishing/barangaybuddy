@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { supabase } from "@/integrations/supabase/client";
 import type { JeepneyPosition, JeepneyRoute, JeepneyStop, LatLng } from "@/lib/jeepney";
 import type { JeepneyLivePositions } from "@/lib/jeepney-live";
 import {
@@ -46,10 +47,14 @@ function jeepneyMarkerHtml(label: string) {
     </div>`;
 }
 
-function vehicleLabel(route: MapRoute, position: JeepneyPosition) {
+function vehicleLabel(
+  route: MapRoute,
+  position: JeepneyPosition,
+  labels: Record<string, string>,
+) {
   const routeLabel = route.code || route.name.slice(0, 12);
   if (!position.vehicle_id) return routeLabel;
-  return `${routeLabel} · ${position.vehicle_id.slice(-4).toUpperCase()}`;
+  return labels[position.vehicle_id] || `${routeLabel} · ${position.vehicle_id.slice(-4).toUpperCase()}`;
 }
 
 export default function JeepneyMap({
@@ -67,7 +72,38 @@ export default function JeepneyMap({
   const liveLayerRef = useRef<L.LayerGroup | null>(null);
   const userLayerRef = useRef<L.LayerGroup | null>(null);
   const selectRef = useRef(onSelectRoute);
+  const [vehicleLabels, setVehicleLabels] = useState<Record<string, string>>({});
   selectRef.current = onSelectRoute;
+
+  useEffect(() => {
+    const ids = Array.from(
+      new Set(
+        Object.values(live)
+          .map((position) => position.vehicle_id)
+          .filter((value): value is string => Boolean(value)),
+      ),
+    );
+    if (!ids.length) {
+      setVehicleLabels({});
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase
+        .from("jeepney_vehicles")
+        .select("id,label")
+        .in("id", ids);
+      if (cancelled) return;
+      setVehicleLabels(
+        Object.fromEntries((data ?? []).map((vehicle) => [vehicle.id, vehicle.label])),
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [live]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -188,10 +224,11 @@ export default function JeepneyMap({
       );
 
       positions.forEach((position) => {
+        const label = vehicleLabel(route, position, vehicleLabels);
         const marker = L.marker([Number(position.latitude), Number(position.longitude)], {
           icon: L.divIcon({
             className: "",
-            html: jeepneyMarkerHtml(vehicleLabel(route, position)),
+            html: jeepneyMarkerHtml(label),
             iconSize: [1, 1],
             iconAnchor: [0, 0],
           }),
@@ -199,14 +236,14 @@ export default function JeepneyMap({
         marker.on("click", () => selectRef.current?.(route.id));
         marker.bindPopup(
           `<strong>${esc(route.name)}</strong><br/>${
-            position.vehicle_id ? `Unit …${esc(position.vehicle_id.slice(-6).toUpperCase())}<br/>` : ""
+            position.vehicle_id ? `${esc(vehicleLabels[position.vehicle_id] || label)}<br/>` : ""
           }Live now${
             position.speed_kph ? ` · ${Math.round(Number(position.speed_kph))} km/h` : ""
           }`,
         );
       });
     });
-  }, [routes, live]);
+  }, [routes, live, vehicleLabels]);
 
   useEffect(() => {
     const layer = userLayerRef.current;
