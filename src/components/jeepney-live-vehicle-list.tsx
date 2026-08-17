@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, prettier/prettier -- route-variant columns are migration-backed ahead of regenerated Supabase types. */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bus, Clock3, Gauge, MapPin, Radio } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -16,11 +16,13 @@ import {
   directionLabel,
   etaMinutesProjected,
   parseRouteVariant,
+  parseRouteVariantStop,
   pathForPosition,
   projectDistanceAlongPathKm,
-  stopsOrderedAlongPath,
+  stopsForVariant,
   variantForPosition,
   type JeepneyRouteVariant,
+  type JeepneyRouteVariantStop,
 } from "@/lib/jeepney-variants";
 
 type RouteWithStops = JeepneyRoute & { stops: JeepneyStop[] };
@@ -57,7 +59,12 @@ function updatedLabel(recordedAt: string) {
 export function JeepneyLiveVehicleList({ route, positions, variants, userLocation, speeds }: Props) {
   const [vehicleLabels, setVehicleLabels] = useState<Record<string, string>>({});
   const [loadedVariants, setLoadedVariants] = useState<JeepneyRouteVariant[]>([]);
+  const [variantStops, setVariantStops] = useState<JeepneyRouteVariantStop[]>([]);
   const effectiveVariants = variants ?? loadedVariants;
+  const variantIdsKey = useMemo(
+    () => effectiveVariants.map((variant) => variant.id).sort().join(","),
+    [effectiveVariants],
+  );
 
   useEffect(() => {
     if (variants) return;
@@ -76,6 +83,28 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
       cancelled = true;
     };
   }, [route.id, variants]);
+
+  useEffect(() => {
+    const variantIds = variantIdsKey ? variantIdsKey.split(",") : [];
+    if (!variantIds.length) {
+      setVariantStops([]);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const { data } = await (supabase as any)
+        .from("jeepney_route_variant_stops")
+        .select("variant_id,stop_id,position")
+        .in("variant_id", variantIds)
+        .order("position", { ascending: true });
+      if (cancelled) return;
+      setVariantStops((data ?? []).map(parseRouteVariantStop));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [variantIdsKey]);
 
   useEffect(() => {
     const ids = Array.from(
@@ -104,7 +133,7 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
     .map((position) => {
       const variant = variantForPosition(position, effectiveVariants);
       const path = pathForPosition(position, effectiveVariants, route.path);
-      const orderedStops = stopsOrderedAlongPath(route.stops, path);
+      const orderedStops = stopsForVariant(route.stops, variant, variantStops, path);
       const current = { lat: Number(position.latitude), lng: Number(position.longitude) };
       const currentProjection = projectDistanceAlongPathKm(path, current);
 
@@ -185,8 +214,8 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             {userLocation
-              ? "Each unit is ranked using its exact travel direction and segment-projected position near your stop."
-              : "Each unit uses its own outbound/inbound geometry and segment-projected GPS position."}
+              ? "Each unit is ranked using its exact travel direction, configured stops and segment-projected position near your stop."
+              : "Each unit uses its own outbound/inbound geometry, configured stop set and segment-projected GPS position."}
           </p>
         </div>
         <Badge className="bg-emerald-600 text-white">
@@ -227,8 +256,8 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
       {userLocation ? (
         <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
           {approaching > 0
-            ? `${approaching} live ${approaching === 1 ? "jeepney is" : "jeepneys are"} still approaching a nearest mapped stop on their assigned direction.`
-            : "No live jeepney is currently approaching the nearest mapped stop on its assigned direction."}
+            ? `${approaching} live ${approaching === 1 ? "jeepney is" : "jeepneys are"} still approaching an eligible stop on their assigned direction.`
+            : "No live jeepney is currently approaching an eligible stop on its assigned direction."}
         </p>
       ) : null}
     </Card>
