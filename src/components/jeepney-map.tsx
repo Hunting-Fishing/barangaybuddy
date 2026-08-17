@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { JeepneyPosition, JeepneyRoute, JeepneyStop, LatLng } from "@/lib/jeepney";
+import type { JeepneyLivePositions } from "@/lib/jeepney-live";
 import {
   CONGESTION_COLOURS,
   SEGMENT_KM,
@@ -14,7 +15,7 @@ export type MapRoute = JeepneyRoute & { stops: JeepneyStop[] };
 
 type Props = {
   routes: MapRoute[];
-  live?: Record<string, JeepneyPosition>;
+  live?: JeepneyLivePositions;
   userLocation?: LatLng | null;
   activeRouteId?: string | null;
   onSelectRoute?: (routeId: string) => void;
@@ -43,6 +44,12 @@ function jeepneyMarkerHtml(label: string) {
       </div>
       <div style="background:#071d49;color:#fff;border:2px solid #fff;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:800;letter-spacing:.01em;box-shadow:0 3px 8px rgba(7,29,73,.2)">${safeLabel}</div>
     </div>`;
+}
+
+function vehicleLabel(route: MapRoute, position: JeepneyPosition) {
+  const routeLabel = route.code || route.name.slice(0, 12);
+  if (!position.vehicle_id) return routeLabel;
+  return `${routeLabel} · ${position.vehicle_id.slice(-4).toUpperCase()}`;
 }
 
 export default function JeepneyMap({
@@ -174,23 +181,30 @@ export default function JeepneyMap({
     const layer = liveLayerRef.current;
     if (!layer) return;
     layer.clearLayers();
+
     routes.forEach((route) => {
-      const position = live[route.id];
-      if (!position || !isLive(position.recorded_at)) return;
-      const label = route.code || route.name.slice(0, 16);
-      const marker = L.marker([Number(position.latitude), Number(position.longitude)], {
-        icon: L.divIcon({
-          className: "",
-          html: jeepneyMarkerHtml(label),
-          iconSize: [1, 1],
-          iconAnchor: [0, 0],
-        }),
-      }).addTo(layer);
-      marker.bindPopup(
-        `<strong>${esc(route.name)}</strong><br/>Live now${
-          position.speed_kph ? ` · ${Math.round(Number(position.speed_kph))} km/h` : ""
-        }`,
+      const positions = Object.values(live).filter(
+        (position) => position.route_id === route.id && isLive(position.recorded_at),
       );
+
+      positions.forEach((position) => {
+        const marker = L.marker([Number(position.latitude), Number(position.longitude)], {
+          icon: L.divIcon({
+            className: "",
+            html: jeepneyMarkerHtml(vehicleLabel(route, position)),
+            iconSize: [1, 1],
+            iconAnchor: [0, 0],
+          }),
+        }).addTo(layer);
+        marker.on("click", () => selectRef.current?.(route.id));
+        marker.bindPopup(
+          `<strong>${esc(route.name)}</strong><br/>${
+            position.vehicle_id ? `Unit …${esc(position.vehicle_id.slice(-6).toUpperCase())}<br/>` : ""
+          }Live now${
+            position.speed_kph ? ` · ${Math.round(Number(position.speed_kph))} km/h` : ""
+          }`,
+        );
+      });
     });
   }, [routes, live]);
 
