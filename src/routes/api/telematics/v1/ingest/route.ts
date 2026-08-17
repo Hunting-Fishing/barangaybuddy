@@ -78,9 +78,11 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
 
         const sequenceKey = parsed.data.sequence === undefined ? null : String(parsed.data.sequence);
         if (sequenceKey) {
+          // Fast replay path. The database RPC repeats this check and reserves the
+          // same unique sequence atomically, so a concurrent request cannot race it.
           const { data: duplicate } = await (supabaseAdmin as any)
             .from("jeepney_device_ingest_receipts")
-            .select("position_id,trip_id,route_id,route_variant_id,server_received_at")
+            .select("position_id,trip_id,route_id,route_variant_id,vehicle_id,server_received_at")
             .eq("device_id", device.id)
             .eq("sequence_key", sequenceKey)
             .maybeSingle();
@@ -89,6 +91,8 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
               accepted: true,
               duplicate: true,
               position_id: duplicate.position_id,
+              device_id: publicId,
+              vehicle_id: duplicate.vehicle_id,
               trip_id: duplicate.trip_id,
               route_id: duplicate.route_id,
               route_variant_id: duplicate.route_variant_id,
@@ -97,9 +101,9 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
           }
         }
 
-        const serverReceivedAt = new Date().toISOString();
+        const healthReceivedAt = new Date().toISOString();
         const healthUpdate: Record<string, unknown> = {
-          last_seen_at: serverReceivedAt,
+          last_seen_at: healthReceivedAt,
           last_latitude: parsed.data.latitude,
           last_longitude: parsed.data.longitude,
           last_speed_kph: parsed.data.speed_kph ?? null,
@@ -194,7 +198,7 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
         if (!assignedRoute || String(assignedRoute.operator_id) !== String(device.operator_id)) {
           return jsonError("Active trip route does not belong to the tracker's operator", 409, { trip_id: tripId });
         }
-        if (!['published', 'suspended'].includes(String(assignedRoute.status))) {
+        if (!["published", "suspended"].includes(String(assignedRoute.status))) {
           return jsonError("Active trip route is not approved for public service", 409, {
             route_id: routeId,
             status: assignedRoute.status,
@@ -207,49 +211,45 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
           });
         }
 
-        const { data: position, error: positionError } = await (supabaseAdmin as any)
-          .from("jeepney_positions")
-          .insert({
-            route_id: routeId,
-            route_variant_id: routeVariantId,
-            trip_id: tripId,
-            vehicle_id: vehicleId,
-            latitude: parsed.data.latitude,
-            longitude: parsed.data.longitude,
-            heading: parsed.data.heading ?? null,
-            speed_kph: parsed.data.speed_kph ?? null,
-            source: "hardware",
-            recorded_at: recordedAt.toISOString(),
-          })
-          .select("id")
-          .maybeSingle();
-        if (positionError || !position?.id) {
-          console.error("Jeepney telemetry position insert failed", positionError);
+        const { data: commitRows, error: commitError } = await (supabaseAdmin as any).rpc(
+          "jeepney_commit_device_telemetry",
+          {
+            p_device_id: device.id,
+            p_vehicle_id: vehicleId,
+            p_trip_id: tripId,
+            p_route_id: routeId,
+            p_route_variant_id: routeVariantId,
+            p_sequence_key: sequenceKey,
+            p_latitude: parsed.data.latitude,
+            p_longitude: parsed.data.longitude,
+            p_speed_kph: parsed.data.speed_kph ?? null,
+            p_heading: parsed.data.heading ?? null,
+            p_recorded_at: recordedAt.toISOString(),
+            p_event_type: parsed.data.event_type ?? "position",
+            p_accuracy_m: parsed.data.accuracy_m ?? null,
+            p_altitude_m: parsed.data.altitude_m ?? null,
+          },
+        );
+
+        if (commitError) {
+          console.error("Atomic Jeepney device telemetry commit failed", commitError);
+          const conflict = ["23503", "23514", "40001"].includes(String(commitError.code));
+          return jsonError(
+            conflict ? "Telemetry assignment changed; refresh dispatch/device state and retry" : "Could not store telemetry",
+            conflict ? 409 : 500,
+          );
+        }
+
+        const committed = Array.isArray(commitRows) ? commitRows[0] : commitRows;
+        if (!committed?.position_id) {
+          console.error("Atomic Jeepney device telemetry returned no position", commitRows);
           return jsonError("Could not store telemetry", 500);
         }
 
-        const { error: receiptError } = await (supabaseAdmin as any)
-          .from("jeepney_device_ingest_receipts")
-          .insert({
-            device_id: device.id,
-            position_id: position.id,
-            vehicle_id: vehicleId,
-            route_id: routeId,
-            route_variant_id: routeVariantId,
-            trip_id: tripId,
-            sequence_key: sequenceKey,
-            device_recorded_at: recordedAt.toISOString(),
-            server_received_at: serverReceivedAt,
-            accuracy_m: parsed.data.accuracy_m ?? null,
-            altitude_m: parsed.data.altitude_m ?? null,
-            event_type: parsed.data.event_type ?? "position",
-          });
-        if (receiptError) console.error("Jeepney telemetry receipt insert failed", receiptError);
-
         return Response.json({
           accepted: true,
-          duplicate: false,
-          position_id: position.id,
+          duplicate: Boolean(committed.duplicate),
+          position_id: committed.position_id,
           device_id: publicId,
           vehicle_id: vehicleId,
           trip_id: tripId,
@@ -257,7 +257,7 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
           route_variant_id: routeVariantId,
           direction: variant.direction,
           recorded_at: recordedAt.toISOString(),
-          server_received_at: serverReceivedAt,
+          server_received_at: committed.server_received_at,
         });
       },
     },
