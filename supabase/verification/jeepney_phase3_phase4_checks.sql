@@ -235,3 +235,33 @@ JOIN public.jeepney_route_variants variant ON variant.route_id = route.id
 LEFT JOIN public.jeepney_variant_segment_stats stats ON stats.route_variant_id = variant.id
 GROUP BY route.id, route.name, variant.id, variant.direction, variant.code
 ORDER BY route.name, variant.is_default DESC, variant.created_at;
+
+-- 20. Atomic direct-device receipts must always finish with a public position.
+SELECT
+  'device_receipt_missing_position_violations' AS check_name,
+  receipt.id AS receipt_id,
+  receipt.device_id,
+  receipt.sequence_key,
+  receipt.server_received_at
+FROM public.jeepney_device_ingest_receipts receipt
+WHERE receipt.position_id IS NULL;
+
+-- 21. Direct-device receipt and public position identity must agree.
+SELECT
+  'device_receipt_position_identity_violations' AS check_name,
+  receipt.id AS receipt_id,
+  receipt.position_id,
+  receipt.vehicle_id AS receipt_vehicle,
+  position.vehicle_id AS position_vehicle,
+  receipt.trip_id AS receipt_trip,
+  position.trip_id AS position_trip,
+  receipt.route_id AS receipt_route,
+  position.route_id AS position_route,
+  receipt.route_variant_id AS receipt_variant,
+  position.route_variant_id AS position_variant
+FROM public.jeepney_device_ingest_receipts receipt
+JOIN public.jeepney_positions position ON position.id = receipt.position_id
+WHERE receipt.vehicle_id IS DISTINCT FROM position.vehicle_id
+   OR receipt.trip_id IS DISTINCT FROM position.trip_id
+   OR receipt.route_id IS DISTINCT FROM position.route_id
+   OR receipt.route_variant_id IS DISTINCT FROM position.route_variant_id;
