@@ -208,3 +208,30 @@ FROM public.jeepney_routes r
 LEFT JOIN public.jeepney_route_variants v ON v.route_id = r.id
 GROUP BY r.id, r.name
 ORDER BY r.name;
+
+-- 18. Variant congestion rows must point to a variant on the same parent route.
+SELECT
+  'variant_segment_route_violations' AS check_name,
+  stats.id AS stat_id,
+  stats.route_id AS stat_route_id,
+  stats.route_variant_id,
+  variant.route_id AS variant_route_id
+FROM public.jeepney_variant_segment_stats stats
+JOIN public.jeepney_route_variants variant ON variant.id = stats.route_variant_id
+WHERE stats.route_id IS DISTINCT FROM variant.route_id;
+
+-- 19. Exact-direction traffic coverage (informational).
+SELECT
+  'variant_segment_coverage' AS check_name,
+  route.id AS route_id,
+  route.name AS route_name,
+  variant.id AS route_variant_id,
+  variant.direction,
+  variant.code,
+  count(stats.id) AS segment_hour_buckets,
+  sum(stats.sample_count) AS speed_samples
+FROM public.jeepney_routes route
+JOIN public.jeepney_route_variants variant ON variant.route_id = route.id
+LEFT JOIN public.jeepney_variant_segment_stats stats ON stats.route_variant_id = variant.id
+GROUP BY route.id, route.name, variant.id, variant.direction, variant.code
+ORDER BY route.name, variant.is_default DESC, variant.created_at;
