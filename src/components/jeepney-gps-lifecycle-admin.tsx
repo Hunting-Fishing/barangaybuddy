@@ -26,6 +26,7 @@ type Assignment = {
 
 type Vehicle = {
   id: string;
+  operator_id: string;
   route_id: string | null;
   label: string | null;
   plate_number: string | null;
@@ -112,20 +113,15 @@ export function JeepneyGpsLifecycleAdmin() {
     () => new Map((fleet?.vehicles ?? []).map((vehicle) => [vehicle.id, vehicle])),
     [fleet?.vehicles],
   );
-  const routesById = useMemo(
-    () => new Map((fleet?.routes ?? []).map((route) => [route.id, route])),
-    [fleet?.routes],
-  );
   const operatorsById = useMemo(
     () => new Map((fleet?.operators ?? []).map((operator) => [operator.id, operator])),
     [fleet?.operators],
   );
 
   function eligibleVehicles(device: Device) {
-    return (fleet?.vehicles ?? []).filter((vehicle) => {
-      if (!vehicle.active || !vehicle.route_id) return false;
-      return routesById.get(vehicle.route_id)?.operator_id === device.operator_id;
-    });
+    return (fleet?.vehicles ?? []).filter(
+      (vehicle) => vehicle.active && vehicle.operator_id === device.operator_id,
+    );
   }
 
   async function act(
@@ -170,7 +166,7 @@ export function JeepneyGpsLifecycleAdmin() {
       } else {
         toast.success(
           action === "assign_vehicle"
-            ? "Tracker assigned to vehicle."
+            ? "Tracker assigned to fleet vehicle."
             : action === "unassign_vehicle"
               ? "Tracker unassigned."
               : action === "suspend"
@@ -207,7 +203,7 @@ export function JeepneyGpsLifecycleAdmin() {
         <div>
           <h3 className="font-display text-lg font-bold">Tracker lifecycle & installation</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Reassign hardware, rotate credentials, suspend a compromised unit, or retire hardware without exposing secrets to the browser database client.
+            Hardware stays installed on the physical fleet vehicle while dispatch can move that vehicle between routes trip-to-trip.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
@@ -246,7 +242,6 @@ export function JeepneyGpsLifecycleAdmin() {
         const selectedVehicleId = selectedVehicles[device.id] ?? assignment?.vehicle_id ?? "";
         const eligible = eligibleVehicles(device);
         const operator = operatorsById.get(device.operator_id);
-        const currentRoute = assignedVehicle?.route_id ? routesById.get(assignedVehicle.route_id) : null;
         const isBusy = busy === device.id;
 
         return (
@@ -259,8 +254,7 @@ export function JeepneyGpsLifecycleAdmin() {
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {operator?.display_name ?? "Unknown operator"}
-                  {assignedVehicle ? ` · ${assignedVehicle.label || assignedVehicle.plate_number || "Assigned vehicle"}` : " · Unassigned"}
-                  {currentRoute ? ` · ${currentRoute.name}` : ""}
+                  {assignedVehicle ? ` · installed on ${assignedVehicle.label || assignedVehicle.plate_number || "Assigned vehicle"}` : " · Unassigned"}
                 </p>
                 <p className="mt-1 break-all font-mono text-[11px] text-muted-foreground">{device.public_id}</p>
               </div>
@@ -291,7 +285,7 @@ export function JeepneyGpsLifecycleAdmin() {
             {device.status !== "retired" ? (
               <div className="mt-4 grid gap-2 border-t pt-3 md:grid-cols-[1fr_auto_auto] md:items-end">
                 <label className="space-y-1 text-xs font-semibold text-slate-700">
-                  Vehicle installation
+                  Physical vehicle installation
                   <select
                     value={selectedVehicleId}
                     onChange={(event) =>
@@ -300,16 +294,13 @@ export function JeepneyGpsLifecycleAdmin() {
                     className="block h-9 w-full rounded-md border border-input bg-background px-3 text-sm font-normal"
                     disabled={isBusy}
                   >
-                    <option value="">Select vehicle</option>
-                    {eligible.map((vehicle) => {
-                      const route = vehicle.route_id ? routesById.get(vehicle.route_id) : null;
-                      return (
-                        <option key={vehicle.id} value={vehicle.id}>
-                          {vehicle.label || vehicle.plate_number || `Vehicle …${vehicle.id.slice(-6)}`}
-                          {route ? ` · ${route.name}` : ""}
-                        </option>
-                      );
-                    })}
+                    <option value="">Select fleet vehicle</option>
+                    {eligible.map((vehicle) => (
+                      <option key={vehicle.id} value={vehicle.id}>
+                        {vehicle.label || vehicle.plate_number || `Vehicle …${vehicle.id.slice(-6)}`}
+                        {vehicle.plate_number && vehicle.label ? ` · ${vehicle.plate_number}` : ""}
+                      </option>
+                    ))}
                   </select>
                 </label>
                 <Button
