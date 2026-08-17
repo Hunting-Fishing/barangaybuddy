@@ -35,6 +35,11 @@ type ArrivalCandidate = {
   eta: number;
 };
 
+function manilaHour() {
+  const now = new Date();
+  return new Date(now.getTime() + (8 * 60 + now.getTimezoneOffset()) * 60000).getHours();
+}
+
 export function JeepneyArrivalSummary({
   route,
   positions,
@@ -50,7 +55,9 @@ export function JeepneyArrivalSummary({
 }) {
   const [variants, setVariants] = useState<JeepneyRouteVariant[]>([]);
   const [variantStops, setVariantStops] = useState<JeepneyRouteVariantStop[]>([]);
+  const [variantSpeedMaps, setVariantSpeedMaps] = useState<Record<string, Map<number, number>>>({});
   const [vehicleLabels, setVehicleLabels] = useState<Record<string, string>>({});
+  const currentHour = useMemo(manilaHour, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,21 +75,47 @@ export function JeepneyArrivalSummary({
       const variantIds = nextVariants.map((variant) => variant.id);
       if (!variantIds.length) {
         setVariantStops([]);
+        setVariantSpeedMaps({});
         return;
       }
 
-      const { data: membershipRows } = await (supabase as any)
-        .from("jeepney_route_variant_stops")
-        .select("variant_id,stop_id,position")
-        .in("variant_id", variantIds)
-        .order("position", { ascending: true });
+      const [membershipResult, speedResult] = await Promise.all([
+        (supabase as any)
+          .from("jeepney_route_variant_stops")
+          .select("variant_id,stop_id,position")
+          .in("variant_id", variantIds)
+          .order("position", { ascending: true }),
+        (supabase as any)
+          .from("jeepney_segment_stats")
+          .select("route_variant_id,segment_index,hour,avg_speed_kph")
+          .eq("route_id", route.id)
+          .eq("hour", currentHour)
+          .in("route_variant_id", variantIds),
+      ]);
       if (cancelled) return;
-      setVariantStops((membershipRows ?? []).map(parseRouteVariantStop));
+
+      setVariantStops((membershipResult.data ?? []).map(parseRouteVariantStop));
+      if (speedResult.error) {
+        setVariantSpeedMaps({});
+        return;
+      }
+
+      const nextSpeedMaps: Record<string, Map<number, number>> = {};
+      for (const row of speedResult.data ?? []) {
+        if (!row.route_variant_id) continue;
+        const speed = Number(row.avg_speed_kph);
+        const index = Number(row.segment_index);
+        if (!Number.isFinite(speed) || speed <= 0 || !Number.isInteger(index) || index < 0) continue;
+        const map = nextSpeedMaps[String(row.route_variant_id)] ?? new Map<number, number>();
+        map.set(index, speed);
+        nextSpeedMaps[String(row.route_variant_id)] = map;
+      }
+      setVariantSpeedMaps(nextSpeedMaps);
     })();
     return () => {
       cancelled = true;
     };
-  }, [route.id]);
+  }, [currentHour, route.id]);
 
   useEffect(() => {
     const ids = Array.from(
@@ -152,8 +185,9 @@ export function JeepneyArrivalSummary({
         const target = aheadStops[0];
         if (!target) return null;
 
-        const variantSpeeds = variant?.is_default ? speeds : new Map<number, number>();
-        const eta = etaMinutesProjected(path, current, target.point, position.speed_kph, variantSpeeds);
+        const historicalVariantSpeeds = variant ? variantSpeedMaps[variant.id] : undefined;
+        const etaSpeeds = historicalVariantSpeeds ?? (variant?.is_default ? speeds : new Map<number, number>());
+        const eta = etaMinutesProjected(path, current, target.point, position.speed_kph, etaSpeeds);
         if (eta === null) return null;
 
         return {
@@ -166,7 +200,7 @@ export function JeepneyArrivalSummary({
       })
       .filter((candidate): candidate is ArrivalCandidate => Boolean(candidate))
       .sort((a, b) => a.eta - b.eta || a.distanceFromUserKm - b.distanceFromUserKm);
-  }, [positions, route.path, route.stops, speeds, userLocation, variantStops, variants]);
+  }, [positions, route.path, route.stops, speeds, userLocation, variantSpeedMaps, variantStops, variants]);
 
   const best = candidates[0] ?? null;
   const bestUnit = best?.position.vehicle_id
