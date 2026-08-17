@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- fleet ownership columns are migration-backed ahead of regenerated Supabase types. */
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,12 @@ type FleetVehicle = {
   plate_number: string | null;
   seats: number | null;
   active: boolean;
+};
+
+type ActiveTrip = {
+  id: string;
+  route_id: string;
+  started_at: string;
 };
 
 export function JeepneyLiveToggle({
@@ -53,20 +60,26 @@ export function JeepneyLiveToggle({
       return;
     }
 
+    if (!operatorId) {
+      setLoadingVehicles(false);
+      setVehicles([]);
+      return;
+    }
+
     let cancelled = false;
     void (async () => {
       setLoadingVehicles(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("jeepney_vehicles")
         .select("id,label,plate_number,seats,active")
-        .eq("route_id", routeId)
+        .eq("operator_id", operatorId)
         .eq("active", true)
         .order("created_at", { ascending: true });
 
       if (cancelled) return;
       setLoadingVehicles(false);
       if (error) {
-        toast.error("Could not load the jeepney units for this route.");
+        toast.error("Could not load this operator's jeepney fleet.");
         return;
       }
 
@@ -78,7 +91,7 @@ export function JeepneyLiveToggle({
     return () => {
       cancelled = true;
     };
-  }, [routeId, vehicleId]);
+  }, [operatorId, vehicleId]);
 
   useEffect(() => {
     return () => {
@@ -118,12 +131,17 @@ export function JeepneyLiveToggle({
       toast.error("Enter the jeepney body/unit number or label first.");
       return;
     }
+    if (!operatorId) {
+      toast.error("Operator identity is required before adding a fleet vehicle.");
+      return;
+    }
 
     setAddingVehicle(true);
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("jeepney_vehicles")
       .insert({
-        route_id: routeId,
+        operator_id: operatorId,
+        route_id: null,
         label,
         plate_number: newPlate.trim() || null,
         active: true,
@@ -142,7 +160,52 @@ export function JeepneyLiveToggle({
     setSelectedVehicleId(row.id);
     setNewUnitLabel("");
     setNewPlate("");
-    toast.success(`${row.label} is ready for live tracking.`);
+    toast.success(`${row.label} was added to the cooperative fleet.`);
+  }
+
+  async function resolveOrStartTrip(unitId: string): Promise<ActiveTrip | null> {
+    if (!operatorId) {
+      toast.error("Operator identity is required to start an operational trip.");
+      return null;
+    }
+
+    const { data: existing, error: existingError } = await (supabase as any)
+      .from("jeepney_trips")
+      .select("id,route_id,started_at")
+      .eq("vehicle_id", unitId)
+      .is("ended_at", null)
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingError) {
+      toast.error("Could not check this jeepney's active trip.");
+      return null;
+    }
+
+    if (existing) {
+      const trip = existing as ActiveTrip;
+      if (trip.route_id !== routeId) {
+        toast.error(
+          "This jeepney is already active on another route. End that trip before assigning it here.",
+        );
+        return null;
+      }
+      return trip;
+    }
+
+    const { data, error } = await (supabase as any)
+      .from("jeepney_trips")
+      .insert({ route_id: routeId, operator_id: operatorId, vehicle_id: unitId })
+      .select("id,route_id,started_at")
+      .maybeSingle();
+
+    if (error || !data) {
+      toast.error("Could not start the trip assignment. The unit may already be active elsewhere.");
+      return null;
+    }
+
+    return data as ActiveTrip;
   }
 
   async function start() {
@@ -157,27 +220,17 @@ export function JeepneyLiveToggle({
       return;
     }
 
+    const trip = await resolveOrStartTrip(unitId);
+    if (!trip) return;
+
+    tripIdRef.current = trip.id;
     activeVehicleIdRef.current = unitId;
     distanceRef.current = 0;
     pingsRef.current = 0;
     lastPointRef.current = null;
     lastPushRef.current = 0;
-    startedRef.current = Date.now();
+    startedRef.current = new Date(trip.started_at).getTime() || Date.now();
     setDistanceKm(0);
-
-    if (operatorId) {
-      const { data, error } = await supabase
-        .from("jeepney_trips")
-        .insert({ route_id: routeId, operator_id: operatorId, vehicle_id: unitId })
-        .select("id")
-        .maybeSingle();
-      if (error) {
-        activeVehicleIdRef.current = null;
-        toast.error("Could not start the trip record. Please try again.");
-        return;
-      }
-      tripIdRef.current = data?.id ?? null;
-    }
 
     watchRef.current = navigator.geolocation.watchPosition(
       async (pos) => {
@@ -207,7 +260,7 @@ export function JeepneyLiveToggle({
           source: "phone",
         });
         if (error) {
-          toast.error("Could not send your location. Check your connection.");
+          toast.error("Could not send your location. Check your connection or active trip.");
           return;
         }
         pingsRef.current += 1;
@@ -227,8 +280,8 @@ export function JeepneyLiveToggle({
     const label = vehicles.find((unit) => unit.id === unitId)?.label;
     toast.success(
       label
-        ? `${label} is live — riders can track this jeepney independently.`
-        : "You are live — riders can see this jeepney on the map.",
+        ? `${label} is serving this route — riders can track it independently.`
+        : "This jeepney is live on the assigned route.",
     );
   }
 
@@ -251,7 +304,7 @@ export function JeepneyLiveToggle({
               ? lastSent
                 ? `Last ping ${lastSent.toLocaleTimeString()} · ${distanceKm.toFixed(1)} km this shift`
                 : "Waiting for your first GPS fix…"
-              : "Choose the actual jeepney unit, then go live. Keep this tab open."}
+              : "Choose a fleet jeepney, then start this route assignment and phone GPS."}
           </p>
         </div>
         <Button
@@ -277,7 +330,7 @@ export function JeepneyLiveToggle({
               onChange={(event) => setSelectedVehicleId(event.target.value)}
               className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
             >
-              <option value="">Select a unit</option>
+              <option value="">Select a fleet unit</option>
               {vehicles.map((unit) => (
                 <option key={unit.id} value={unit.id}>
                   {unit.label}{unit.plate_number ? ` · ${unit.plate_number}` : ""}
@@ -285,10 +338,10 @@ export function JeepneyLiveToggle({
               ))}
             </select>
           ) : loadingVehicles ? (
-            <p className="text-xs text-muted-foreground">Loading fleet units…</p>
+            <p className="text-xs text-muted-foreground">Loading cooperative fleet…</p>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Add the first physical jeepney for this route. Each phone/tracker must use its own unit.
+              Add the first physical jeepney to this operator's fleet. It can later serve any approved route.
             </p>
           )}
 
@@ -320,16 +373,17 @@ export function JeepneyLiveToggle({
 
           {selectedVehicle && !live ? (
             <p className="text-[11px] text-emerald-700">
-              GPS will identify this phone as {selectedVehicle.label} for the entire shift.
+              {selectedVehicle.label} will be assigned to this route through an active trip, not permanently attached to it.
             </p>
           ) : null}
         </div>
       ) : null}
 
       <p className="mt-2 text-[11px] text-muted-foreground">
-        Every shift feeds route analytics — busy hours, trends and traffic congestion. A unique vehicle
-        ID also lets multiple jeepneys on the same route appear separately. Tracking stops if the browser
-        is closed; a hardwired tracker removes that limit.
+        The active trip is the authoritative route assignment for this vehicle. Every shift feeds route
+        analytics, and the same fleet jeepney can serve a different route after this trip is ended.
+        Phone tracking stops if the browser is closed; a hardwired tracker continues reporting through
+        the same active-trip assignment.
       </p>
     </div>
   );
