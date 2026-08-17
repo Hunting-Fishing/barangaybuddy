@@ -1,6 +1,6 @@
 # Barangay Buddy Jeepney Mobility Platform
 
-**Status:** Active build — multi-vehicle rider tracking + hardware foundation implemented in code  
+**Status:** Active build — multi-vehicle rider tracking, phone fleet identity, GPS hardware foundation and admin controls implemented in code  
 **Working branch:** `feature/jeepney-planner-live-route-ui`  
 **Open PR:** #3 → `main`  
 **Last updated:** 2026-08-17
@@ -13,7 +13,7 @@ Build Barangay Buddy into a **device-agnostic Philippine public-transport teleme
 
 - free commuter route discovery and live jeepney tracking;
 - multiple simultaneous vehicles per route;
-- pickup ETAs, stops, service hours and alerts;
+- pickup ETAs, stops, fares, schedules and service alerts;
 - driver-phone GPS fallback;
 - Barangay Buddy branded hardwired GPS hardware;
 - existing cooperative/vendor GPS integrations;
@@ -28,7 +28,7 @@ Build Barangay Buddy into a **device-agnostic Philippine public-transport teleme
 
 ## 2. Current code status
 
-### Existing foundation
+### Existing product foundation
 
 - [x] Public `/jeepney` route directory and map
 - [x] `/jeepney/$slug` route detail
@@ -44,24 +44,26 @@ Build Barangay Buddy into a **device-agnostic Philippine public-transport teleme
 - [x] Rider route follows
 - [x] Route claims/admin review
 - [x] OpenStreetMap route import
+- [x] Fare lines
+- [x] Day schedules
+- [x] Rental support
+- [x] Service calendar
+- [x] Stop photos
 
 ### Multi-vehicle rider tracking — implemented
 
-- [x] Replaced route-keyed live state with stable broadcaster/vehicle-keyed live state
-- [x] Preserve latest live GPS report independently for each `vehicle_id`
-- [x] Keep one compatibility stream per route for legacy phone reports without `vehicle_id`
-- [x] Render every current vehicle marker on overview map
-- [x] Render every current vehicle marker on route-detail map
-- [x] Route cards show number of live GPS units
-- [x] Route detail shows number of live units
-- [x] Independent per-unit speed and last-seen display
-- [x] Five-minute stale rule remains enforced
-- [x] Realtime INSERT updates merge into the correct vehicle stream
+- [x] Live state retains one latest position per vehicle instead of one per route
+- [x] Realtime INSERTs merge into the correct vehicle stream
 - [x] Polling fallback rebuilds latest position per vehicle
-- [x] Route detail ranks approaching vehicles by ETA
-- [x] Rider geolocation ranks vehicles against the nearest mapped stop
+- [x] Every active vehicle renders independently on overview and route-detail maps
+- [x] Route cards/details report live vehicle count
+- [x] Five-minute stale rule remains enforced
+- [x] Live ETA list ranks approaching vehicles
+- [x] Rider location selects nearest mapped stop for ETA ranking
+- [x] Actual fleet unit/body labels resolve on map and live ETA list
+- [x] UUID fragment remains only as fallback when no label can be resolved
 
-Implementation files:
+Implementation:
 
 - `src/lib/jeepney-live.ts`
 - `src/components/jeepney-map.tsx`
@@ -69,15 +71,19 @@ Implementation files:
 - `src/routes/jeepney.index.tsx`
 - `src/routes/jeepney.$slug.tsx`
 
-### Multi-vehicle limitations still to solve
+### Phone GPS fleet identity — implemented
 
-- [ ] Use actual fleet body/unit label rather than shortened vehicle UUID in public UI
-- [ ] Detect outbound vs inbound/return direction
-- [ ] Add route variants/directions
-- [ ] Improve path projection beyond nearest route node
-- [ ] Model stop dwell time
-- [ ] Add headway/bunching to ETA confidence
-- [ ] Add automated rider smoke tests with several vehicles on one route
+`src/components/jeepney-live-toggle.tsx`
+
+- [x] Operator selects the actual jeepney unit before going live
+- [x] Operator can create a body/unit record if none exists
+- [x] Optional plate number can be recorded
+- [x] Vehicle identity is locked for the duration of the shift
+- [x] `jeepney_trips.vehicle_id` is populated
+- [x] Every phone GPS position includes `vehicle_id`
+- [x] Multiple driver phones can therefore coexist on the same route without collapsing into a single route-level stream
+
+Legacy `vehicle_id = null` reports remain readable as compatibility data, but new operator phone shifts should use a real fleet vehicle.
 
 ---
 
@@ -123,11 +129,11 @@ TRANSPORT CORE
 
 ---
 
-## 4. Hardware foundation — implemented
+## 4. GPS hardware foundation — implemented
 
 Migration:
 
-- `supabase/migrations/20260817215000_jeepney_hardware_foundation.sql`
+`supabase/migrations/20260817215000_jeepney_hardware_foundation.sql`
 
 Tables:
 
@@ -135,7 +141,7 @@ Tables:
 - [x] `jeepney_device_assignments`
 - [x] `jeepney_device_ingest_receipts`
 
-Device record supports:
+Device data supports:
 
 - operator ownership;
 - public device ID;
@@ -154,7 +160,7 @@ Device record supports:
 - latest event type;
 - private metadata.
 
-Public `jeepney_positions` does **not** expose raw tracker credentials or detailed hardware identity. Restricted ingest receipts map accepted positions to physical devices for audit purposes.
+Public rider positions do **not** contain tracker secrets or detailed device authentication data.
 
 ---
 
@@ -162,46 +168,118 @@ Public `jeepney_positions` does **not** expose raw tracker credentials or detail
 
 ### `POST /api/telematics/v1/provision`
 
-Admin-only provisioning flow:
+Admin-only provisioning:
 
 1. Authenticate user.
 2. Require admin role.
-3. Generate 256-bit random device secret.
+3. Generate 256-bit random tracker secret.
 4. Store only SHA-256 hash.
 5. Return original secret once.
-6. Optionally install device onto a vehicle.
+6. Optionally install tracker on a vehicle.
 
 ### `POST /api/telematics/v1/ingest`
 
-Tracker flow:
+Tracker ingest:
 
-1. Send `x-bb-device-id`.
-2. Send `x-bb-device-secret`.
-3. Validate hashed credential server-side.
-4. Validate telemetry payload/timestamp.
-5. Reject suspended/retired tracker.
-6. Resolve current device-to-vehicle installation.
-7. Prefer active trip for route association.
-8. Temporarily fall back to legacy `jeepney_vehicles.route_id`.
-9. Write `source = hardware` to `jeepney_positions`.
-10. Update device health.
-11. Store restricted ingest receipt.
+1. Authenticate `x-bb-device-id` + secret.
+2. Validate telemetry payload and device timestamp.
+3. Reject suspended/retired tracker.
+4. Deduplicate by optional device sequence.
+5. Resolve current tracker-to-vehicle installation.
+6. Prefer active trip for route association.
+7. Temporarily fall back to legacy `jeepney_vehicles.route_id`.
+8. Write normalized `source = hardware` position.
+9. Update tracker health.
+10. Store restricted ingest receipt.
 
 Trackers never receive Supabase service-role credentials.
 
-### Production hardening still required
+### `GET /api/telematics/v1/devices`
 
-- [ ] HMAC/signed requests where supported
-- [ ] transactional replay/dedup protection
-- [ ] secret rotation
-- [ ] per-device rate limiting
-- [ ] device revoke/suspend UI
-- [ ] provisioning audit UI
-- [ ] anomaly detection
+Admin-only fleet-health API:
+
+- [x] validates Supabase access token;
+- [x] requires `user_roles.role = admin`;
+- [x] reads sensitive device health only server-side;
+- [x] returns device/assignment/operator/vehicle/route data needed by the admin console;
+- [x] does not relax public RLS on hardware tables.
 
 ---
 
-## 6. Permanent data model target
+## 6. GPS admin console — implemented
+
+`src/components/jeepney-gps-admin.tsx`  
+Integrated into `src/routes/jeepney.admin.tsx`.
+
+Admins can:
+
+- [x] provision a tracker;
+- [x] assign it to an operator/cooperative;
+- [x] optionally install it to a vehicle immediately;
+- [x] enter IMEI, ICCID, manufacturer, model and firmware;
+- [x] receive/copy the one-time device secret;
+- [x] see total/online/delayed/offline tracker counts;
+- [x] view last-seen time;
+- [x] view speed;
+- [x] view ignition state;
+- [x] view external voltage;
+- [x] view backup battery;
+- [x] view cellular signal;
+- [x] view GPS accuracy;
+- [x] view last coordinates/event and installation identity.
+
+The console refreshes device health every 30 seconds.
+
+---
+
+## 7. Route publication/status security — implemented in migration
+
+Migration:
+
+`supabase/migrations/20260817222500_jeepney_route_status_security.sql`
+
+The original route RLS checked operator ownership but did not constrain the `status` column. An operator could therefore attempt to self-promote a route to `published`.
+
+New database trigger enforces:
+
+### Operator-created routes
+
+Allowed initial states:
+
+- `draft`
+- `pending`
+
+Operators cannot directly create `published` routes.
+
+### Operator status transitions
+
+Allowed:
+
+```text
+draft -> pending
+pending -> draft
+published -> suspended
+suspended -> published
+```
+
+The production transitions preserve the existing breakdown/repaired workflow for already-approved routes.
+
+Other transitions require admin/server authority.
+
+### Suspended-route public access
+
+Public read policies now allow both:
+
+```text
+published
+suspended
+```
+
+for routes and their associated public stops, vehicles and positions. This keeps an outage page accessible to riders instead of making the route disappear solely because service was suspended.
+
+---
+
+## 8. Permanent data model target
 
 Permanent fleet identity:
 
@@ -215,22 +293,22 @@ Operational assignment:
 vehicle -> trip -> route_variant
 ```
 
-A vehicle must **not** permanently equal one route. `jeepney_vehicles.route_id` remains only as temporary compatibility while trip-based assignment becomes authoritative.
+A vehicle must **not** permanently equal one route. `jeepney_vehicles.route_id` remains a compatibility field while active trips become authoritative.
 
-Future tables/features:
+Future core additions:
 
-- [ ] route variants/directions
 - [ ] cooperative organization model
+- [ ] route variants / directions
 - [ ] dedicated SIM lifecycle if needed
-- [ ] installation photos / tamper seal records
+- [ ] installation photos/tamper-seal records
 - [ ] partner integrations
 - [ ] scoped API clients
 
 ---
 
-## 7. ETA roadmap
+## 9. ETA / routing roadmap
 
-Current ETA uses route progress + speed and available segment-speed history.
+Current implementation already supports per-vehicle ETA using route progress, live speed and available segment-speed history.
 
 Upgrade order:
 
@@ -245,7 +323,7 @@ Upgrade order:
 
 ---
 
-## 8. Fleet/cooperative dashboard target
+## 10. Fleet/cooperative dashboard target
 
 Show:
 
@@ -265,9 +343,11 @@ Show:
 - service hours;
 - exports/API.
 
+The current GPS admin console is the first device-health foundation; a cooperative dispatcher experience remains separate work.
+
 ---
 
-## 9. Government / partner view
+## 11. Government / partner view
 
 Read-only and scope-controlled by agreement/jurisdiction:
 
@@ -287,7 +367,7 @@ Do not expose unnecessary driver personal data on the public rider map.
 
 ---
 
-## 10. Hardware sourcing
+## 12. Hardware sourcing
 
 Primary sample candidates:
 
@@ -305,11 +385,11 @@ RFQ quantities:
 - 1,000-unit production pricing;
 - Barangay Buddy logo/casing/packaging MOQ.
 
-Required vendor capabilities:
+Required capabilities:
 
 - Philippine-compatible LTE;
 - direct IP/domain + port configuration;
-- raw device protocol documentation;
+- raw protocol documentation;
 - TCP/UDP and preferably MQTT/TLS;
 - configurable 10–15 sec moving reports;
 - offline buffering/resend;
@@ -325,7 +405,7 @@ Required vendor capabilities:
 
 ---
 
-## 11. Regulatory workstream
+## 13. Regulatory workstream
 
 Primary agencies:
 
@@ -352,13 +432,15 @@ Government positioning:
 
 ---
 
-## 12. Commercial model
+## 14. Commercial model
 
 ### Rider
 
 Free.
 
-### Operator/cooperative revenue
+### Operator/cooperative
+
+Potential revenue:
 
 - free/basic phone tracking;
 - per-active-vehicle fleet subscription;
@@ -374,60 +456,63 @@ Current `₱100/month per route` can remain for MVP/pilot but should not define 
 
 ---
 
-## 13. Build phases
+## 15. Build phases
 
-### Phase 0 — Branch stabilization
+### Phase 0 — Branch/deployment stabilization
 
-- [ ] Resolve PR #3 mergeability/conflicts with `main`
-- [ ] Run build/lint after conflict resolution
-- [ ] Verify all migrations in target Supabase project
+- [x] Merge current `main` history into the feature branch without overwriting newer Jeepney work
+- [x] Preserve newer main features: fares, schedules, rentals, stop photos and service calendar
+- [ ] Resolve why GitHub PR #3 still reports `mergeable: false` even though current `main` is contained in feature history
+- [ ] Run build/type/lint in a functioning CI/local environment
+- [ ] Apply/verify migrations in target Supabase project
 - [ ] Verify production deployment branch
-- [ ] Add smoke tests
+- [ ] Add automated smoke tests
 
 ### Phase 1 — Multi-vehicle rider tracking
 
 - [x] Vehicle-keyed live state
 - [x] Multiple map markers per route
-- [x] Overview live vehicle counts
-- [x] Route-detail live vehicle counts
+- [x] Live fleet counts
 - [x] Independent speed/last-seen
 - [x] Stale pruning
-- [x] Realtime merge by vehicle
+- [x] Realtime merge per vehicle
 - [x] Polling latest-per-vehicle
 - [x] Approaching vehicle list
 - [x] Nearest-stop ETA ranking
-- [ ] Actual body/unit number lookup
+- [x] Fleet body/unit labels
+- [x] Phone shifts tied to fleet vehicle IDs
 - [ ] Direction/return-route support
 - [ ] Automated multi-vehicle tests
 
 ### Phase 2 — Hardware foundation
 
-- [x] Hardware architecture
-- [x] GPS device schema
-- [x] Device assignment schema
+- [x] Device schema
+- [x] Assignment schema
 - [x] Restricted ingest receipts
-- [x] Secure JSON ingest endpoint
+- [x] Secure JSON ingest
 - [x] Hashed device secrets
 - [x] Device health updates
-- [x] Admin provisioning endpoint
+- [x] Admin provisioning API
+- [x] Admin fleet-health API
+- [x] Admin provisioning UI
+- [x] Admin device-health UI
 - [x] Preserve phone tracker fallback
-- [ ] Admin/operator provisioning UI
-- [ ] Device health UI
-- [ ] Secret rotation/revoke
+- [ ] Secret rotation/revoke UI
 - [ ] Transactional dedup/rate limiting
+- [ ] Vendor protocol adapters
 
 ### Phase 3 — Vehicle / route decoupling
 
-- [ ] Permanent vehicle fleet identity
+- [x] Begin treating vehicle as a real fleet identity in phone tracking
 - [ ] Active trip authoritative for route assignment everywhere
+- [ ] Remove permanent route dependence from vehicle model
 - [ ] Route variants/directions
-- [ ] Hardware-compatible automatic trip lifecycle
+- [ ] Automatic hardware trip lifecycle
 
 ### Phase 4 — Fleet control
 
 - [ ] Cooperative organization/fleet model
 - [ ] Dispatcher dashboard
-- [ ] Device-health board
 - [ ] Headway/bunching detection
 - [ ] Route deviation
 - [ ] Offline tracker alerts
@@ -462,25 +547,25 @@ Current `₱100/month per route` can remain for MVP/pilot but should not define 
 
 ---
 
-## 14. Immediate implementation queue
+## 16. Immediate implementation queue
 
-1. **Resolve PR #3 merge conflict/mergeability against `main`.**
-2. **Apply/verify new hardware migration in the target Supabase project.**
-3. Build admin/operator GPS provisioning + device-health UI.
-4. Harden route publication/status authorization.
-5. Move vehicle route assignment fully to active trips.
+1. **Get a real build/typecheck against the current feature head.**
+2. **Apply and verify the two 2026-08-17 migrations in the target Supabase project.**
+3. Investigate GitHub PR #3 `mergeable: false` state after the explicit `main` merge commit.
+4. Add tracker secret rotation, suspend/revoke and assignment-management actions.
+5. Make active trip the authoritative route assignment everywhere.
 6. Add route direction/variants and proper geometry projection.
-7. Add cooperative fleet dashboard/headway monitoring.
-8. Obtain sample tracker protocol documentation and begin adapters.
+7. Add cooperative dispatcher/headway monitoring.
+8. Obtain sample tracker protocol documentation and begin vendor adapters.
 9. Run 5–25 vehicle pilot.
 
 ---
 
-## 15. Implementation log
+## 17. Implementation log
 
 ### 2026-08-17 — Architecture/audit
 
-- Audited Jeepney Planner branch.
+- Audited existing Jeepney Planner branch.
 - Identified one-marker-per-route limitation.
 - Established device-agnostic telemetry architecture.
 - Established regulatory/hardware sourcing workstreams.
@@ -495,35 +580,61 @@ Current `₱100/month per route` can remain for MVP/pilot but should not define 
 - Added `/api/telematics/v1/provision`.
 - Added active-trip-first route resolution with temporary legacy fallback.
 
-### 2026-08-17 — Multi-vehicle rider P0
+### 2026-08-17 — Multi-vehicle rider tracking
 
 - Added `src/lib/jeepney-live.ts`.
-- Live state now retains latest position per vehicle instead of per route.
-- Realtime updates merge by vehicle identity.
-- Polling rebuilds latest positions independently.
-- Overview map renders every active unit.
-- Route detail renders every active unit.
-- Route cards/detail report live fleet count.
-- Added per-unit speed and last-seen UI.
+- Realtime state now retains latest position per vehicle instead of per route.
+- Overview and route detail render every active unit.
 - Added approaching-vehicle ETA list.
-- Rider location selects nearest mapped stop and sorts approaching vehicles by ETA.
-- Kept legacy phone broadcasts compatible when `vehicle_id` is missing.
+- Rider location selects nearest mapped stop and sorts approaching units by ETA.
+- Live map and ETA cards resolve real body/unit labels.
+
+### 2026-08-17 — Main-history preservation
+
+- Feature branch had fallen substantially behind `main`.
+- Created an explicit two-parent merge commit using current `main` as a parent.
+- Preserved newer main Jeepney features while layering telematics/multi-vehicle code on top.
+- Did not force-overwrite `main`.
+
+### 2026-08-17 — GPS administration
+
+- Added `/api/telematics/v1/devices` admin-only health endpoint.
+- Added GPS provisioning/health console to `/jeepney/admin`.
+- Added one-time secret handling and fleet health telemetry views.
+
+### 2026-08-17 — Route status security
+
+- Confirmed original operator RLS did not constrain the route `status` field.
+- Added `20260817222500_jeepney_route_status_security.sql`.
+- Prevented operator self-publication of draft/pending routes.
+- Preserved approved-route breakdown/recovery transitions.
+- Kept suspended routes publicly readable.
+
+### 2026-08-17 — Phone fleet identity
+
+- Added unit selection/creation to phone live tracking.
+- Phone trips and GPS pings now carry the real `vehicle_id`.
+- Vehicle identity is fixed for the shift.
+- This removes the remaining normal operator-phone path that collapsed multiple jeepneys into one anonymous route stream.
 
 ### Validation state
 
-- GitHub currently reports no CI status checks for the latest branch commit.
-- PR #3 is currently reported as **open, unmerged and not mergeable** against `main`; conflict resolution/branch stabilization is therefore the next gate before production merge.
-- Hardware migration and production deployment still require verification in the target environment.
+- PR #3 remains **open and unmerged**.
+- GitHub currently reports `mergeable: false`; this requires investigation rather than force-merging.
+- The repository currently exposes no usable CI result for these latest changes through the connected tooling.
+- The working container cannot reach GitHub directly, so a local clone/build could not be used as a substitute.
+- New migrations are committed but still need confirmation/application in the target Supabase project before production use.
 
 ---
 
-## 16. Pilot success criteria
+## 18. Pilot success criteria
 
 For a 5–25 vehicle pilot:
 
 - >99% accepted telemetry while cellular service is available;
 - offline buffer/resend demonstrated;
 - all simultaneous active vehicles visible independently;
+- real unit/body identity shown to rider/dispatcher;
 - secure tracker-to-vehicle identity;
 - stale/offline detection;
 - accurate route/trip/direction association;
