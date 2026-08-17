@@ -15,7 +15,7 @@
 
 - [ ] Phase 3 fleet migrations applied in timestamp order.
 - [ ] Phase 4 route-direction and variant-analytics migrations applied in timestamp order.
-- [ ] Gateway and direct-device atomic-ingest migrations applied in timestamp order.
+- [ ] Gateway/direct-device atomic-ingest and telemetry-rate-limit migrations applied in timestamp order.
 - [ ] `supabase/verification/jeepney_phase3_phase4_checks.sql` returns zero violations.
 - [ ] `supabase/verification/jeepney_gateway_checks.sql` returns zero violations.
 
@@ -46,6 +46,7 @@
 - [x] Supported integrations use only `/api/telematics/v1/gateway-ingest-v2`.
 - [x] v2 atomically reserves the sequence, inserts the rider position and completes the private receipt.
 - [x] The database transaction revalidates gateway, mapping, physical vehicle, active trip, route and direction identity.
+- [x] Incomplete historical receipts fail closed rather than returning false duplicate success.
 
 ### Direct Barangay Buddy hardware ingest — CLEARED IN SOURCE
 
@@ -53,10 +54,23 @@
 - [x] `jeepney_commit_device_telemetry(...)` repeats tracker → installation → vehicle → open trip → route → direction checks inside PostgreSQL.
 - [x] Sequence reservation + rider position + private device receipt commit atomically.
 - [x] Concurrent sequence replay returns the original immutable receipt/position identity.
+- [x] Incomplete historical receipts fail closed.
 - [x] Sequence-less legacy reports remain atomic but are explicitly not considered replay-deduplicated.
 - [x] Added `scripts/jeepney-hardware-smoke.mjs`.
 - [x] Verification flags any direct-device receipt missing its public position or disagreeing with position identity.
 - [ ] Pilot hardware must send stable sequence keys and pass replay smoke test.
+
+### Authenticated telemetry burst protection — CLEARED IN SOURCE
+
+- [x] Added distributed fixed-minute rate windows in PostgreSQL.
+- [x] Default ceiling is 300 authenticated requests/minute per physical source.
+- [x] Direct tracker bucket identity is `device:<device UUID>`.
+- [x] Gateway bucket identity is `gateway:<gateway UUID>:<mapped external vehicle ID>`.
+- [x] Gateway rate bucket is allocated only after the external ID resolves to an active mapping.
+- [x] Duplicate/replay requests count against the ceiling.
+- [x] Over-limit requests return HTTP 429 with `Retry-After`.
+- [x] Rate-window cleanup is opportunistic and does not require a separate scheduler.
+- [ ] Pilot buffered reconnect must confirm the 300/minute ceiling is sufficient for the selected hardware/vendor behavior.
 
 ### Variant-specific congestion — CLEARED IN SOURCE
 
@@ -77,6 +91,7 @@
 - [ ] Direct hardware sequence replay returns `duplicate:true` with original position/trip/variant identity.
 - [ ] External gateway v2 produces the same identity model.
 - [ ] Same gateway sequence replay returns `duplicate:true` with the original position.
+- [ ] Telemetry request 301 within one source/minute returns 429 while other source buckets remain unaffected.
 - [ ] Unmapped external vehicle is rejected.
 - [ ] Mapped vehicle without an active trip is rejected.
 - [ ] Suspended/retired gateway is rejected.
