@@ -44,6 +44,14 @@ BEGIN
 END
 $$;
 
+-- Hardware audit rows should record the exact operational trip that resolved the
+-- route. This is private metadata and is not exposed through public positions.
+ALTER TABLE public.jeepney_device_ingest_receipts
+  ADD COLUMN IF NOT EXISTS trip_id uuid REFERENCES public.jeepney_trips(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS jeepney_device_ingest_trip_idx
+  ON public.jeepney_device_ingest_receipts (trip_id, server_received_at DESC)
+  WHERE trip_id IS NOT NULL;
+
 -- Historical browser sessions could leave more than one open trip. Keep the
 -- newest as authoritative and close older duplicates before adding the guard.
 WITH ranked_open_trips AS (
@@ -71,8 +79,8 @@ CREATE INDEX IF NOT EXISTS jeepney_trips_vehicle_started_idx
   ON public.jeepney_trips (vehicle_id, started_at DESC);
 
 -- Enforce trip consistency at the database boundary. The active trip is now the
--- operational assignment of a physical fleet vehicle to a published/suspended
--- route; switching routes means ending one trip and starting another.
+-- operational assignment of a physical fleet vehicle to a route; switching
+-- routes means ending one trip and starting another.
 CREATE OR REPLACE FUNCTION private.jeepney_guard_trip_assignment()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -140,6 +148,7 @@ FOR EACH ROW EXECUTE FUNCTION private.jeepney_guard_trip_assignment();
 
 -- Fleet ownership is no longer inferred through vehicle.route_id.
 DROP POLICY IF EXISTS "Operator manages own vehicles" ON public.jeepney_vehicles;
+DROP POLICY IF EXISTS "Operator manages own fleet vehicles" ON public.jeepney_vehicles;
 CREATE POLICY "Operator manages own fleet vehicles"
 ON public.jeepney_vehicles FOR ALL TO authenticated
 USING (
@@ -161,6 +170,7 @@ WITH CHECK (
 -- serving a public route. Retain legacy route visibility during migration.
 DROP POLICY IF EXISTS "Vehicles of published routes are public" ON public.jeepney_vehicles;
 DROP POLICY IF EXISTS "Vehicles of public routes are public" ON public.jeepney_vehicles;
+DROP POLICY IF EXISTS "Active public-service vehicles are visible" ON public.jeepney_vehicles;
 CREATE POLICY "Active public-service vehicles are visible"
 ON public.jeepney_vehicles FOR SELECT TO anon, authenticated
 USING (
@@ -184,6 +194,7 @@ USING (
 -- different cooperative's route or vehicle. Historical vehicle-less trips stay
 -- editable/closable, but new inserts are rejected by the trigger above.
 DROP POLICY IF EXISTS "Operators manage their own trips" ON public.jeepney_trips;
+DROP POLICY IF EXISTS "Operators manage consistent own trips" ON public.jeepney_trips;
 CREATE POLICY "Operators manage consistent own trips"
 ON public.jeepney_trips FOR ALL TO authenticated
 USING (
@@ -214,27 +225,30 @@ WITH CHECK (
   )
 );
 
--- Phone GPS writes must use a fleet vehicle owned by the same operator as the
--- route. Hardware writes use the server/service role and are validated by the
--- ingest gateway plus the active-trip lookup.
+-- Phone GPS writes now require the same active trip used by hardware. An
+-- authenticated operator cannot post a fleet vehicle onto an arbitrary route.
+-- Hardware writes use service_role and are independently validated by the ingest
+-- gateway before reaching jeepney_positions.
 DROP POLICY IF EXISTS "Operator posts own positions" ON public.jeepney_positions;
+DROP POLICY IF EXISTS "Operator posts positions for own active fleet" ON public.jeepney_positions;
 CREATE POLICY "Operator posts positions for own active fleet"
 ON public.jeepney_positions FOR INSERT TO authenticated
 WITH CHECK (
-  EXISTS (
+  jeepney_positions.vehicle_id IS NOT NULL
+  AND EXISTS (
     SELECT 1
     FROM public.jeepney_routes r
     JOIN public.jeepney_operators o ON o.id = r.operator_id
+    JOIN public.jeepney_vehicles v
+      ON v.id = jeepney_positions.vehicle_id
+     AND v.operator_id = r.operator_id
+     AND v.active = true
+    JOIN public.jeepney_trips t
+      ON t.vehicle_id = v.id
+     AND t.route_id = r.id
+     AND t.operator_id = r.operator_id
+     AND t.ended_at IS NULL
     WHERE r.id = jeepney_positions.route_id
       AND o.user_id = auth.uid()
-      AND (
-        jeepney_positions.vehicle_id IS NULL
-        OR EXISTS (
-          SELECT 1 FROM public.jeepney_vehicles v
-          WHERE v.id = jeepney_positions.vehicle_id
-            AND v.operator_id = r.operator_id
-            AND v.active = true
-        )
-      )
   )
 );
