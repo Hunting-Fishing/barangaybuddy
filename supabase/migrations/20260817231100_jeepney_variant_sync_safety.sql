@@ -1,6 +1,7 @@
 -- Phase 4 safety corrections applied immediately after route-variant creation.
 -- 1) Allow the route.path -> default variant sync trigger to update canonical path.
--- 2) Do not require future route-stop position values to be globally unique; a
+-- 2) Freeze a variant's geometry/availability while a live trip depends on it.
+-- 3) Do not require future route-stop position values to be globally unique; a
 --    stable ordering index is sufficient and is more tolerant of legacy editors.
 
 CREATE OR REPLACE FUNCTION private.jeepney_guard_route_variant()
@@ -11,10 +12,21 @@ SET search_path = public, pg_temp
 AS $$
 DECLARE
   canonical_path jsonb;
+  has_open_trip boolean := false;
 BEGIN
   IF TG_OP = 'DELETE' THEN
     IF OLD.is_default THEN
       RAISE EXCEPTION 'The default route variant cannot be deleted'
+        USING ERRCODE = '23514';
+    END IF;
+
+    SELECT EXISTS (
+      SELECT 1 FROM public.jeepney_trips t
+      WHERE t.route_variant_id = OLD.id
+        AND t.ended_at IS NULL
+    ) INTO has_open_trip;
+    IF has_open_trip THEN
+      RAISE EXCEPTION 'End all active trips before deleting this route direction'
         USING ERRCODE = '23514';
     END IF;
     RETURN OLD;
@@ -28,6 +40,19 @@ BEGIN
   IF OLD.is_default AND NEW.is_default IS FALSE THEN
     RAISE EXCEPTION 'The canonical default route variant cannot be unset'
       USING ERRCODE = '23514';
+  END IF;
+
+  IF NEW.path IS DISTINCT FROM OLD.path
+     OR (OLD.active = true AND NEW.active = false) THEN
+    SELECT EXISTS (
+      SELECT 1 FROM public.jeepney_trips t
+      WHERE t.route_variant_id = OLD.id
+        AND t.ended_at IS NULL
+    ) INTO has_open_trip;
+    IF has_open_trip THEN
+      RAISE EXCEPTION 'End all active trips before changing this route direction'
+        USING ERRCODE = '23514';
+    END IF;
   END IF;
 
   IF OLD.is_default AND NEW.path IS DISTINCT FROM OLD.path THEN
