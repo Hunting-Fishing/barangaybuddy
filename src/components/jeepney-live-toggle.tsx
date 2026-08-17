@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- fleet ownership columns are migration-backed ahead of regenerated Supabase types. */
-import { useEffect, useRef, useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any -- fleet/variant columns are migration-backed ahead of regenerated Supabase types. */
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,12 +17,30 @@ type FleetVehicle = {
   active: boolean;
 };
 
+type RouteVariant = {
+  id: string;
+  route_id: string;
+  code: string;
+  name: string;
+  direction: "outbound" | "inbound" | "loop" | "custom";
+  is_default: boolean;
+  active: boolean;
+};
+
 type ActiveTrip = {
   id: string;
   route_id: string;
+  route_variant_id: string;
   started_at: string;
   createdByPhone: boolean;
 };
+
+function directionLabel(direction: RouteVariant["direction"]) {
+  if (direction === "outbound") return "Outbound";
+  if (direction === "inbound") return "Inbound / return";
+  if (direction === "loop") return "Loop";
+  return "Custom direction";
+}
 
 export function JeepneyLiveToggle({
   routeId,
@@ -37,14 +55,18 @@ export function JeepneyLiveToggle({
   const [lastSent, setLastSent] = useState<Date | null>(null);
   const [distanceKm, setDistanceKm] = useState(0);
   const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
+  const [variants, setVariants] = useState<RouteVariant[]>([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState(vehicleId ?? "");
+  const [selectedVariantId, setSelectedVariantId] = useState("");
   const [loadingVehicles, setLoadingVehicles] = useState(true);
+  const [loadingVariants, setLoadingVariants] = useState(true);
   const [newUnitLabel, setNewUnitLabel] = useState("");
   const [newPlate, setNewPlate] = useState("");
   const [addingVehicle, setAddingVehicle] = useState(false);
   const watchRef = useRef<number | null>(null);
   const lastPushRef = useRef(0);
   const tripIdRef = useRef<string | null>(null);
+  const activeVariantIdRef = useRef<string | null>(null);
   const tripCreatedByPhoneRef = useRef(false);
   const lastPointRef = useRef<LatLng | null>(null);
   const distanceRef = useRef(0);
@@ -55,6 +77,37 @@ export function JeepneyLiveToggle({
   useEffect(() => {
     if (vehicleId) setSelectedVehicleId(vehicleId);
   }, [vehicleId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      setLoadingVariants(true);
+      const { data, error } = await (supabase as any)
+        .from("jeepney_route_variants")
+        .select("id,route_id,code,name,direction,is_default,active")
+        .eq("route_id", routeId)
+        .eq("active", true)
+        .order("created_at", { ascending: true });
+
+      if (cancelled) return;
+      setLoadingVariants(false);
+      if (error) {
+        setVariants([]);
+        toast.error("Could not load this route's travel directions.");
+        return;
+      }
+
+      const rows = (data ?? []) as RouteVariant[];
+      setVariants(rows);
+      setSelectedVariantId((current) =>
+        current || rows.find((variant) => variant.is_default)?.id || rows[0]?.id || "",
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [routeId]);
 
   useEffect(() => {
     if (vehicleId) {
@@ -105,6 +158,7 @@ export function JeepneyLiveToggle({
     const tripId = tripIdRef.current;
     const shouldEndTrip = tripCreatedByPhoneRef.current;
     tripIdRef.current = null;
+    activeVariantIdRef.current = null;
     tripCreatedByPhoneRef.current = false;
     if (!tripId || !shouldEndTrip) return;
 
@@ -176,7 +230,7 @@ export function JeepneyLiveToggle({
 
     const { data: existing, error: existingError } = await (supabase as any)
       .from("jeepney_trips")
-      .select("id,route_id,started_at")
+      .select("id,route_id,route_variant_id,started_at")
       .eq("vehicle_id", unitId)
       .is("ended_at", null)
       .order("started_at", { ascending: false })
@@ -191,18 +245,29 @@ export function JeepneyLiveToggle({
     if (existing) {
       const trip = existing as Omit<ActiveTrip, "createdByPhone">;
       if (trip.route_id !== routeId) {
-        toast.error(
-          "This jeepney is already active on another route. End that trip before assigning it here.",
-        );
+        toast.error("This jeepney is already active on another route. End that trip before assigning it here.");
         return null;
       }
+      setSelectedVariantId(trip.route_variant_id);
       return { ...trip, createdByPhone: false };
+    }
+
+    const variantId = selectedVariantId || variants.find((variant) => variant.is_default)?.id || variants[0]?.id;
+    const variant = variants.find((candidate) => candidate.id === variantId);
+    if (!variant) {
+      toast.error("Select the route direction this jeepney is serving.");
+      return null;
     }
 
     const { data, error } = await (supabase as any)
       .from("jeepney_trips")
-      .insert({ route_id: routeId, operator_id: operatorId, vehicle_id: unitId })
-      .select("id,route_id,started_at")
+      .insert({
+        route_id: routeId,
+        route_variant_id: variant.id,
+        operator_id: operatorId,
+        vehicle_id: unitId,
+      })
+      .select("id,route_id,route_variant_id,started_at")
       .maybeSingle();
 
     if (error || !data) {
@@ -229,6 +294,7 @@ export function JeepneyLiveToggle({
     if (!trip) return;
 
     tripIdRef.current = trip.id;
+    activeVariantIdRef.current = trip.route_variant_id;
     tripCreatedByPhoneRef.current = trip.createdByPhone;
     activeVehicleIdRef.current = unitId;
     distanceRef.current = 0;
@@ -253,9 +319,14 @@ export function JeepneyLiveToggle({
         }
         lastPointRef.current = point;
         const activeUnitId = activeVehicleIdRef.current;
-        if (!activeUnitId) return;
-        const { error } = await supabase.from("jeepney_positions").insert({
+        const activeTripId = tripIdRef.current;
+        const activeVariantId = activeVariantIdRef.current;
+        if (!activeUnitId || !activeTripId || !activeVariantId) return;
+
+        const { error } = await (supabase as any).from("jeepney_positions").insert({
           route_id: routeId,
+          route_variant_id: activeVariantId,
+          trip_id: activeTripId,
           vehicle_id: activeUnitId,
           latitude: point.lat,
           longitude: point.lng,
@@ -284,25 +355,24 @@ export function JeepneyLiveToggle({
     );
     setLive(true);
     const label = vehicles.find((unit) => unit.id === unitId)?.label;
+    const variant = variants.find((candidate) => candidate.id === trip.route_variant_id);
     toast.success(
-      label
-        ? `${label} is serving this route — riders can track it independently.`
-        : "This jeepney is live on the assigned route.",
+      `${label || "This jeepney"} is live · ${variant ? directionLabel(variant.direction) : "assigned direction"}.`,
     );
   }
 
   const selectedVehicle = vehicles.find((unit) => unit.id === selectedVehicleId) ?? null;
+  const selectedVariant = useMemo(
+    () => variants.find((variant) => variant.id === selectedVariantId) ?? null,
+    [variants, selectedVariantId],
+  );
 
   return (
     <div className="rounded-lg border border-border p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 text-sm font-semibold">
-            {live ? (
-              <RadioTower className="h-4 w-4 text-emerald-600" />
-            ) : (
-              <Radio className="h-4 w-4 text-muted-foreground" />
-            )}
+            {live ? <RadioTower className="h-4 w-4 text-emerald-600" /> : <Radio className="h-4 w-4 text-muted-foreground" />}
             {live ? "Broadcasting live" : "Live tracking off"}
           </p>
           <p className="text-xs text-muted-foreground">
@@ -310,85 +380,91 @@ export function JeepneyLiveToggle({
               ? lastSent
                 ? `Last ping ${lastSent.toLocaleTimeString()} · ${distanceKm.toFixed(1)} km this phone session`
                 : "Waiting for your first GPS fix…"
-              : "Choose a fleet jeepney, then start this route assignment and phone GPS."}
+              : "Choose the physical jeepney and exact travel direction before starting phone GPS."}
           </p>
         </div>
         <Button
           size="sm"
           variant={live ? "destructive" : "default"}
           onClick={live ? stop : () => void start()}
-          disabled={!live && (loadingVehicles || !(vehicleId ?? selectedVehicleId))}
+          disabled={!live && (loadingVehicles || loadingVariants || !(vehicleId ?? selectedVehicleId) || !selectedVariantId)}
         >
           {live ? (tripCreatedByPhoneRef.current ? "End shift" : "Stop phone GPS") : "Go live"}
         </Button>
       </div>
 
-      {!vehicleId ? (
-        <div className="mt-3 space-y-2 rounded-lg bg-slate-50 p-2.5">
-          <label className="block text-xs font-semibold text-slate-700" htmlFor={`jeepney-unit-${routeId}`}>
-            Jeepney unit/body number
-          </label>
-          {vehicles.length > 0 ? (
-            <select
-              id={`jeepney-unit-${routeId}`}
-              value={selectedVehicleId}
-              disabled={live || loadingVehicles}
-              onChange={(event) => setSelectedVehicleId(event.target.value)}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">Select a fleet unit</option>
-              {vehicles.map((unit) => (
-                <option key={unit.id} value={unit.id}>
-                  {unit.label}{unit.plate_number ? ` · ${unit.plate_number}` : ""}
-                </option>
-              ))}
-            </select>
-          ) : loadingVehicles ? (
-            <p className="text-xs text-muted-foreground">Loading cooperative fleet…</p>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              Add the first physical jeepney to this operator's fleet. It can later serve any approved route.
-            </p>
-          )}
+      <div className="mt-3 space-y-2 rounded-lg bg-slate-50 p-2.5">
+        <label className="block text-xs font-semibold text-slate-700" htmlFor={`jeepney-direction-${routeId}`}>
+          Travel direction
+        </label>
+        {loadingVariants ? (
+          <p className="text-xs text-muted-foreground">Loading route directions…</p>
+        ) : variants.length ? (
+          <select
+            id={`jeepney-direction-${routeId}`}
+            value={selectedVariantId}
+            disabled={live}
+            onChange={(event) => setSelectedVariantId(event.target.value)}
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            {variants.map((variant) => (
+              <option key={variant.id} value={variant.id}>
+                {directionLabel(variant.direction)} · {variant.name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <p className="text-xs text-amber-700">No active route direction is configured yet.</p>
+        )}
 
-          {!live ? (
-            <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-              <Input
-                value={newUnitLabel}
-                onChange={(event) => setNewUnitLabel(event.target.value)}
-                placeholder="Body/unit no. e.g. BB-104"
-                className="h-9"
-              />
-              <Input
-                value={newPlate}
-                onChange={(event) => setNewPlate(event.target.value)}
-                placeholder="Plate (optional)"
-                className="h-9"
-              />
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => void addVehicle()}
-                disabled={addingVehicle || !newUnitLabel.trim()}
+        {!vehicleId ? (
+          <>
+            <label className="block text-xs font-semibold text-slate-700" htmlFor={`jeepney-unit-${routeId}`}>
+              Jeepney unit/body number
+            </label>
+            {vehicles.length > 0 ? (
+              <select
+                id={`jeepney-unit-${routeId}`}
+                value={selectedVehicleId}
+                disabled={live || loadingVehicles}
+                onChange={(event) => setSelectedVehicleId(event.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
-                <Plus className="mr-1 h-3.5 w-3.5" /> {addingVehicle ? "Adding…" : "Add unit"}
-              </Button>
-            </div>
-          ) : null}
+                <option value="">Select a fleet unit</option>
+                {vehicles.map((unit) => (
+                  <option key={unit.id} value={unit.id}>
+                    {unit.label}{unit.plate_number ? ` · ${unit.plate_number}` : ""}
+                  </option>
+                ))}
+              </select>
+            ) : loadingVehicles ? (
+              <p className="text-xs text-muted-foreground">Loading cooperative fleet…</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">Add the first physical jeepney to this operator's fleet.</p>
+            )}
 
-          {selectedVehicle && !live ? (
-            <p className="text-[11px] text-emerald-700">
-              {selectedVehicle.label} will use this route through an active trip, not a permanent route attachment.
-            </p>
-          ) : null}
-        </div>
-      ) : null}
+            {!live ? (
+              <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                <Input value={newUnitLabel} onChange={(event) => setNewUnitLabel(event.target.value)} placeholder="Body/unit no. e.g. BB-104" className="h-9" />
+                <Input value={newPlate} onChange={(event) => setNewPlate(event.target.value)} placeholder="Plate (optional)" className="h-9" />
+                <Button type="button" size="sm" variant="outline" onClick={() => void addVehicle()} disabled={addingVehicle || !newUnitLabel.trim()}>
+                  <Plus className="mr-1 h-3.5 w-3.5" /> {addingVehicle ? "Adding…" : "Add unit"}
+                </Button>
+              </div>
+            ) : null}
+          </>
+        ) : null}
+
+        {selectedVehicle && selectedVariant && !live ? (
+          <p className="text-[11px] text-emerald-700">
+            {selectedVehicle.label} · {directionLabel(selectedVariant.direction)} will be stored on the active trip and every phone GPS ping.
+          </p>
+        ) : null}
+      </div>
 
       <p className="mt-2 text-[11px] text-muted-foreground">
-        The active trip is the authoritative route assignment. If dispatch already started the trip,
-        stopping phone GPS leaves the hardwired tracker assignment running. A trip created by this phone
-        is ended when the driver ends the shift.
+        If dispatch already started this jeepney, the phone joins that exact trip/direction and cannot override it.
+        Stopping phone GPS leaves a dispatcher/hardwired trip running; a trip created by this phone ends with the shift.
       </p>
     </div>
   );
