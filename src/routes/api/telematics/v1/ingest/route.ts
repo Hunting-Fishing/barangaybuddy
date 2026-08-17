@@ -2,6 +2,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  takeTelematicsRateSlot,
+  telemetryRateLimitResponse,
+} from "@/lib/jeepney-telematics-rate.server";
 
 const TelemetryInput = z.object({
   latitude: z.number().min(-90).max(90),
@@ -76,17 +80,35 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
         const suppliedHash = await sha256(secret);
         if (!safeEqual(String(device.token_hash).toLowerCase(), suppliedHash.toLowerCase())) return jsonError("Invalid device credentials", 401);
 
+        try {
+          const rate = await takeTelematicsRateSlot(`device:${device.id}`, 300);
+          if (!rate.allowed) return telemetryRateLimitResponse(rate);
+        } catch (rateError) {
+          console.error("Jeepney device telemetry rate limiter failed", rateError);
+          return jsonError("Telemetry service unavailable", 503);
+        }
+
         const sequenceKey = parsed.data.sequence === undefined ? null : String(parsed.data.sequence);
         if (sequenceKey) {
           // Fast replay path. The database RPC repeats this check and reserves the
           // same unique sequence atomically, so a concurrent request cannot race it.
-          const { data: duplicate } = await (supabaseAdmin as any)
+          const { data: duplicate, error: duplicateError } = await (supabaseAdmin as any)
             .from("jeepney_device_ingest_receipts")
-            .select("position_id,trip_id,route_id,route_variant_id,vehicle_id,server_received_at")
+            .select("id,position_id,trip_id,route_id,route_variant_id,vehicle_id,server_received_at")
             .eq("device_id", device.id)
             .eq("sequence_key", sequenceKey)
             .maybeSingle();
+          if (duplicateError) {
+            console.error("Jeepney device duplicate lookup failed", duplicateError);
+            return jsonError("Telemetry service unavailable", 503);
+          }
           if (duplicate) {
+            if (!duplicate.position_id) {
+              return jsonError("Prior telemetry receipt is incomplete and requires reconciliation", 409, {
+                receipt_id: duplicate.id,
+                sequence: sequenceKey,
+              });
+            }
             return Response.json({
               accepted: true,
               duplicate: true,
@@ -258,24 +280,29 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
           // dispatch state that happened to be resolved by this HTTP request.
           const { data: replayReceipt } = await (supabaseAdmin as any)
             .from("jeepney_device_ingest_receipts")
-            .select("vehicle_id,trip_id,route_id,route_variant_id")
+            .select("vehicle_id,trip_id,route_id,route_variant_id,position_id")
             .eq("id", committed.receipt_id)
             .maybeSingle();
 
-          if (replayReceipt) {
-            responseVehicleId = replayReceipt.vehicle_id ? String(replayReceipt.vehicle_id) : responseVehicleId;
-            responseTripId = replayReceipt.trip_id ? String(replayReceipt.trip_id) : responseTripId;
-            responseRouteId = replayReceipt.route_id ? String(replayReceipt.route_id) : responseRouteId;
-            responseVariantId = replayReceipt.route_variant_id ? String(replayReceipt.route_variant_id) : responseVariantId;
+          if (!replayReceipt?.position_id) {
+            return jsonError("Prior telemetry receipt is incomplete and requires reconciliation", 409, {
+              receipt_id: committed.receipt_id,
+              sequence: sequenceKey,
+            });
+          }
 
-            if (responseVariantId !== routeVariantId) {
-              const { data: replayVariant } = await (supabaseAdmin as any)
-                .from("jeepney_route_variants")
-                .select("direction")
-                .eq("id", responseVariantId)
-                .maybeSingle();
-              responseDirection = replayVariant?.direction ? String(replayVariant.direction) : null;
-            }
+          responseVehicleId = replayReceipt.vehicle_id ? String(replayReceipt.vehicle_id) : responseVehicleId;
+          responseTripId = replayReceipt.trip_id ? String(replayReceipt.trip_id) : responseTripId;
+          responseRouteId = replayReceipt.route_id ? String(replayReceipt.route_id) : responseRouteId;
+          responseVariantId = replayReceipt.route_variant_id ? String(replayReceipt.route_variant_id) : responseVariantId;
+
+          if (responseVariantId !== routeVariantId) {
+            const { data: replayVariant } = await (supabaseAdmin as any)
+              .from("jeepney_route_variants")
+              .select("direction")
+              .eq("id", responseVariantId)
+              .maybeSingle();
+            responseDirection = replayVariant?.direction ? String(replayVariant.direction) : null;
           }
         }
 
