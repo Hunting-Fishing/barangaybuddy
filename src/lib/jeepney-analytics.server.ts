@@ -52,12 +52,14 @@ function bucket(map: Map<string, Bucket>, key: string): Bucket {
 }
 
 /**
- * Rebuilds route busy-time buckets and per-direction segment speeds from the
+ * Rebuilds route busy-time buckets and exact-direction segment speeds from the
  * last 90 days of GPS pings.
  *
- * Route-level demand remains intentionally aggregated across directions.
- * Segment speeds are keyed to route_variant_id because segment indexes only have
- * meaning against one exact polyline geometry.
+ * Compatibility contract:
+ * - jeepney_route_stats remains route-wide.
+ * - jeepney_segment_stats remains canonical/default-direction only so existing
+ *   route maps and legacy consumers never mix incompatible segment indexes.
+ * - jeepney_variant_segment_stats stores every exact route variant independently.
  */
 export async function runJeepneyRollup(): Promise<{
   routes: number;
@@ -142,8 +144,8 @@ export async function runJeepneyRollup(): Promise<{
 
         if (!hasSpeed) continue;
 
-        // Positions written before the route-variant migration have no explicit
-        // direction. Treat those historical pings as canonical/default only.
+        // Positions written before route variants existed have no explicit
+        // direction. They are historical canonical/default samples only.
         const variant = ping.route_variant_id
           ? variantById.get(String(ping.route_variant_id)) ?? null
           : defaultVariant;
@@ -193,7 +195,7 @@ export async function runJeepneyRollup(): Promise<{
         else statRows += statPayload.length;
       }
 
-      const segmentPayload = [...segments.values()].map((segment) => ({
+      const variantSegmentPayload = [...segments.values()].map((segment) => ({
         route_id: route.id,
         route_variant_id: segment.routeVariantId,
         segment_index: segment.segmentIndex,
@@ -203,12 +205,25 @@ export async function runJeepneyRollup(): Promise<{
         updated_at: new Date().toISOString(),
       }));
 
-      if (segmentPayload.length) {
+      if (variantSegmentPayload.length) {
         const { error } = await (supabase as any)
+          .from("jeepney_variant_segment_stats")
+          .upsert(variantSegmentPayload, { onConflict: "route_variant_id,segment_index,hour" });
+        if (error) errors.push(`variant segments ${route.id}: ${error.message}`);
+        else segmentRows += variantSegmentPayload.length;
+      }
+
+      // Preserve the pre-existing canonical table for the current route map and
+      // any older consumer. Only default-variant buckets are written here.
+      const canonicalSegmentPayload = variantSegmentPayload
+        .filter((segment) => segment.route_variant_id === defaultVariant.id)
+        .map(({ route_variant_id: _routeVariantId, ...segment }) => segment);
+
+      if (canonicalSegmentPayload.length) {
+        const { error } = await supabase
           .from("jeepney_segment_stats")
-          .upsert(segmentPayload, { onConflict: "route_variant_id,segment_index,hour" });
-        if (error) errors.push(`segments ${route.id}: ${error.message}`);
-        else segmentRows += segmentPayload.length;
+          .upsert(canonicalSegmentPayload, { onConflict: "route_id,segment_index,hour" });
+        if (error) errors.push(`canonical segments ${route.id}: ${error.message}`);
       }
     } catch (e) {
       errors.push(`${route.id}: ${(e as Error).message}`);
