@@ -1,11 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, prettier/prettier -- route-variant columns are migration-backed ahead of regenerated Supabase types. */
 import { useEffect, useState } from "react";
 import { Bus, Clock3, Gauge, MapPin, Radio } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  distanceAlongPathKm,
-  etaMinutesWithTraffic,
   etaRangeLabel,
   haversineKm,
   type JeepneyPosition,
@@ -15,8 +14,10 @@ import {
 } from "@/lib/jeepney";
 import {
   directionLabel,
+  etaMinutesProjected,
   parseRouteVariant,
   pathForPosition,
+  projectDistanceAlongPathKm,
   stopsOrderedAlongPath,
   variantForPosition,
   type JeepneyRouteVariant,
@@ -105,7 +106,7 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
       const path = pathForPosition(position, effectiveVariants, route.path);
       const orderedStops = stopsOrderedAlongPath(route.stops, path);
       const current = { lat: Number(position.latitude), lng: Number(position.longitude) };
-      const currentDistance = distanceAlongPathKm(path, current);
+      const currentProjection = projectDistanceAlongPathKm(path, current);
 
       const nearestUserStop = userLocation && orderedStops.length
         ? orderedStops
@@ -120,14 +121,14 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
         : null;
 
       let targetStop = nearestUserStop;
-      if (!targetStop) {
+      if (!targetStop && currentProjection) {
         targetStop =
           orderedStops.find((stop) => {
-            const stopDistance = distanceAlongPathKm(path, {
+            const stopProjection = projectDistanceAlongPathKm(path, {
               lat: Number(stop.latitude),
               lng: Number(stop.longitude),
             });
-            return stopDistance > currentDistance + 0.05;
+            return Boolean(stopProjection && stopProjection.alongKm > currentProjection.alongKm + 0.02);
           }) ?? null;
       }
 
@@ -144,12 +145,17 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
       }
 
       const targetPoint = { lat: Number(targetStop.latitude), lng: Number(targetStop.longitude) };
-      const targetDistance = distanceAlongPathKm(path, targetPoint);
-      const passedTarget = targetDistance <= currentDistance + 0.05;
+      const targetProjection = projectDistanceAlongPathKm(path, targetPoint);
+      const passedTarget = Boolean(
+        currentProjection && targetProjection && targetProjection.alongKm <= currentProjection.alongKm + 0.02,
+      );
+
+      // Existing congestion segment indexes are based on the canonical/default
+      // route geometry. Never reuse them on a different inbound/custom polyline.
       const variantSpeeds = variant?.is_default ? speeds : new Map<number, number>();
       const eta = passedTarget
         ? null
-        : etaMinutesWithTraffic(path, current, targetPoint, position.speed_kph, variantSpeeds);
+        : etaMinutesProjected(path, current, targetPoint, position.speed_kph, variantSpeeds);
 
       return {
         position,
@@ -179,8 +185,8 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             {userLocation
-              ? "Each unit is ranked using its own travel direction and the nearest mapped stop for that direction."
-              : "Each unit uses its own outbound/inbound geometry to determine the next stop."}
+              ? "Each unit is ranked using its exact travel direction and segment-projected position near your stop."
+              : "Each unit uses its own outbound/inbound geometry and segment-projected GPS position."}
           </p>
         </div>
         <Badge className="bg-emerald-600 text-white">
