@@ -29,6 +29,7 @@ import { Route as BusinessSlugRouteImport } from './routes/business.$slug'
 import { Route as CategoriesCategoryRouteImport } from './routes/categories.$category'
 import { Route as CitiesCityRouteImport } from './routes/cities.$city'
 import { Route as DeliveryIndexRouteImport } from './routes/delivery.index'
+import { Route as DeliveryAdminRouteImport } from './routes/delivery.admin'
 import { Route as DeliveryOrdersRouteImport } from './routes/delivery.orders'
 import { Route as DeliveryRequestRouteImport } from './routes/delivery.request'
 import { Route as DeliveryRiderRouteImport } from './routes/delivery.rider'
@@ -165,6 +166,11 @@ const CitiesCityRoute = CitiesCityRouteImport.update({
 const DeliveryIndexRoute = DeliveryIndexRouteImport.update({
   id: '/delivery/',
   path: '/delivery/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeliveryAdminRoute = DeliveryAdminRouteImport.update({
+  id: '/delivery/admin',
+  path: '/delivery/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeliveryOrdersRoute = DeliveryOrdersRouteImport.update({
@@ -380,6 +386,7 @@ export interface FileRoutesByFullPath {
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/delivery/admin': typeof DeliveryAdminRoute
   '/delivery/orders': typeof DeliveryOrdersRoute
   '/delivery/request': typeof DeliveryRequestRoute
   '/delivery/rider': typeof DeliveryRiderRoute
@@ -439,6 +446,7 @@ export interface FileRoutesByTo {
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/delivery/admin': typeof DeliveryAdminRoute
   '/delivery/orders': typeof DeliveryOrdersRoute
   '/delivery/request': typeof DeliveryRequestRoute
   '/delivery/rider': typeof DeliveryRiderRoute
@@ -499,6 +507,7 @@ export interface FileRoutesById {
   '/business/$slug': typeof BusinessSlugRoute
   '/categories/$category': typeof CategoriesCategoryRoute
   '/cities/$city': typeof CitiesCityRoute
+  '/delivery/admin': typeof DeliveryAdminRoute
   '/delivery/orders': typeof DeliveryOrdersRoute
   '/delivery/request': typeof DeliveryRequestRoute
   '/delivery/rider': typeof DeliveryRiderRoute
@@ -560,6 +569,7 @@ export interface FileRouteTypes {
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
+    | '/delivery/admin'
     | '/delivery/orders'
     | '/delivery/request'
     | '/delivery/rider'
@@ -619,6 +629,7 @@ export interface FileRouteTypes {
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
+    | '/delivery/admin'
     | '/delivery/orders'
     | '/delivery/request'
     | '/delivery/rider'
@@ -678,6 +689,7 @@ export interface FileRouteTypes {
     | '/business/$slug'
     | '/categories/$category'
     | '/cities/$city'
+    | '/delivery/admin'
     | '/delivery/orders'
     | '/delivery/request'
     | '/delivery/rider'
@@ -738,6 +750,7 @@ export interface RootRouteChildren {
   BusinessSlugRoute: typeof BusinessSlugRoute
   CategoriesCategoryRoute: typeof CategoriesCategoryRoute
   CitiesCityRoute: typeof CitiesCityRoute
+  DeliveryAdminRoute: typeof DeliveryAdminRoute
   DeliveryOrdersRoute: typeof DeliveryOrdersRoute
   DeliveryRequestRoute: typeof DeliveryRequestRoute
   DeliveryRiderRoute: typeof DeliveryRiderRoute
@@ -912,6 +925,13 @@ declare module '@tanstack/react-router' {
       path: '/delivery'
       fullPath: '/delivery/'
       preLoaderRoute: typeof DeliveryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delivery/admin': {
+      id: '/delivery/admin'
+      path: '/delivery/admin'
+      fullPath: '/delivery/admin'
+      preLoaderRoute: typeof DeliveryAdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/delivery/orders': {
@@ -1248,6 +1268,7 @@ const rootRouteChildren: RootRouteChildren = {
   BusinessSlugRoute: BusinessSlugRoute,
   CategoriesCategoryRoute: CategoriesCategoryRoute,
   CitiesCityRoute: CitiesCityRoute,
+  DeliveryAdminRoute: DeliveryAdminRoute,
   DeliveryOrdersRoute: DeliveryOrdersRoute,
   DeliveryRequestRoute: DeliveryRequestRoute,
   DeliveryRiderRoute: DeliveryRiderRoute,
