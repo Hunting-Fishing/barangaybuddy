@@ -186,6 +186,12 @@ export function SiteHeader() {
                 <DropdownMenuItem onClick={() => navigate({ to: "/messages" })}>
                   <MessageSquare className="mr-2 h-4 w-4" /> Messages
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate({ to: "/delivery/orders" })}>
+                  <PackageCheck className="mr-2 h-4 w-4" /> My deliveries
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate({ to: "/delivery/rider" })}>
+                  <Bike className="mr-2 h-4 w-4" /> Rider portal
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate({ to: "/spotlight/submit" })}>
                   <Sparkles className="mr-2 h-4 w-4" /> Audition for Spotlight
                 </DropdownMenuItem>
