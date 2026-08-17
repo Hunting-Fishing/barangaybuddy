@@ -14,7 +14,7 @@
 ## Database deployment
 
 - [ ] Phase 3 fleet migrations applied in timestamp order.
-- [ ] Phase 4 route-direction migrations applied in timestamp order.
+- [ ] Phase 4 route-direction and variant-analytics migrations applied in timestamp order.
 - [ ] Gateway migrations applied after Phase 3/4.
 - [ ] `supabase/verification/jeepney_phase3_phase4_checks.sql` returns zero violations.
 - [ ] `supabase/verification/jeepney_gateway_checks.sql` returns zero violations.
@@ -47,9 +47,15 @@
 - [x] v2 atomically reserves the sequence, inserts the rider position and completes the private receipt.
 - [x] The database transaction revalidates gateway, mapping, physical vehicle, active trip, route and direction identity.
 
-### Variant-specific congestion — FUTURE / NOT BASIC-PILOT BLOCKING
+### Variant-specific congestion — CLEARED IN SOURCE
 
-Canonical direction traffic stats may be used on the canonical path. Inbound/custom directions intentionally use live/default speed until congestion history is keyed by `route_variant_id`.
+- [x] Added `jeepney_variant_segment_stats`, keyed by exact `route_variant_id + segment_index + hour`.
+- [x] Preserved existing `jeepney_segment_stats` as canonical/default-direction compatibility data.
+- [x] Analytics rollup projects each ping against its own route variant geometry.
+- [x] Historical pre-variant pings are assigned only to the canonical/default direction.
+- [x] Arrival and detailed live ETA read direction-specific historical speeds when available.
+- [x] Missing/unavailable variant history safely falls back to existing canonical/live speed behavior.
+- [ ] Run the rollup after migration and validate separate outbound/inbound speed buckets with pilot data.
 
 ## Pilot smoke tests
 
@@ -63,6 +69,7 @@ Canonical direction traffic stats may be used on the canonical path. Inbound/cus
 - [ ] Mapped vehicle without an active trip is rejected.
 - [ ] Suspended/retired gateway is rejected.
 - [ ] Inbound stop subset produces only eligible stop ETAs.
+- [ ] Outbound/inbound historical congestion remains separated by route variant.
 - [ ] Fleet board stale/off-route/bunching behavior is tested with pilot vehicles.
 - [ ] Stale rider positions disappear after the freshness window.
 
