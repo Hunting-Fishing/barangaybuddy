@@ -86,7 +86,7 @@ export function JeepneyArrivalSummary({
           .in("variant_id", variantIds)
           .order("position", { ascending: true }),
         (supabase as any)
-          .from("jeepney_segment_stats")
+          .from("jeepney_variant_segment_stats")
           .select("route_variant_id,segment_index,hour,avg_speed_kph")
           .eq("route_id", route.id)
           .eq("hour", currentHour)
@@ -96,6 +96,9 @@ export function JeepneyArrivalSummary({
 
       setVariantStops((membershipResult.data ?? []).map(parseRouteVariantStop));
       if (speedResult.error) {
+        // Until the direction-aware analytics migration is deployed, canonical
+        // ETA still uses the existing route-level speed map and other directions
+        // safely fall back to live/default vehicle speed.
         setVariantSpeedMaps({});
         return;
       }
