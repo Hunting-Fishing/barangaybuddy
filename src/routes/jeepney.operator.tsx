@@ -15,9 +15,8 @@ import { JeepneyRouteForm } from "@/components/jeepney-route-form";
 import { JeepneyLiveToggle } from "@/components/jeepney-live-toggle";
 import { JeepneyBreakdownCard } from "@/components/jeepney-breakdown-card";
 import { JeepneyInsightsCard } from "@/components/jeepney-insights-card";
+import { JeepneyFleetDispatch } from "@/components/jeepney-fleet-dispatch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-
 import {
   JeepneySubscriptionCard,
   type SubscriptionRow,
@@ -33,12 +32,12 @@ export const Route = createFileRoute("/jeepney/operator")({
       {
         name: "description",
         content:
-          "Jeepney operators: draw your route, set your trips and times, go live with GPS, and stay on the rider map for ₱100 a month.",
+          "Jeepney operators: manage your fleet, routes, schedules and live GPS assignments on Barangay Buddy.",
       },
-      { property: "og:title", content: "List your jeepney route" },
+      { property: "og:title", content: "Jeepney operator portal" },
       {
         property: "og:description",
-        content: "Draw your route, publish your schedule and let riders track your jeepney live.",
+        content: "Manage routes, dispatch fleet units and let riders track active jeepneys live.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -147,7 +146,7 @@ function JeepneyOperatorPage() {
           <Card className="space-y-3 p-6 text-center">
             <h1 className="font-display text-xl font-bold">List your jeepney route</h1>
             <p className="text-sm text-muted-foreground">
-              Sign in to add your route, set your times, and let riders track your jeepney live.
+              Sign in to add your routes, fleet units, schedules and live tracking.
             </p>
             <div className="flex justify-center gap-2">
               <Button asChild>
@@ -171,8 +170,7 @@ function JeepneyOperatorPage() {
         <header className="mb-5">
           <h1 className="font-display text-2xl font-bold sm:text-3xl">Jeepney operator portal</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            ₱100 per month per route keeps your jeepney on the rider map with schedules and live
-            tracking.
+            Manage the cooperative fleet independently from routes, then dispatch each unit to the route it is serving now.
           </p>
           <Button variant="link" className="px-0" asChild>
             <Link to="/jeepney">See the rider map</Link>
@@ -220,10 +218,20 @@ function JeepneyOperatorPage() {
               </div>
             </Card>
 
+            <JeepneyFleetDispatch
+              operatorId={operator.id}
+              routes={routes.map((route) => ({
+                id: route.id,
+                name: route.name,
+                code: route.code,
+                status: route.status,
+              }))}
+            />
+
             {routes.length === 0 && (
               <Card className="p-6 text-center text-sm text-muted-foreground">
                 <Bus className="mx-auto mb-2 h-6 w-6" />
-                No routes yet. Add your first route — it takes a few minutes.
+                No routes yet. Add your first route before dispatching fleet service.
               </Card>
             )}
 
@@ -296,8 +304,6 @@ function JeepneyOperatorPage() {
                       Live tracking turns on once your listing is active.
                     </p>
                   )}
-
-
                 </Card>
               );
             })}
