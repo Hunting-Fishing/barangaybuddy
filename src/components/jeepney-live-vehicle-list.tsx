@@ -15,6 +15,7 @@ import {
 } from "@/lib/jeepney";
 import {
   directionLabel,
+  parseRouteVariant,
   pathForPosition,
   stopsOrderedAlongPath,
   variantForPosition,
@@ -26,7 +27,7 @@ type RouteWithStops = JeepneyRoute & { stops: JeepneyStop[] };
 type Props = {
   route: RouteWithStops;
   positions: JeepneyPosition[];
-  variants: JeepneyRouteVariant[];
+  variants?: JeepneyRouteVariant[];
   userLocation: LatLng | null;
   speeds: Map<number, number>;
 };
@@ -54,6 +55,26 @@ function updatedLabel(recordedAt: string) {
 
 export function JeepneyLiveVehicleList({ route, positions, variants, userLocation, speeds }: Props) {
   const [vehicleLabels, setVehicleLabels] = useState<Record<string, string>>({});
+  const [loadedVariants, setLoadedVariants] = useState<JeepneyRouteVariant[]>([]);
+  const effectiveVariants = variants ?? loadedVariants;
+
+  useEffect(() => {
+    if (variants) return;
+    let cancelled = false;
+    void (async () => {
+      const { data } = await (supabase as any)
+        .from("jeepney_route_variants")
+        .select("id,route_id,code,name,direction,path,is_default,active")
+        .eq("route_id", route.id)
+        .eq("active", true)
+        .order("created_at", { ascending: true });
+      if (cancelled) return;
+      setLoadedVariants((data ?? []).map(parseRouteVariant));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [route.id, variants]);
 
   useEffect(() => {
     const ids = Array.from(
@@ -80,8 +101,8 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
 
   const rows: VehicleRow[] = positions
     .map((position) => {
-      const variant = variantForPosition(position, variants);
-      const path = pathForPosition(position, variants, route.path);
+      const variant = variantForPosition(position, effectiveVariants);
+      const path = pathForPosition(position, effectiveVariants, route.path);
       const orderedStops = stopsOrderedAlongPath(route.stops, path);
       const current = { lat: Number(position.latitude), lng: Number(position.longitude) };
       const currentDistance = distanceAlongPathKm(path, current);
@@ -125,10 +146,6 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
       const targetPoint = { lat: Number(targetStop.latitude), lng: Number(targetStop.longitude) };
       const targetDistance = distanceAlongPathKm(path, targetPoint);
       const passedTarget = targetDistance <= currentDistance + 0.05;
-
-      // Existing congestion segment indexes are based on the canonical/default
-      // route path. Do not apply them to a geometrically different inbound/custom
-      // path until traffic analytics are variant-keyed.
       const variantSpeeds = variant?.is_default ? speeds : new Map<number, number>();
       const eta = passedTarget
         ? null
@@ -173,18 +190,11 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
 
       <div className="mt-4 space-y-2">
         {rows.map((row, index) => (
-          <div
-            key={row.position.vehicle_id ?? row.position.id}
-            className="grid gap-3 rounded-2xl border bg-white p-3 sm:grid-cols-[1fr_auto] sm:items-center"
-          >
+          <div key={row.position.vehicle_id ?? row.position.id} className="grid gap-3 rounded-2xl border bg-white p-3 sm:grid-cols-[1fr_auto] sm:items-center">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="font-semibold text-slate-950">{unitLabel(row.position, index, vehicleLabels)}</p>
-                {row.variant ? (
-                  <Badge variant="outline" className="text-[10px]">
-                    {directionLabel(row.variant.direction)}
-                  </Badge>
-                ) : null}
+                {row.variant ? <Badge variant="outline" className="text-[10px]">{directionLabel(row.variant.direction)}</Badge> : null}
                 {index === 0 && row.eta !== null ? <Badge variant="secondary" className="text-[10px]">Soonest</Badge> : null}
               </div>
               <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -195,18 +205,14 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
               </p>
               <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
                 <span className="inline-flex items-center gap-1"><Clock3 className="h-3 w-3" /> Updated {updatedLabel(row.position.recorded_at)}</span>
-                {row.position.speed_kph !== null ? (
-                  <span className="inline-flex items-center gap-1"><Gauge className="h-3 w-3" /> {Math.round(Number(row.position.speed_kph))} km/h</span>
-                ) : null}
+                {row.position.speed_kph !== null ? <span className="inline-flex items-center gap-1"><Gauge className="h-3 w-3" /> {Math.round(Number(row.position.speed_kph))} km/h</span> : null}
               </div>
             </div>
 
             <div className="sm:text-right">
               {row.eta !== null ? (
                 <><p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Live ETA</p><p className="mt-0.5 text-lg font-black text-blue-700">{etaRangeLabel(row.eta)}</p></>
-              ) : (
-                <p className="text-xs font-semibold text-muted-foreground">{row.passedTarget ? "Already passed" : "ETA unavailable"}</p>
-              )}
+              ) : <p className="text-xs font-semibold text-muted-foreground">{row.passedTarget ? "Already passed" : "ETA unavailable"}</p>}
             </div>
           </div>
         ))}
