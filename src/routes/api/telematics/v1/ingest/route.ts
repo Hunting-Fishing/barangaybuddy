@@ -246,16 +246,49 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
           return jsonError("Could not store telemetry", 500);
         }
 
+        let responseVehicleId = vehicleId;
+        let responseTripId = tripId;
+        let responseRouteId = routeId;
+        let responseVariantId = routeVariantId;
+        let responseDirection: string | null = String(variant.direction);
+
+        if (committed.duplicate && committed.receipt_id) {
+          // A concurrent request may have won the sequence race using a previous
+          // immutable assignment. Report the receipt's identity, never the newer
+          // dispatch state that happened to be resolved by this HTTP request.
+          const { data: replayReceipt } = await (supabaseAdmin as any)
+            .from("jeepney_device_ingest_receipts")
+            .select("vehicle_id,trip_id,route_id,route_variant_id")
+            .eq("id", committed.receipt_id)
+            .maybeSingle();
+
+          if (replayReceipt) {
+            responseVehicleId = replayReceipt.vehicle_id ? String(replayReceipt.vehicle_id) : responseVehicleId;
+            responseTripId = replayReceipt.trip_id ? String(replayReceipt.trip_id) : responseTripId;
+            responseRouteId = replayReceipt.route_id ? String(replayReceipt.route_id) : responseRouteId;
+            responseVariantId = replayReceipt.route_variant_id ? String(replayReceipt.route_variant_id) : responseVariantId;
+
+            if (responseVariantId !== routeVariantId) {
+              const { data: replayVariant } = await (supabaseAdmin as any)
+                .from("jeepney_route_variants")
+                .select("direction")
+                .eq("id", responseVariantId)
+                .maybeSingle();
+              responseDirection = replayVariant?.direction ? String(replayVariant.direction) : null;
+            }
+          }
+        }
+
         return Response.json({
           accepted: true,
           duplicate: Boolean(committed.duplicate),
           position_id: committed.position_id,
           device_id: publicId,
-          vehicle_id: vehicleId,
-          trip_id: tripId,
-          route_id: routeId,
-          route_variant_id: routeVariantId,
-          direction: variant.direction,
+          vehicle_id: responseVehicleId,
+          trip_id: responseTripId,
+          route_id: responseRouteId,
+          route_variant_id: responseVariantId,
+          direction: responseDirection,
           recorded_at: recordedAt.toISOString(),
           server_received_at: committed.server_received_at,
         });
