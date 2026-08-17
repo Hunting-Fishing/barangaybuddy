@@ -108,7 +108,7 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
           .in("variant_id", variantIds)
           .order("position", { ascending: true }),
         (supabase as any)
-          .from("jeepney_segment_stats")
+          .from("jeepney_variant_segment_stats")
           .select("route_variant_id,segment_index,hour,avg_speed_kph")
           .eq("route_id", route.id)
           .eq("hour", currentHour)
@@ -119,9 +119,9 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
       setVariantStops((membershipResult.data ?? []).map(parseRouteVariantStop));
 
       if (speedResult.error) {
-        // Backward-compatible before the route_variant_id analytics migration is
-        // deployed: default direction still receives the parent `speeds` map and
-        // non-default directions fall back to live/default vehicle speed.
+        // Before the direction-aware analytics migration is deployed, canonical
+        // ETA still receives the parent `speeds` map and non-default directions
+        // safely fall back to live/default vehicle speed.
         setVariantSpeedMaps({});
         return;
       }
