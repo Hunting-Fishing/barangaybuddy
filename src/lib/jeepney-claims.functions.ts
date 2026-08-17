@@ -70,7 +70,7 @@ export const listJeepneyClaims = createServerFn({ method: "GET" })
     return signed;
   });
 
-/** Admin: approve a claim — hands the route to the claimant and registers their jeepney. */
+/** Admin: approve a claim — hands the route to the claimant and registers their physical fleet unit. */
 export const reviewJeepneyClaim = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { claimId: string; approve: boolean; note?: string }) => {
@@ -102,7 +102,7 @@ export const reviewJeepneyClaim = createServerFn({ method: "POST" })
       return { ok: true };
     }
 
-    // Find or create the claimant's operator profile.
+    // Find or create the claimant's cooperative/operator profile.
     let operatorId: string | undefined;
     const { data: existing } = await supabaseAdmin
       .from("jeepney_operators")
@@ -120,14 +120,23 @@ export const reviewJeepneyClaim = createServerFn({ method: "POST" })
       operatorId = created.id;
     }
 
-    const { error: routeError } = await supabaseAdmin
+    // Only an unclaimed community route may be transferred. Return the row so a
+    // concurrent approval cannot silently create a fleet vehicle under the wrong route owner.
+    const { data: transferredRoute, error: routeError } = await supabaseAdmin
       .from("jeepney_routes")
       .update({ operator_id: operatorId })
       .eq("id", claim.route_id)
-      .is("operator_id", null);
+      .is("operator_id", null)
+      .select("id")
+      .maybeSingle();
     if (routeError) return { error: "Could not transfer the route." };
+    if (!transferredRoute) return { error: "This route was already claimed by another operator." };
 
-    await supabaseAdmin.from("jeepney_vehicles").insert({
+    // Phase 3 ownership: the physical jeepney belongs to the operator/cooperative.
+    // route_id remains only a nullable legacy/home-route hint; dispatch trips decide
+    // which route this unit is actually serving at any moment.
+    const { error: vehicleError } = await (supabaseAdmin as any).from("jeepney_vehicles").insert({
+      operator_id: operatorId,
       route_id: claim.route_id,
       label: `Jeepney ${claim.body_number}`,
       plate_number: claim.body_number,
@@ -135,6 +144,10 @@ export const reviewJeepneyClaim = createServerFn({ method: "POST" })
       photo_url: claim.photo_path,
       active: true,
     });
+    if (vehicleError) {
+      console.error("Claim route transfer succeeded but fleet vehicle creation failed", vehicleError);
+      return { error: "The route was transferred, but the physical fleet unit could not be created." };
+    }
 
     await supabaseAdmin
       .from("jeepney_route_claims")
