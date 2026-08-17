@@ -20,7 +20,6 @@ import {
   CONGESTION_LABELS,
   formatPhpAmount,
   headwayLabel,
-  isLive,
   parsePath,
   segmentSpeedMap,
   type JeepneyPosition,
@@ -29,6 +28,13 @@ import {
   type LatLng,
   type SegmentSpeed,
 } from "@/lib/jeepney";
+import {
+  buildLatestLivePositions,
+  livePositionsForRoute,
+  mergeLivePosition,
+  pruneStaleLivePositions,
+  type JeepneyLivePositions,
+} from "@/lib/jeepney-live";
 
 const JeepneyMap = lazy(() => import("@/components/jeepney-map"));
 
@@ -41,12 +47,12 @@ export const Route = createFileRoute("/jeepney/$slug")({
       {
         name: "description",
         content:
-          "Track a jeepney on its route, see approximate pickup times, service hours, stop order and breakdown alerts on Barangay Buddy.",
+          "Track jeepneys on their route, see approximate pickup times, service hours, stop order and breakdown alerts on Barangay Buddy.",
       },
       { property: "og:title", content: "Jeepney route — live tracking & pickup times" },
       {
         property: "og:description",
-        content: "See whether your jeepney has passed or is still coming, plus route times and service alerts.",
+        content: "See which live jeepneys are still coming, plus route times and service alerts.",
       },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -70,7 +76,7 @@ type RouteWithStops = JeepneyRoute & { stops: JeepneyStop[]; operator: string | 
 function JeepneyRoutePage() {
   const { slug } = Route.useParams();
   const [route, setRoute] = useState<RouteWithStops | null>(null);
-  const [position, setPosition] = useState<JeepneyPosition | null>(null);
+  const [live, setLive] = useState<JeepneyLivePositions>({});
   const [me, setMe] = useState<LatLng | null>(null);
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<JeepneyRouteAlert[]>([]);
@@ -98,7 +104,8 @@ function JeepneyRoutePage() {
         { event: "INSERT", schema: "public", table: "jeepney_positions", filter: `route_id=eq.${routeId}` },
         (payload) => {
           const next = payload.new as JeepneyPosition;
-          if (next?.route_id === routeId) setPosition(next);
+          if (next?.route_id !== routeId) return;
+          setLive((current) => pruneStaleLivePositions(mergeLivePosition(current, next)));
         },
       )
       .on(
@@ -135,6 +142,7 @@ function JeepneyRoutePage() {
 
     if (!data) {
       setRoute(null);
+      setLive({});
       setLoading(false);
       return;
     }
@@ -184,8 +192,8 @@ function JeepneyRoutePage() {
       .eq("route_id", id)
       .gte("recorded_at", since)
       .order("recorded_at", { ascending: false })
-      .limit(1);
-    setPosition((data?.[0] as JeepneyPosition) ?? null);
+      .limit(500);
+    setLive(buildLatestLivePositions((data ?? []) as JeepneyPosition[]));
   }
 
   function locate() {
@@ -221,7 +229,9 @@ function JeepneyRoutePage() {
     );
   }
 
-  const onRoad = Boolean(position && isLive(position.recorded_at));
+  const routePositions = livePositionsForRoute(live, route.id);
+  const primaryPosition = routePositions[0] ?? null;
+  const onRoad = routePositions.length > 0;
   const speeds = segmentSpeedMap(segmentRows, currentHour);
 
   return (
@@ -247,7 +257,7 @@ function JeepneyRoutePage() {
                 {route.name}
               </h1>
               <p className="mt-2 max-w-3xl text-sm text-muted-foreground sm:text-base">
-                Live route position, approximate pickup times, service hours and route alerts in one place.
+                Live vehicle positions, approximate pickup times, service hours and route alerts in one place.
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {route.code ? <Badge className="bg-[#071d49] text-white">Route {route.code}</Badge> : null}
@@ -267,7 +277,11 @@ function JeepneyRoutePage() {
                   ) : (
                     <Radio className="mr-1 h-3.5 w-3.5" />
                   )}
-                  {route.status === "suspended" ? "Out of service" : onRoad ? "Live GPS" : "Schedule mode"}
+                  {route.status === "suspended"
+                    ? "Out of service"
+                    : onRoad
+                      ? `${routePositions.length} live ${routePositions.length === 1 ? "unit" : "units"}`
+                      : "Schedule mode"}
                 </Badge>
               </div>
             </div>
@@ -300,18 +314,20 @@ function JeepneyRoutePage() {
                 <div>
                   <p className="font-semibold">Live route map</p>
                   <p className="text-xs text-blue-100/80">
-                    Blue/gold Barangay Buddy jeepney marker shows the latest reported position.
+                    Each active jeepney gets its own blue/gold Barangay Buddy GPS marker.
                   </p>
                 </div>
                 <Badge className="bg-[#f5b400] text-slate-950 hover:bg-[#f5b400]">
-                  {onRoad ? "Tracking now" : "Waiting for GPS"}
+                  {onRoad
+                    ? `${routePositions.length} tracking ${routePositions.length === 1 ? "unit" : "units"}`
+                    : "Waiting for GPS"}
                 </Badge>
               </div>
               <ClientOnly fallback={<div className="h-[58vh] min-h-[440px] bg-slate-100" />}>
                 <Suspense fallback={<div className="h-[58vh] min-h-[440px] bg-slate-100" />}>
                   <JeepneyMap
                     routes={[route]}
-                    live={position ? { [route.id]: position } : {}}
+                    live={live}
                     userLocation={me}
                     height="58vh"
                     congestion={speeds.size ? { [route.id]: speeds } : {}}
@@ -319,6 +335,33 @@ function JeepneyRoutePage() {
                 </Suspense>
               </ClientOnly>
             </Card>
+
+            {routePositions.length > 0 ? (
+              <Card className="rounded-2xl border-blue-100 p-4 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="font-semibold">Active GPS units</p>
+                    <p className="text-xs text-muted-foreground">Latest position retained independently for every vehicle.</p>
+                  </div>
+                  <Badge variant="secondary">{routePositions.length} online</Badge>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {routePositions.map((position, index) => (
+                    <div key={position.vehicle_id ?? position.id} className="rounded-xl border bg-slate-50 px-3 py-2.5 text-sm">
+                      <p className="font-semibold text-slate-900">
+                        {position.vehicle_id
+                          ? `Unit …${position.vehicle_id.slice(-6).toUpperCase()}`
+                          : `Live unit ${index + 1}`}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        Updated {new Date(position.recorded_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                        {position.speed_kph ? ` · ${Math.round(Number(position.speed_kph))} km/h` : ""}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            ) : null}
 
             {speeds.size > 0 ? (
               <Card className="flex flex-wrap items-center gap-4 rounded-2xl p-4 text-xs text-muted-foreground">
@@ -347,7 +390,7 @@ function JeepneyRoutePage() {
 
           <JeepneyRouteLivePanel
             route={route}
-            position={position}
+            position={primaryPosition}
             userLocation={me}
             speeds={speeds}
             alerts={alerts}
