@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- Jeepney hardware tables are introduced by the matching migration. */
+/* eslint-disable @typescript-eslint/no-explicit-any -- Jeepney hardware/fleet columns are introduced by matching migrations. */
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -71,20 +71,16 @@ export const Route = createFileRoute("/api/telematics/v1/provision")({
         if (parsed.data.vehicle_id) {
           const { data: vehicle, error: vehicleError } = await (supabaseAdmin as any)
             .from("jeepney_vehicles")
-            .select("id,route_id,active")
+            .select("id,operator_id,active")
             .eq("id", parsed.data.vehicle_id)
             .maybeSingle();
           if (vehicleError) return jsonError("Could not verify vehicle", 503);
           if (!vehicle) return jsonError("Vehicle not found", 404);
-
-          const { data: route, error: routeError } = await (supabaseAdmin as any)
-            .from("jeepney_routes")
-            .select("id,operator_id")
-            .eq("id", vehicle.route_id)
-            .maybeSingle();
-          if (routeError) return jsonError("Could not verify vehicle ownership", 503);
-          if (!route || route.operator_id !== parsed.data.operator_id) {
+          if (vehicle.operator_id !== parsed.data.operator_id) {
             return jsonError("Vehicle does not belong to the selected operator", 409);
+          }
+          if (vehicle.active === false) {
+            return jsonError("Cannot install a tracker on an inactive fleet vehicle", 409);
           }
         }
 
@@ -125,9 +121,6 @@ export const Route = createFileRoute("/api/telematics/v1/provision")({
             });
 
           if (assignmentError) {
-            // Provisioning should be atomic from the caller's perspective. If the
-            // requested installation cannot be created, remove the just-created
-            // device so the admin can correct the vehicle/device assignment and retry.
             await (supabaseAdmin as any).from("jeepney_gps_devices").delete().eq("id", device.id);
             console.error("Jeepney GPS assignment failed", assignmentError);
             return jsonError(
