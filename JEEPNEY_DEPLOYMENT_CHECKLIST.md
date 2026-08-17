@@ -1,6 +1,6 @@
 # Barangay Buddy Jeepney Mobility — Deployment Checklist
 
-**Scope:** Multi-vehicle tracking, fleet ownership, active-trip dispatch, GPS hardware, external telematics gateways, route directions/variants, direction-aware congestion history, and rider ETA.
+**Scope:** Multi-vehicle tracking, fleet ownership, active-trip dispatch, GPS hardware, external telematics gateways, route directions/variants, direction-aware congestion history, rider ETA, atomic replay protection, and authenticated telemetry burst control.
 
 **Current status:** Code is committed on `feature/jeepney-planner-live-route-ui`. This checklist does **not** mean the migrations are deployed or the branch is production validated. A real install/lint/build and authorized database deployment are still required.
 
@@ -21,7 +21,7 @@ Do not deploy the new Jeepney database layer until all of the following are true
 
 ## 2. Migration order
 
-Apply repository migrations in timestamp order. The Phase 3/4, gateway and analytics sequence must remain ordered:
+Apply repository migrations in timestamp order:
 
 1. `20260817215000_jeepney_hardware_foundation.sql`
 2. `20260817222500_jeepney_route_status_security.sql`
@@ -40,10 +40,12 @@ Apply repository migrations in timestamp order. The Phase 3/4, gateway and analy
 15. `20260817231700_jeepney_gateway_atomic_guard.sql`
 16. `20260817231800_jeepney_gateway_mapping_safety.sql`
 17. `20260817231900_jeepney_variant_segment_stats.sql`
+18. `20260817232000_jeepney_device_atomic_ingest.sql`
+19. `20260817232100_jeepney_telematics_rate_limit.sql`
 
-The variant analytics migration **does not replace or change the meaning of** `jeepney_segment_stats`. That original table remains canonical/default-direction compatibility data. The new `jeepney_variant_segment_stats` table stores exact-direction history.
+The variant analytics migration does **not** change the meaning of `jeepney_segment_stats`; that table remains canonical/default-direction compatibility data. Exact-direction history belongs to `jeepney_variant_segment_stats`.
 
-Do not cherry-pick only the base route-variant or gateway migration. Adjacent safety migrations deliberately tighten the final invariants.
+Do not cherry-pick only the base route-variant, gateway, atomic-ingest or rate-limit migration. Adjacent safety migrations deliberately tighten the final invariants.
 
 ---
 
@@ -54,14 +56,13 @@ Run:
 - `supabase/verification/jeepney_phase3_phase4_checks.sql`
 - `supabase/verification/jeepney_gateway_checks.sql`
 
-Expected result: every violation query returns zero rows/counts, including ownership, duplicate open trip, default variant, route/variant, tracker assignment, route-variant congestion, gateway mapping, gateway receipt and telemetry identity checks.
+Expected result: every violation query returns zero rows/counts, including ownership, duplicate open trip, default variant, route/variant, tracker assignment, direct-device receipt completion, route-variant congestion, gateway mapping, gateway receipt and telemetry identity checks.
 
 ---
 
 ## 4. Operator smoke test
 
 ### Fleet
-
 - [ ] Open `/jeepney/operator`.
 - [ ] Existing routes still load.
 - [ ] Add a physical fleet unit.
@@ -69,7 +70,6 @@ Expected result: every violation query returns zero rows/counts, including owner
 - [ ] Verify legacy route deletion/change cannot delete the physical vehicle.
 
 ### Route directions
-
 - [ ] Every existing route has the canonical outbound/default direction.
 - [ ] Create an inbound return direction for a test route.
 - [ ] Confirm it starts inactive.
@@ -79,7 +79,6 @@ Expected result: every violation query returns zero rows/counts, including owner
 - [ ] Fleet Dispatch offers the approved directions.
 
 ### Dispatch
-
 - [ ] Dispatch Unit A outbound.
 - [ ] Second simultaneous open trip for Unit A is rejected.
 - [ ] End the trip and dispatch the same physical unit inbound.
@@ -109,7 +108,10 @@ Provision a test tracker through `/jeepney/admin`.
 - [ ] Accepted position has exact vehicle/trip/route/variant identity.
 - [ ] End trip, dispatch same physical unit inbound, send telemetry again.
 - [ ] Same tracker now publishes against the inbound trip without hardware reassignment.
-- [ ] Duplicate sequence replay does not create a second position.
+- [ ] Run `scripts/jeepney-hardware-smoke.mjs` with `BB_TEST_DUPLICATE=1`.
+- [ ] Sequence replay returns `duplicate:true` with the original position/trip/variant identity.
+- [ ] Sequence + position + private receipt are atomic; no receipt remains with `position_id IS NULL`.
+- [ ] Pilot/production tracker sends a stable sequence key on every telemetry report.
 - [ ] Suspended tracker is rejected; reactivation restores service.
 
 ---
@@ -118,9 +120,7 @@ Provision a test tracker through `/jeepney/admin`.
 
 Provision and map through `/jeepney/admin/gateways`.
 
-Supported ingest endpoint:
-
-`POST /api/telematics/v1/gateway-ingest-v2`
+Supported ingest endpoint: `POST /api/telematics/v1/gateway-ingest-v2`
 
 The earlier non-atomic gateway endpoint has been removed from source.
 
@@ -133,22 +133,39 @@ The earlier non-atomic gateway endpoint has been removed from source.
 - [ ] Same vehicle can later run inbound without changing the external mapping.
 - [ ] Replaying the same gateway + external vehicle + sequence returns the original result/position rather than duplicating it.
 - [ ] Suspended/retired gateway is rejected.
-- [ ] Run `scripts/jeepney-gateway-smoke.mjs` against the deployed test environment.
+- [ ] Run `scripts/jeepney-gateway-smoke.mjs` with `BB_TEST_DUPLICATE=1`.
 
 ---
 
-## 8. Rider smoke test
+## 8. Telemetry burst/rate-limit smoke test
+
+Both direct hardware and mapped external gateway vehicles use a distributed fixed-minute database limiter after credential authentication.
+
+Default source limit: **300 authenticated requests/minute/physical source**.
+
+This is intentionally much higher than normal 10–15 second reporting so buffered reconnect bursts remain possible.
+
+- [ ] Normal 10–15 second reporting never reaches the ceiling.
+- [ ] Buffered replay below 300 requests/minute is accepted subject to sequence idempotency.
+- [ ] Request 301 in the same source/minute window returns HTTP `429`.
+- [ ] 429 response contains `Retry-After` and `retry_after_seconds`.
+- [ ] One runaway tracker does not consume another tracker's bucket.
+- [ ] Two external vehicle IDs on one gateway have separate buckets.
+- [ ] Unauthenticated requests do not allocate telemetry rate-window rows.
+- [ ] Unmapped external IDs do not allocate per-vehicle gateway rate-window rows.
+
+---
+
+## 9. Rider smoke test
 
 ### Map
-
 - [ ] `/jeepney` shows multiple live vehicles on the same route independently.
 - [ ] Fleet/body labels are shown where available.
 - [ ] Default geometry is solid and additional active direction geometry is distinguishable.
 - [ ] Live marker popup includes assigned direction.
-- [ ] Canonical map congestion remains sourced only from the original canonical `jeepney_segment_stats` table.
+- [ ] Canonical map congestion remains sourced only from `jeepney_segment_stats`.
 
 ### Route detail
-
 - [ ] `/jeepney/$slug` keeps fares, schedules, rental, photos, alerts and service calendar intact.
 - [ ] Top Arrival card uses `JeepneyArrivalSummary`, not the old route-wide ETA calculation.
 - [ ] Detailed live list labels each vehicle outbound/inbound.
@@ -157,16 +174,16 @@ The earlier non-atomic gateway endpoint has been removed from source.
 - [ ] A passed stop is not presented as approaching.
 - [ ] Configured `jeepney_route_variant_stops` membership/order is respected.
 - [ ] An inbound direction that omits an outbound-only stop never offers that stop as an inbound ETA target.
-- [ ] After analytics rollup, outbound and inbound ETA read different `jeepney_variant_segment_stats` buckets when their measured speeds differ.
-- [ ] When no exact-direction history exists, ETA falls back safely to live/default speed rather than borrowing another direction's segment indexes.
+- [ ] Outbound and inbound ETA use different `jeepney_variant_segment_stats` buckets when measured speeds differ.
+- [ ] Missing exact-direction history falls back safely rather than borrowing another direction's segment indexes.
 
 ---
 
-## 9. Direction-specific congestion rollup
+## 10. Direction-specific congestion rollup
 
-Run the existing Jeepney analytics rollup only after migration `20260817231900` is applied.
+Run the Jeepney analytics rollup only after migration `20260817231900` is applied.
 
-- [ ] Existing canonical segment rows were seeded into the default variant history.
+- [ ] Existing canonical segment rows seed the default variant history.
 - [ ] Pre-variant positions without `route_variant_id` contribute only to the canonical/default direction.
 - [ ] New outbound positions update outbound variant buckets.
 - [ ] New inbound positions update inbound variant buckets.
@@ -176,7 +193,7 @@ Run the existing Jeepney analytics rollup only after migration `20260817231900` 
 
 ---
 
-## 10. Fleet operations smoke test
+## 11. Fleet operations smoke test
 
 Open `/jeepney/operator/fleet`.
 
@@ -190,7 +207,7 @@ Current off-route/bunching thresholds are pilot defaults and should become opera
 
 ---
 
-## 11. Data integrity rejection tests
+## 12. Data integrity rejection tests
 
 Confirm the database rejects:
 
@@ -202,13 +219,14 @@ Confirm the database rejects:
 - [ ] disabling or changing canonical default direction identity
 - [ ] route-variant congestion rows whose `route_id` conflicts with the referenced variant
 - [ ] telemetry referencing a conflicting trip/variant identity
+- [ ] completed direct/gateway atomic receipt without a public position
 - [ ] cross-operator gateway mapping
 - [ ] gateway vehicle remap while active trips make the remap unsafe
 - [ ] operator self-publication of an unapproved route
 
 ---
 
-## 12. Pilot acceptance criteria
+## 13. Pilot acceptance criteria
 
 Do not call the platform pilot-ready until:
 
@@ -218,18 +236,20 @@ Do not call the platform pilot-ready until:
 - [ ] at least two physical jeepneys run simultaneously on one route
 - [ ] one physical jeepney switches outbound → inbound through separate trips
 - [ ] phone, direct tracker and external gateway telemetry produce the same normalized identity model
+- [ ] direct tracker and external gateway replay idempotency are verified
+- [ ] telemetry rate limiting returns 429 correctly without affecting normal/buffered reporting
 - [ ] direction-specific stop subset is verified on a real inbound route
-- [ ] outbound/inbound congestion history is confirmed to remain separated
+- [ ] outbound/inbound congestion history remains separated
 - [ ] tracker/vendor reconnect and buffered telemetry are tested
 - [ ] rider stale-GPS behavior is verified
 - [ ] live ETA is checked against actual outbound and inbound road travel
-- [ ] production monitoring/logging exists for ingest errors, stale devices and replay rates
+- [ ] production monitoring/logging exists for ingest errors, stale devices, replay rates and rate-limit events
 
 ---
 
-## 13. Generated routes and rollback
+## 14. Generated routes and rollback
 
-`src/routeTree.gen.ts` is generated. Do not hand-edit it to add the new file routes. The real build must regenerate/validate the route tree.
+`src/routeTree.gen.ts` is generated. Do not hand-edit it. The real build must regenerate/validate the route tree.
 
 If database verification fails after migration:
 
