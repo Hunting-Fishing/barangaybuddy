@@ -21,6 +21,7 @@ type ActiveTrip = {
   id: string;
   route_id: string;
   started_at: string;
+  createdByPhone: boolean;
 };
 
 export function JeepneyLiveToggle({
@@ -44,6 +45,7 @@ export function JeepneyLiveToggle({
   const watchRef = useRef<number | null>(null);
   const lastPushRef = useRef(0);
   const tripIdRef = useRef<string | null>(null);
+  const tripCreatedByPhoneRef = useRef(false);
   const lastPointRef = useRef<LatLng | null>(null);
   const distanceRef = useRef(0);
   const pingsRef = useRef(0);
@@ -101,8 +103,11 @@ export function JeepneyLiveToggle({
 
   async function closeTrip() {
     const tripId = tripIdRef.current;
-    if (!tripId) return;
+    const shouldEndTrip = tripCreatedByPhoneRef.current;
     tripIdRef.current = null;
+    tripCreatedByPhoneRef.current = false;
+    if (!tripId || !shouldEndTrip) return;
+
     const minutes = (Date.now() - startedRef.current) / 60000;
     await supabase
       .from("jeepney_trips")
@@ -184,14 +189,14 @@ export function JeepneyLiveToggle({
     }
 
     if (existing) {
-      const trip = existing as ActiveTrip;
+      const trip = existing as Omit<ActiveTrip, "createdByPhone">;
       if (trip.route_id !== routeId) {
         toast.error(
           "This jeepney is already active on another route. End that trip before assigning it here.",
         );
         return null;
       }
-      return trip;
+      return { ...trip, createdByPhone: false };
     }
 
     const { data, error } = await (supabase as any)
@@ -205,7 +210,7 @@ export function JeepneyLiveToggle({
       return null;
     }
 
-    return data as ActiveTrip;
+    return { ...(data as Omit<ActiveTrip, "createdByPhone">), createdByPhone: true };
   }
 
   async function start() {
@@ -224,6 +229,7 @@ export function JeepneyLiveToggle({
     if (!trip) return;
 
     tripIdRef.current = trip.id;
+    tripCreatedByPhoneRef.current = trip.createdByPhone;
     activeVehicleIdRef.current = unitId;
     distanceRef.current = 0;
     pingsRef.current = 0;
@@ -302,7 +308,7 @@ export function JeepneyLiveToggle({
           <p className="text-xs text-muted-foreground">
             {live
               ? lastSent
-                ? `Last ping ${lastSent.toLocaleTimeString()} · ${distanceKm.toFixed(1)} km this shift`
+                ? `Last ping ${lastSent.toLocaleTimeString()} · ${distanceKm.toFixed(1)} km this phone session`
                 : "Waiting for your first GPS fix…"
               : "Choose a fleet jeepney, then start this route assignment and phone GPS."}
           </p>
@@ -313,7 +319,7 @@ export function JeepneyLiveToggle({
           onClick={live ? stop : () => void start()}
           disabled={!live && (loadingVehicles || !(vehicleId ?? selectedVehicleId))}
         >
-          {live ? "End shift" : "Go live"}
+          {live ? (tripCreatedByPhoneRef.current ? "End shift" : "Stop phone GPS") : "Go live"}
         </Button>
       </div>
 
@@ -373,17 +379,16 @@ export function JeepneyLiveToggle({
 
           {selectedVehicle && !live ? (
             <p className="text-[11px] text-emerald-700">
-              {selectedVehicle.label} will be assigned to this route through an active trip, not permanently attached to it.
+              {selectedVehicle.label} will use this route through an active trip, not a permanent route attachment.
             </p>
           ) : null}
         </div>
       ) : null}
 
       <p className="mt-2 text-[11px] text-muted-foreground">
-        The active trip is the authoritative route assignment for this vehicle. Every shift feeds route
-        analytics, and the same fleet jeepney can serve a different route after this trip is ended.
-        Phone tracking stops if the browser is closed; a hardwired tracker continues reporting through
-        the same active-trip assignment.
+        The active trip is the authoritative route assignment. If dispatch already started the trip,
+        stopping phone GPS leaves the hardwired tracker assignment running. A trip created by this phone
+        is ended when the driver ends the shift.
       </p>
     </div>
   );
