@@ -116,7 +116,7 @@ export function JeepneyFleetOperations({ operatorId }: { operatorId: string }) {
     setLoading(true);
     setError(null);
     try {
-      const [vehicleResult, tripResult, routeResult, variantResult, deviceResult, assignmentResult] = await Promise.all([
+      const [vehicleResult, tripResult, routeResult, deviceResult, assignmentResult] = await Promise.all([
         (supabase as any)
           .from("jeepney_vehicles")
           .select("id,label,plate_number,active")
@@ -132,13 +132,6 @@ export function JeepneyFleetOperations({ operatorId }: { operatorId: string }) {
           .from("jeepney_routes")
           .select("id,name,code,colour,path,status")
           .eq("operator_id", operatorId),
-        (supabase as any)
-          .from("jeepney_route_variants")
-          .select("id,route_id,code,name,direction,path,is_default,active")
-          .in(
-            "route_id",
-            [],
-          ),
         (supabase as any)
           .from("jeepney_gps_devices")
           .select("id,status,last_seen_at")
