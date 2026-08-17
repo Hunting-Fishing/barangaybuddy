@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { JeepneyRouteVariantManager } from "@/components/jeepney-route-variant-manager";
 import { supabase } from "@/integrations/supabase/client";
 
 type DispatchRoute = {
@@ -262,115 +263,117 @@ export function JeepneyFleetDispatch({
   }
 
   return (
-    <Card className="overflow-hidden p-0">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b bg-slate-50 px-4 py-3">
-        <div>
-          <p className="flex items-center gap-2 font-semibold">
-            <RadioTower className="h-4 w-4 text-blue-600" /> Fleet dispatch
-          </p>
-          <p className="mt-1 max-w-2xl text-xs text-muted-foreground">
-            Assign each physical jeepney to an exact route direction for this trip. Phone and hardwired GPS
-            inherit that trip/variant identity until dispatch ends it.
-          </p>
+    <div className="space-y-4">
+      <JeepneyRouteVariantManager operatorId={operatorId} onChanged={load} />
+
+      <Card className="overflow-hidden p-0">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b bg-slate-50 px-4 py-3">
+          <div>
+            <p className="flex items-center gap-2 font-semibold">
+              <RadioTower className="h-4 w-4 text-blue-600" /> Fleet dispatch
+            </p>
+            <p className="mt-1 max-w-2xl text-xs text-muted-foreground">
+              Assign each physical jeepney to an exact route direction for this trip. Phone and hardwired GPS
+              inherit that trip/variant identity until dispatch ends it.
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading}>
+            <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </Button>
         </div>
-        <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading}>
-          <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
-        </Button>
-      </div>
 
-      {loadError ? (
-        <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
-          {loadError}
-        </div>
-      ) : null}
-
-      <div className="grid gap-2 border-b p-4 sm:grid-cols-[1fr_1fr_auto]">
-        <Input value={newLabel} onChange={(event) => setNewLabel(event.target.value)} placeholder="Body/unit no. e.g. BB-104" />
-        <Input value={newPlate} onChange={(event) => setNewPlate(event.target.value)} placeholder="Plate number (optional)" />
-        <Button onClick={() => void addVehicle()} disabled={busy === "add" || !newLabel.trim()}>
-          <Plus className="mr-1.5 h-4 w-4" /> {busy === "add" ? "Adding…" : "Add fleet unit"}
-        </Button>
-      </div>
-
-      <div className="divide-y">
-        {!loading && vehicles.length === 0 ? (
-          <div className="p-6 text-center text-sm text-muted-foreground">
-            <Bus className="mx-auto mb-2 h-5 w-5" />
-            No fleet vehicles yet. Add the first physical jeepney above.
+        {loadError ? (
+          <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+            {loadError}
           </div>
         ) : null}
 
-        {vehicles.map((vehicle) => {
-          const trip = tripByVehicle.get(vehicle.id) ?? null;
-          const route = trip ? routeById.get(trip.route_id) ?? null : null;
-          const variant = trip ? variantById.get(trip.route_variant_id) ?? null : null;
-          const hasTracker = trackedVehicles.has(vehicle.id);
-          const selected = selectedVariant[vehicle.id] || dispatchVariants[0]?.id || "";
+        <div className="grid gap-2 border-b p-4 sm:grid-cols-[1fr_1fr_auto]">
+          <Input value={newLabel} onChange={(event) => setNewLabel(event.target.value)} placeholder="Body/unit no. e.g. BB-104" />
+          <Input value={newPlate} onChange={(event) => setNewPlate(event.target.value)} placeholder="Plate number (optional)" />
+          <Button onClick={() => void addVehicle()} disabled={busy === "add" || !newLabel.trim()}>
+            <Plus className="mr-1.5 h-4 w-4" /> {busy === "add" ? "Adding…" : "Add fleet unit"}
+          </Button>
+        </div>
 
-          return (
-            <div key={vehicle.id} className="grid gap-3 p-4 lg:grid-cols-[1fr_1.25fr_auto] lg:items-center">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-semibold">{vehicle.label}</p>
-                  {vehicle.plate_number ? <span className="text-xs text-muted-foreground">{vehicle.plate_number}</span> : null}
-                  <Badge variant={vehicle.active ? "secondary" : "outline"} className="text-[10px]">
-                    {vehicle.active ? "fleet active" : "vehicle disabled"}
-                  </Badge>
-                  {hasTracker ? (
-                    <Badge className="bg-blue-600 text-[10px] text-white">
-                      <RadioTower className="mr-1 h-3 w-3" /> GPS installed
-                    </Badge>
-                  ) : null}
-                </div>
-              </div>
-
-              {trip ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
-                  <p className="flex items-center gap-1.5 text-sm font-semibold text-emerald-950">
-                    <RouteIcon className="h-3.5 w-3.5" /> {route?.name ?? "Assigned route"}
-                  </p>
-                  <p className="mt-0.5 text-[11px] font-semibold text-emerald-900">
-                    {variant ? `${directionLabel(variant.direction)} · ${variant.name}` : "Direction unavailable"}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-emerald-800">
-                    Active for {elapsedLabel(trip.started_at)} · exact route variant controls GPS routing and rider direction
-                  </p>
-                </div>
-              ) : (
-                <select
-                  value={selected}
-                  disabled={!vehicle.active || dispatchVariants.length === 0 || busy === vehicle.id}
-                  onChange={(event) =>
-                    setSelectedVariant((current) => ({ ...current, [vehicle.id]: event.target.value }))
-                  }
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                >
-                  {dispatchVariants.length === 0 ? <option value="">No published route direction available</option> : null}
-                  {dispatchVariants.map((candidate) => {
-                    const candidateRoute = routeById.get(candidate.route_id);
-                    return (
-                      <option key={candidate.id} value={candidate.id}>
-                        {candidateRoute?.code ? `${candidateRoute.code} · ` : ""}
-                        {candidateRoute?.name ?? "Route"} — {directionLabel(candidate.direction)}
-                      </option>
-                    );
-                  })}
-                </select>
-              )}
-
-              {trip ? (
-                <Button size="sm" variant="outline" disabled={busy === vehicle.id} onClick={() => void endTrip(vehicle, trip)}>
-                  <CircleStop className="mr-1.5 h-4 w-4" /> {busy === vehicle.id ? "Ending…" : "End trip"}
-                </Button>
-              ) : (
-                <Button size="sm" disabled={!vehicle.active || !selected || busy === vehicle.id} onClick={() => void startTrip(vehicle)}>
-                  <RouteIcon className="mr-1.5 h-4 w-4" /> {busy === vehicle.id ? "Starting…" : "Dispatch"}
-                </Button>
-              )}
+        <div className="divide-y">
+          {!loading && vehicles.length === 0 ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">
+              <Bus className="mx-auto mb-2 h-5 w-5" />
+              No fleet vehicles yet. Add the first physical jeepney above.
             </div>
-          );
-        })}
-      </div>
-    </Card>
+          ) : null}
+
+          {vehicles.map((vehicle) => {
+            const trip = tripByVehicle.get(vehicle.id) ?? null;
+            const route = trip ? routeById.get(trip.route_id) ?? null : null;
+            const variant = trip ? variantById.get(trip.route_variant_id) ?? null : null;
+            const hasTracker = trackedVehicles.has(vehicle.id);
+            const selected = selectedVariant[vehicle.id] || dispatchVariants[0]?.id || "";
+
+            return (
+              <div key={vehicle.id} className="grid gap-3 p-4 lg:grid-cols-[1fr_1.25fr_auto] lg:items-center">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold">{vehicle.label}</p>
+                    {vehicle.plate_number ? <span className="text-xs text-muted-foreground">{vehicle.plate_number}</span> : null}
+                    <Badge variant={vehicle.active ? "secondary" : "outline"} className="text-[10px]">
+                      {vehicle.active ? "fleet active" : "vehicle disabled"}
+                    </Badge>
+                    {hasTracker ? (
+                      <Badge className="bg-blue-600 text-[10px] text-white">
+                        <RadioTower className="mr-1 h-3 w-3" /> GPS installed
+                      </Badge>
+                    ) : null}
+                  </div>
+                </div>
+
+                {trip ? (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                    <p className="flex items-center gap-1.5 text-sm font-semibold text-emerald-950">
+                      <RouteIcon className="h-3.5 w-3.5" /> {route?.name ?? "Assigned route"}
+                    </p>
+                    <p className="mt-0.5 text-[11px] font-semibold text-emerald-900">
+                      {variant ? `${directionLabel(variant.direction)} · ${variant.name}` : "Direction unavailable"}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-emerald-800">
+                      Active for {elapsedLabel(trip.started_at)} · exact route variant controls GPS routing and rider direction
+                    </p>
+                  </div>
+                ) : (
+                  <select
+                    value={selected}
+                    disabled={!vehicle.active || dispatchVariants.length === 0 || busy === vehicle.id}
+                    onChange={(event) => setSelectedVariant((current) => ({ ...current, [vehicle.id]: event.target.value }))}
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    {dispatchVariants.length === 0 ? <option value="">No published route direction available</option> : null}
+                    {dispatchVariants.map((candidate) => {
+                      const candidateRoute = routeById.get(candidate.route_id);
+                      return (
+                        <option key={candidate.id} value={candidate.id}>
+                          {candidateRoute?.code ? `${candidateRoute.code} · ` : ""}
+                          {candidateRoute?.name ?? "Route"} — {directionLabel(candidate.direction)}
+                        </option>
+                      );
+                    })}
+                  </select>
+                )}
+
+                {trip ? (
+                  <Button size="sm" variant="outline" disabled={busy === vehicle.id} onClick={() => void endTrip(vehicle, trip)}>
+                    <CircleStop className="mr-1.5 h-4 w-4" /> {busy === vehicle.id ? "Ending…" : "End trip"}
+                  </Button>
+                ) : (
+                  <Button size="sm" disabled={!vehicle.active || !selected || busy === vehicle.id} onClick={() => void startTrip(vehicle)}>
+                    <RouteIcon className="mr-1.5 h-4 w-4" /> {busy === vehicle.id ? "Starting…" : "Dispatch"}
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    </div>
   );
 }
