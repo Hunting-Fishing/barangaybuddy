@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- Jeepney hardware tables are introduced by the matching migration. */
+/* eslint-disable @typescript-eslint/no-explicit-any -- Jeepney hardware tables are introduced by the matching migrations. */
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -42,7 +42,6 @@ function safeEqual(a: string, b: string): boolean {
 function parseRecordedAt(value: string | number | undefined): Date {
   if (value === undefined) return new Date();
   if (typeof value === "number") {
-    // Accept Unix seconds or milliseconds from low-level tracker protocols.
     return new Date(value < 10_000_000_000 ? value * 1000 : value);
   }
   return new Date(value);
@@ -158,37 +157,72 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
 
         const vehicleId = String(assignment.vehicle_id);
 
-        // Prefer the active trip. This is the future-safe route association because a
-        // fleet vehicle can serve different routes. Fall back to the legacy vehicle.route_id
-        // while the current operator UI is migrated to trip-based route assignments.
-        const [{ data: activeTrip, error: tripError }, { data: vehicle, error: vehicleError }] = await Promise.all([
-          (supabaseAdmin as any)
-            .from("jeepney_trips")
-            .select("id,route_id,started_at")
-            .eq("vehicle_id", vehicleId)
-            .is("ended_at", null)
-            .order("started_at", { ascending: false })
-            .limit(1)
-            .maybeSingle(),
-          (supabaseAdmin as any)
-            .from("jeepney_vehicles")
-            .select("id,route_id,active")
-            .eq("id", vehicleId)
-            .maybeSingle(),
-        ]);
+        // Phase 3 route authority: hardware never guesses a route from the vehicle
+        // record. A dispatcher/phone session must create one active trip for the
+        // physical vehicle. That trip is the route assignment used by all telemetry.
+        const [{ data: vehicle, error: vehicleError }, { data: activeTrip, error: tripError }] =
+          await Promise.all([
+            (supabaseAdmin as any)
+              .from("jeepney_vehicles")
+              .select("id,operator_id,active")
+              .eq("id", vehicleId)
+              .maybeSingle(),
+            (supabaseAdmin as any)
+              .from("jeepney_trips")
+              .select("id,operator_id,route_id,started_at")
+              .eq("vehicle_id", vehicleId)
+              .is("ended_at", null)
+              .order("started_at", { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+          ]);
 
         if (tripError || vehicleError) {
-          console.error("Jeepney telemetry route resolution failed", tripError ?? vehicleError);
+          console.error("Jeepney telemetry trip resolution failed", tripError ?? vehicleError);
           return jsonError("Telemetry service unavailable", 503);
         }
         if (!vehicle || vehicle.active === false) {
           return jsonError("Assigned vehicle is inactive or missing", 409);
         }
-
-        const routeId = activeTrip?.route_id ?? vehicle.route_id;
-        if (!routeId) {
-          return jsonError("Vehicle has no active route or trip assignment", 409, {
+        if (String(vehicle.operator_id) !== String(device.operator_id)) {
+          return jsonError("Tracker and vehicle belong to different operators", 409, {
             vehicle_id: vehicleId,
+          });
+        }
+        if (!activeTrip?.id || !activeTrip.route_id) {
+          return jsonError("Vehicle has no active trip assignment", 409, {
+            vehicle_id: vehicleId,
+            action: "Start a route assignment in the operator fleet dispatch panel.",
+          });
+        }
+        if (String(activeTrip.operator_id) !== String(device.operator_id)) {
+          return jsonError("Active trip does not belong to the tracker's operator", 409, {
+            vehicle_id: vehicleId,
+            trip_id: activeTrip.id,
+          });
+        }
+
+        const routeId = String(activeTrip.route_id);
+        const tripId = String(activeTrip.id);
+        const { data: assignedRoute, error: routeError } = await (supabaseAdmin as any)
+          .from("jeepney_routes")
+          .select("id,operator_id,status")
+          .eq("id", routeId)
+          .maybeSingle();
+
+        if (routeError) {
+          console.error("Jeepney telemetry route verification failed", routeError);
+          return jsonError("Telemetry service unavailable", 503);
+        }
+        if (!assignedRoute || String(assignedRoute.operator_id) !== String(device.operator_id)) {
+          return jsonError("Active trip route does not belong to the tracker's operator", 409, {
+            trip_id: tripId,
+          });
+        }
+        if (!['published', 'suspended'].includes(String(assignedRoute.status))) {
+          return jsonError("Active trip route is not approved for public service", 409, {
+            route_id: routeId,
+            status: assignedRoute.status,
           });
         }
 
@@ -219,6 +253,7 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
             position_id: position.id,
             vehicle_id: vehicleId,
             route_id: routeId,
+            trip_id: tripId,
             sequence_key: sequenceKey,
             device_recorded_at: recordedAt.toISOString(),
             server_received_at: serverReceivedAt,
@@ -228,8 +263,6 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
           });
 
         if (receiptError) {
-          // The rider position is already safely stored. Do not tell the tracker to retry
-          // and create another public position solely because private audit metadata failed.
           console.error("Jeepney telemetry receipt insert failed", receiptError);
         }
 
@@ -239,6 +272,7 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
           position_id: position.id,
           device_id: publicId,
           vehicle_id: vehicleId,
+          trip_id: tripId,
           route_id: routeId,
           recorded_at: recordedAt.toISOString(),
           server_received_at: serverReceivedAt,
