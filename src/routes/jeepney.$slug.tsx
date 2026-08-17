@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Bell, Bus, Locate, Radio, TriangleAlert, Wrench } from "lucide-react";
+import { ArrowLeft, Bell, Bus, Radio, TriangleAlert, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -15,15 +15,13 @@ import { JeepneyServiceCalendar } from "@/components/jeepney-service-calendar";
 import { JeepneyRentalDialog } from "@/components/jeepney-rental-dialog";
 import { JeepneyPhotoThumb } from "@/components/jeepney-photo-thumb";
 import { JeepneyLiveVehicleList } from "@/components/jeepney-live-vehicle-list";
+import { JeepneyArrivalSummary } from "@/components/jeepney-arrival-summary";
 import {
   CONGESTION_COLOURS,
   CONGESTION_LABELS,
   DAYS,
-  etaMinutesWithTraffic,
-  etaRangeLabel,
   formatPhpAmount,
   formatTime,
-  haversineKm,
   headwayLabel,
   parsePath,
   segmentSpeedMap,
@@ -262,16 +260,6 @@ function JeepneyRoutePage() {
     );
   }
 
-  const nearestStop = useMemo(() => {
-    if (!route || !me || !route.stops.length) return null;
-    return route.stops
-      .map((s) => ({
-        stop: s,
-        km: haversineKm({ lat: Number(s.latitude), lng: Number(s.longitude) }, me),
-      }))
-      .sort((a, b) => a.km - b.km)[0]!;
-  }, [route, me]);
-
   const speeds = useMemo(
     () => segmentSpeedMap(segmentRows, currentHour),
     [segmentRows, currentHour],
@@ -281,26 +269,6 @@ function JeepneyRoutePage() {
     () => (route ? livePositionsForRoute(live, route.id) : []),
     [live, route],
   );
-
-  const bestEta = useMemo(() => {
-    if (!route || !nearestStop || !routePositions.length) return null;
-    const target = {
-      lat: Number(nearestStop.stop.latitude),
-      lng: Number(nearestStop.stop.longitude),
-    };
-    const values = routePositions
-      .map((position) =>
-        etaMinutesWithTraffic(
-          route.path,
-          { lat: Number(position.latitude), lng: Number(position.longitude) },
-          target,
-          position.speed_kph,
-          speeds,
-        ),
-      )
-      .filter((value): value is number => value !== null);
-    return values.length ? Math.min(...values) : null;
-  }, [route, nearestStop, routePositions, speeds]);
 
   if (loading) {
     return (
@@ -487,45 +455,13 @@ function JeepneyRoutePage() {
               </Card>
             )}
 
-            <Card className="space-y-2 p-4">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold">Arrival</p>
-                <Button size="sm" variant="outline" onClick={locate}>
-                  <Locate className="mr-1.5 h-4 w-4" /> Use my location
-                </Button>
-              </div>
-              {!me && (
-                <p className="text-xs text-muted-foreground">
-                  Share your location to rank all live jeepneys by arrival at your nearest mapped stop.
-                </p>
-              )}
-              {me && nearestStop && (
-                <p className="text-sm">
-                  Nearest stop: <strong>{nearestStop.stop.name}</strong>{" "}
-                  <span className="text-muted-foreground">
-                    ({nearestStop.km < 1
-                      ? `${Math.round(nearestStop.km * 1000)} m`
-                      : `${nearestStop.km.toFixed(1)} km`}{" "}
-                    away)
-                  </span>
-                </p>
-              )}
-              {me && onRoad && bestEta && (
-                <p className="text-sm text-emerald-600">
-                  Soonest live jeepney arriving in about {etaRangeLabel(bestEta)}.
-                </p>
-              )}
-              {me && onRoad && !bestEta && (
-                <p className="text-xs text-muted-foreground">
-                  Current live units appear to have passed this stop on the mapped route direction.
-                </p>
-              )}
-              {me && !onRoad && (
-                <p className="text-xs text-muted-foreground">
-                  No live jeepney on this route right now — use the schedule above.
-                </p>
-              )}
-            </Card>
+            <JeepneyArrivalSummary
+              route={route}
+              positions={routePositions}
+              userLocation={me}
+              speeds={speeds}
+              onLocate={locate}
+            />
 
             <Card className="p-4">
               <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
