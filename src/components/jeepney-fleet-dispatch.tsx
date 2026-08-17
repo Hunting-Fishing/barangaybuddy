@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- fleet ownership is introduced by the Phase 3 migration ahead of generated types. */
+/* eslint-disable @typescript-eslint/no-explicit-any -- fleet/variant columns are migration-backed ahead of generated Supabase types. */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bus, CircleStop, Plus, RadioTower, RefreshCw, Route as RouteIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -15,6 +15,16 @@ type DispatchRoute = {
   status: string;
 };
 
+type RouteVariant = {
+  id: string;
+  route_id: string;
+  code: string;
+  name: string;
+  direction: "outbound" | "inbound" | "loop" | "custom";
+  is_default: boolean;
+  active: boolean;
+};
+
 type FleetVehicle = {
   id: string;
   operator_id: string;
@@ -26,6 +36,7 @@ type FleetVehicle = {
 type ActiveTrip = {
   id: string;
   route_id: string;
+  route_variant_id: string;
   vehicle_id: string;
   started_at: string;
 };
@@ -43,6 +54,13 @@ function elapsedLabel(startedAt: string) {
   return remainder ? `${hours}h ${remainder}m` : `${hours}h`;
 }
 
+function directionLabel(direction: RouteVariant["direction"]) {
+  if (direction === "outbound") return "Outbound";
+  if (direction === "inbound") return "Inbound / return";
+  if (direction === "loop") return "Loop";
+  return "Custom direction";
+}
+
 export function JeepneyFleetDispatch({
   operatorId,
   routes,
@@ -52,22 +70,22 @@ export function JeepneyFleetDispatch({
 }) {
   const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
   const [trips, setTrips] = useState<ActiveTrip[]>([]);
+  const [variants, setVariants] = useState<RouteVariant[]>([]);
   const [assignments, setAssignments] = useState<DeviceAssignment[]>([]);
-  const [selectedRoute, setSelectedRoute] = useState<Record<string, string>>({});
+  const [selectedVariant, setSelectedVariant] = useState<Record<string, string>>({});
   const [newLabel, setNewLabel] = useState("");
   const [newPlate, setNewPlate] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const publishedRoutes = useMemo(
-    () => routes.filter((route) => route.status === "published"),
-    [routes],
-  );
-
   const routeById = useMemo(
     () => new Map(routes.map((route) => [route.id, route])),
     [routes],
+  );
+  const variantById = useMemo(
+    () => new Map(variants.map((variant) => [variant.id, variant])),
+    [variants],
   );
   const tripByVehicle = useMemo(
     () => new Map(trips.map((trip) => [trip.vehicle_id, trip])),
@@ -78,11 +96,32 @@ export function JeepneyFleetDispatch({
     [assignments],
   );
 
+  const dispatchVariants = useMemo(() => {
+    return variants
+      .filter((variant) => variant.active && routeById.get(variant.route_id)?.status === "published")
+      .slice()
+      .sort((a, b) => {
+        const routeA = routeById.get(a.route_id)?.name ?? "";
+        const routeB = routeById.get(b.route_id)?.name ?? "";
+        return routeA.localeCompare(routeB) || Number(b.is_default) - Number(a.is_default) || a.name.localeCompare(b.name);
+      });
+  }, [variants, routeById]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const [vehicleResult, tripResult, deviceResult, assignmentResult] = await Promise.all([
+      const routeIds = routes.map((route) => route.id);
+      const variantQuery = routeIds.length
+        ? (supabase as any)
+            .from("jeepney_route_variants")
+            .select("id,route_id,code,name,direction,is_default,active")
+            .in("route_id", routeIds)
+            .eq("active", true)
+            .order("created_at", { ascending: true })
+        : Promise.resolve({ data: [], error: null });
+
+      const [vehicleResult, tripResult, variantResult, deviceResult, assignmentResult] = await Promise.all([
         (supabase as any)
           .from("jeepney_vehicles")
           .select("id,operator_id,label,plate_number,active")
@@ -90,10 +129,11 @@ export function JeepneyFleetDispatch({
           .order("label", { ascending: true }),
         (supabase as any)
           .from("jeepney_trips")
-          .select("id,route_id,vehicle_id,started_at")
+          .select("id,route_id,route_variant_id,vehicle_id,started_at")
           .eq("operator_id", operatorId)
           .is("ended_at", null)
           .order("started_at", { ascending: true }),
+        variantQuery,
         (supabase as any)
           .from("jeepney_gps_devices")
           .select("id")
@@ -107,9 +147,11 @@ export function JeepneyFleetDispatch({
 
       if (vehicleResult.error) throw vehicleResult.error;
       if (tripResult.error) throw tripResult.error;
+      if (variantResult.error) throw variantResult.error;
 
       setVehicles((vehicleResult.data ?? []) as FleetVehicle[]);
       setTrips((tripResult.data ?? []).filter((trip: ActiveTrip) => Boolean(trip.vehicle_id)) as ActiveTrip[]);
+      setVariants((variantResult.data ?? []) as RouteVariant[]);
 
       if (!deviceResult.error && !assignmentResult.error) {
         const ownDeviceIds = new Set((deviceResult.data ?? []).map((device: { id: string }) => device.id));
@@ -124,12 +166,12 @@ export function JeepneyFleetDispatch({
     } catch (error) {
       console.error("Jeepney fleet dispatch load failed", error);
       setLoadError(
-        "Fleet dispatch is not available yet. Verify the Phase 3 fleet/trip migration is applied to Supabase.",
+        "Fleet dispatch is not available yet. Verify the Phase 3 fleet migration and Phase 4 route-variant migration are applied to Supabase.",
       );
     } finally {
       setLoading(false);
     }
-  }, [operatorId]);
+  }, [operatorId, routes]);
 
   useEffect(() => {
     void load();
@@ -166,9 +208,16 @@ export function JeepneyFleetDispatch({
   }
 
   async function startTrip(vehicle: FleetVehicle) {
-    const routeId = selectedRoute[vehicle.id] || publishedRoutes[0]?.id || "";
-    if (!routeId) {
-      toast.error("No published route is available for dispatch.");
+    const variantId = selectedVariant[vehicle.id] || dispatchVariants[0]?.id || "";
+    const variant = variantById.get(variantId);
+    if (!variant) {
+      toast.error("No published route direction is available for dispatch.");
+      return;
+    }
+
+    const route = routeById.get(variant.route_id);
+    if (!route || route.status !== "published") {
+      toast.error("That route is not currently available for dispatch.");
       return;
     }
 
@@ -176,7 +225,8 @@ export function JeepneyFleetDispatch({
     const { error } = await (supabase as any).from("jeepney_trips").insert({
       operator_id: operatorId,
       vehicle_id: vehicle.id,
-      route_id: routeId,
+      route_id: variant.route_id,
+      route_variant_id: variant.id,
     });
     setBusy(null);
 
@@ -184,12 +234,12 @@ export function JeepneyFleetDispatch({
       toast.error(
         error.code === "23505"
           ? "This jeepney already has an active trip. Refresh the fleet panel."
-          : "Could not start this route assignment.",
+          : "Could not start this route/direction assignment.",
       );
       return;
     }
 
-    toast.success(`${vehicle.label} dispatched to ${routeById.get(routeId)?.name ?? "the selected route"}.`);
+    toast.success(`${vehicle.label} dispatched to ${route.name} · ${directionLabel(variant.direction)}.`);
     await load();
   }
 
@@ -207,7 +257,7 @@ export function JeepneyFleetDispatch({
       return;
     }
 
-    toast.success(`${vehicle.label} is now idle and can be assigned to another route.`);
+    toast.success(`${vehicle.label} is now idle and can be assigned to another route or direction.`);
     await load();
   }
 
@@ -219,8 +269,8 @@ export function JeepneyFleetDispatch({
             <RadioTower className="h-4 w-4 text-blue-600" /> Fleet dispatch
           </p>
           <p className="mt-1 max-w-2xl text-xs text-muted-foreground">
-            Assign a physical jeepney to a route for this trip. Hardwired GPS uses this active trip as
-            its route authority; the unit is free to serve another route after the trip ends.
+            Assign each physical jeepney to an exact route direction for this trip. Phone and hardwired GPS
+            inherit that trip/variant identity until dispatch ends it.
           </p>
         </div>
         <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading}>
@@ -235,16 +285,8 @@ export function JeepneyFleetDispatch({
       ) : null}
 
       <div className="grid gap-2 border-b p-4 sm:grid-cols-[1fr_1fr_auto]">
-        <Input
-          value={newLabel}
-          onChange={(event) => setNewLabel(event.target.value)}
-          placeholder="Body/unit no. e.g. BB-104"
-        />
-        <Input
-          value={newPlate}
-          onChange={(event) => setNewPlate(event.target.value)}
-          placeholder="Plate number (optional)"
-        />
+        <Input value={newLabel} onChange={(event) => setNewLabel(event.target.value)} placeholder="Body/unit no. e.g. BB-104" />
+        <Input value={newPlate} onChange={(event) => setNewPlate(event.target.value)} placeholder="Plate number (optional)" />
         <Button onClick={() => void addVehicle()} disabled={busy === "add" || !newLabel.trim()}>
           <Plus className="mr-1.5 h-4 w-4" /> {busy === "add" ? "Adding…" : "Add fleet unit"}
         </Button>
@@ -261,8 +303,9 @@ export function JeepneyFleetDispatch({
         {vehicles.map((vehicle) => {
           const trip = tripByVehicle.get(vehicle.id) ?? null;
           const route = trip ? routeById.get(trip.route_id) ?? null : null;
+          const variant = trip ? variantById.get(trip.route_variant_id) ?? null : null;
           const hasTracker = trackedVehicles.has(vehicle.id);
-          const selected = selectedRoute[vehicle.id] || publishedRoutes[0]?.id || "";
+          const selected = selectedVariant[vehicle.id] || dispatchVariants[0]?.id || "";
 
           return (
             <div key={vehicle.id} className="grid gap-3 p-4 lg:grid-cols-[1fr_1.25fr_auto] lg:items-center">
@@ -286,43 +329,41 @@ export function JeepneyFleetDispatch({
                   <p className="flex items-center gap-1.5 text-sm font-semibold text-emerald-950">
                     <RouteIcon className="h-3.5 w-3.5" /> {route?.name ?? "Assigned route"}
                   </p>
+                  <p className="mt-0.5 text-[11px] font-semibold text-emerald-900">
+                    {variant ? `${directionLabel(variant.direction)} · ${variant.name}` : "Direction unavailable"}
+                  </p>
                   <p className="mt-0.5 text-[11px] text-emerald-800">
-                    Active for {elapsedLabel(trip.started_at)} · this trip controls phone and hardwired GPS routing
+                    Active for {elapsedLabel(trip.started_at)} · exact route variant controls GPS routing and rider direction
                   </p>
                 </div>
               ) : (
                 <select
                   value={selected}
-                  disabled={!vehicle.active || publishedRoutes.length === 0 || busy === vehicle.id}
+                  disabled={!vehicle.active || dispatchVariants.length === 0 || busy === vehicle.id}
                   onChange={(event) =>
-                    setSelectedRoute((current) => ({ ...current, [vehicle.id]: event.target.value }))
+                    setSelectedVariant((current) => ({ ...current, [vehicle.id]: event.target.value }))
                   }
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                 >
-                  {publishedRoutes.length === 0 ? <option value="">No published route available</option> : null}
-                  {publishedRoutes.map((candidate) => (
-                    <option key={candidate.id} value={candidate.id}>
-                      {candidate.code ? `${candidate.code} · ` : ""}{candidate.name}
-                    </option>
-                  ))}
+                  {dispatchVariants.length === 0 ? <option value="">No published route direction available</option> : null}
+                  {dispatchVariants.map((candidate) => {
+                    const candidateRoute = routeById.get(candidate.route_id);
+                    return (
+                      <option key={candidate.id} value={candidate.id}>
+                        {candidateRoute?.code ? `${candidateRoute.code} · ` : ""}
+                        {candidateRoute?.name ?? "Route"} — {directionLabel(candidate.direction)}
+                      </option>
+                    );
+                  })}
                 </select>
               )}
 
               {trip ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={busy === vehicle.id}
-                  onClick={() => void endTrip(vehicle, trip)}
-                >
+                <Button size="sm" variant="outline" disabled={busy === vehicle.id} onClick={() => void endTrip(vehicle, trip)}>
                   <CircleStop className="mr-1.5 h-4 w-4" /> {busy === vehicle.id ? "Ending…" : "End trip"}
                 </Button>
               ) : (
-                <Button
-                  size="sm"
-                  disabled={!vehicle.active || !selected || busy === vehicle.id}
-                  onClick={() => void startTrip(vehicle)}
-                >
+                <Button size="sm" disabled={!vehicle.active || !selected || busy === vehicle.id} onClick={() => void startTrip(vehicle)}>
                   <RouteIcon className="mr-1.5 h-4 w-4" /> {busy === vehicle.id ? "Starting…" : "Dispatch"}
                 </Button>
               )}
