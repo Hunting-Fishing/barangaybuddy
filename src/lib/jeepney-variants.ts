@@ -21,6 +21,12 @@ export type JeepneyRouteVariant = {
   active: boolean;
 };
 
+export type JeepneyRouteVariantStop = {
+  variant_id: string;
+  stop_id: string;
+  position: number;
+};
+
 export type VariantAwarePosition = JeepneyPosition & {
   trip_id?: string | null;
   route_variant_id?: string | null;
@@ -52,6 +58,14 @@ export function parseRouteVariant(row: any): JeepneyRouteVariant {
     path: parsePath(row.path),
     is_default: Boolean(row.is_default),
     active: row.active !== false,
+  };
+}
+
+export function parseRouteVariantStop(row: any): JeepneyRouteVariantStop {
+  return {
+    variant_id: String(row.variant_id),
+    stop_id: String(row.stop_id),
+    position: Number.isFinite(Number(row.position)) ? Number(row.position) : 0,
   };
 }
 
@@ -104,9 +118,8 @@ export function projectDistanceAlongPathKm(path: LatLng[], point: LatLng): PathP
     const px = (point.lng - a.lng) * kmPerDegreeLng;
     const py = (point.lat - a.lat) * kmPerDegreeLat;
     const lengthSquared = bx * bx + by * by;
-    const fraction = lengthSquared > 0
-      ? Math.max(0, Math.min(1, (px * bx + py * by) / lengthSquared))
-      : 0;
+    const fraction =
+      lengthSquared > 0 ? Math.max(0, Math.min(1, (px * bx + py * by) / lengthSquared)) : 0;
     const projectedX = bx * fraction;
     const projectedY = by * fraction;
     const offRouteKm = Math.hypot(px - projectedX, py - projectedY);
@@ -157,9 +170,8 @@ export function etaMinutesProjected(
 
 /**
  * Sort shared route stops by their physical progress along one variant geometry.
- * This avoids assuming the outbound database `position` order is also correct for
- * an inbound/return path. Variant-specific stop membership can further refine this
- * list when the operator configures different pickup points per direction.
+ * This is the backward-compatible fallback when a direction has no explicit stop
+ * membership rows yet.
  */
 export function stopsOrderedAlongPath(stops: JeepneyStop[], path: LatLng[]): JeepneyStop[] {
   if (path.length < 2) return stops.slice().sort((a, b) => a.position - b.position);
@@ -174,4 +186,32 @@ export function stopsOrderedAlongPath(stops: JeepneyStop[], path: LatLng[]): Jee
     }))
     .sort((a, b) => a.progress - b.progress || a.stop.position - b.stop.position)
     .map((entry) => entry.stop);
+}
+
+/**
+ * Resolve the pickup/drop-off stops that belong to one exact travel direction.
+ * Explicit jeepney_route_variant_stops rows are authoritative when present. This
+ * allows an inbound direction to omit one-way/outbound-only stops and to use its
+ * own operational stop order. Legacy/unconfigured directions fall back to
+ * geometric progress along the variant path.
+ */
+export function stopsForVariant(
+  stops: JeepneyStop[],
+  variant: JeepneyRouteVariant | null,
+  memberships: JeepneyRouteVariantStop[],
+  path: LatLng[],
+): JeepneyStop[] {
+  if (!variant) return stopsOrderedAlongPath(stops, path);
+
+  const configured = memberships
+    .filter((membership) => membership.variant_id === variant.id)
+    .slice()
+    .sort((a, b) => a.position - b.position || a.stop_id.localeCompare(b.stop_id));
+
+  if (!configured.length) return stopsOrderedAlongPath(stops, path);
+
+  const stopById = new Map(stops.map((stop) => [stop.id, stop]));
+  return configured
+    .map((membership) => stopById.get(membership.stop_id) ?? null)
+    .filter((stop): stop is JeepneyStop => Boolean(stop));
 }
