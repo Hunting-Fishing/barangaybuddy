@@ -1,0 +1,185 @@
+import { Bus, Clock3, Gauge, MapPin, Radio } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import {
+  distanceAlongPathKm,
+  etaMinutesWithTraffic,
+  etaRangeLabel,
+  haversineKm,
+  type JeepneyPosition,
+  type JeepneyRoute,
+  type JeepneyStop,
+  type LatLng,
+} from "@/lib/jeepney";
+
+type RouteWithStops = JeepneyRoute & { stops: JeepneyStop[] };
+
+type Props = {
+  route: RouteWithStops;
+  positions: JeepneyPosition[];
+  userLocation: LatLng | null;
+  speeds: Map<number, number>;
+};
+
+type VehicleRow = {
+  position: JeepneyPosition;
+  targetStop: JeepneyStop | null;
+  targetLabel: string;
+  eta: number | null;
+  passedTarget: boolean;
+};
+
+function unitLabel(position: JeepneyPosition, index: number) {
+  return position.vehicle_id
+    ? `Unit …${position.vehicle_id.slice(-6).toUpperCase()}`
+    : `Live unit ${index + 1}`;
+}
+
+function updatedLabel(recordedAt: string) {
+  const ageSeconds = Math.max(0, Math.round((Date.now() - new Date(recordedAt).getTime()) / 1000));
+  if (ageSeconds < 60) return `${ageSeconds}s ago`;
+  return `${Math.floor(ageSeconds / 60)}m ago`;
+}
+
+export function JeepneyLiveVehicleList({ route, positions, userLocation, speeds }: Props) {
+  if (!positions.length) return null;
+
+  const userStop = userLocation && route.stops.length
+    ? route.stops
+        .map((stop) => ({
+          stop,
+          distance: haversineKm(userLocation, {
+            lat: Number(stop.latitude),
+            lng: Number(stop.longitude),
+          }),
+        }))
+        .sort((a, b) => a.distance - b.distance)[0]?.stop ?? null
+    : null;
+
+  const rows: VehicleRow[] = positions
+    .map((position) => {
+      const current = { lat: Number(position.latitude), lng: Number(position.longitude) };
+      const currentDistance = distanceAlongPathKm(route.path, current);
+
+      let targetStop = userStop;
+      if (!targetStop) {
+        targetStop =
+          route.stops.find((stop) => {
+            const stopDistance = distanceAlongPathKm(route.path, {
+              lat: Number(stop.latitude),
+              lng: Number(stop.longitude),
+            });
+            return stopDistance > currentDistance + 0.05;
+          }) ?? null;
+      }
+
+      if (!targetStop) {
+        return {
+          position,
+          targetStop: null,
+          targetLabel: "End of mapped route",
+          eta: null,
+          passedTarget: true,
+        };
+      }
+
+      const targetPoint = {
+        lat: Number(targetStop.latitude),
+        lng: Number(targetStop.longitude),
+      };
+      const targetDistance = distanceAlongPathKm(route.path, targetPoint);
+      const passedTarget = targetDistance <= currentDistance + 0.05;
+      const eta = passedTarget
+        ? null
+        : etaMinutesWithTraffic(route.path, current, targetPoint, position.speed_kph, speeds);
+
+      return {
+        position,
+        targetStop,
+        targetLabel: userStop ? `Your nearest stop · ${targetStop.name}` : `Next · ${targetStop.name}`,
+        eta,
+        passedTarget,
+      };
+    })
+    .sort((a, b) => {
+      if (a.eta !== null && b.eta !== null) return a.eta - b.eta;
+      if (a.eta !== null) return -1;
+      if (b.eta !== null) return 1;
+      return new Date(b.position.recorded_at).getTime() - new Date(a.position.recorded_at).getTime();
+    });
+
+  const approaching = rows.filter((row) => row.eta !== null).length;
+
+  return (
+    <Card className="rounded-2xl border-blue-100 p-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="flex items-center gap-2 font-semibold text-slate-900">
+            <Bus className="h-4 w-4 text-blue-600" /> Live jeepneys on this route
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {userStop
+              ? `Sorted by arrival at ${userStop.name}, your nearest mapped stop.`
+              : "Sorted by the next mapped stop each vehicle is approaching."}
+          </p>
+        </div>
+        <Badge className="bg-emerald-600 text-white">
+          <Radio className="mr-1 h-3 w-3" /> {positions.length} live
+        </Badge>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {rows.map((row, index) => (
+          <div
+            key={row.position.vehicle_id ?? row.position.id}
+            className="grid gap-3 rounded-2xl border bg-white p-3 sm:grid-cols-[1fr_auto] sm:items-center"
+          >
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-semibold text-slate-950">{unitLabel(row.position, index)}</p>
+                {index === 0 && row.eta !== null ? (
+                  <Badge variant="secondary" className="text-[10px]">Soonest</Badge>
+                ) : null}
+              </div>
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5" />
+                {row.passedTarget && userStop ? `Passed ${userStop.name} on this mapped direction` : row.targetLabel}
+              </p>
+              <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+                <span className="inline-flex items-center gap-1">
+                  <Clock3 className="h-3 w-3" /> Updated {updatedLabel(row.position.recorded_at)}
+                </span>
+                {row.position.speed_kph !== null ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Gauge className="h-3 w-3" /> {Math.round(Number(row.position.speed_kph))} km/h
+                  </span>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="sm:text-right">
+              {row.eta !== null ? (
+                <>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Live ETA</p>
+                  <p className="mt-0.5 text-lg font-black text-blue-700">{etaRangeLabel(row.eta)}</p>
+                </>
+              ) : (
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {row.passedTarget ? "Already passed" : "ETA unavailable"}
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {userStop ? (
+        <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+          {approaching > 0
+            ? `${approaching} live ${approaching === 1 ? "jeepney is" : "jeepneys are"} still approaching your nearest stop on the currently mapped route direction.`
+            : "No live jeepney is currently approaching your nearest stop on the mapped route direction. Return-direction detection is a later route-variant upgrade."}
+        </p>
+      ) : null}
+    </Card>
+  );
+}
