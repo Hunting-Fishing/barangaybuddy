@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- Jeepney hardware tables are introduced by the matching migrations. */
+/* eslint-disable @typescript-eslint/no-explicit-any -- Jeepney hardware/variant tables are introduced by matching migrations. */
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -20,30 +20,23 @@ const TelemetryInput = z.object({
 });
 
 function toHex(bytes: ArrayBuffer): string {
-  return Array.from(new Uint8Array(bytes))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+  return Array.from(new Uint8Array(bytes)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 async function sha256(value: string): Promise<string> {
-  const bytes = new TextEncoder().encode(value);
-  return toHex(await crypto.subtle.digest("SHA-256", bytes));
+  return toHex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)));
 }
 
 function safeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let mismatch = 0;
-  for (let index = 0; index < a.length; index += 1) {
-    mismatch |= a.charCodeAt(index) ^ b.charCodeAt(index);
-  }
+  for (let index = 0; index < a.length; index += 1) mismatch |= a.charCodeAt(index) ^ b.charCodeAt(index);
   return mismatch === 0;
 }
 
 function parseRecordedAt(value: string | number | undefined): Date {
   if (value === undefined) return new Date();
-  if (typeof value === "number") {
-    return new Date(value < 10_000_000_000 ? value * 1000 : value);
-  }
+  if (typeof value === "number") return new Date(value < 10_000_000_000 ? value * 1000 : value);
   return new Date(value);
 }
 
@@ -57,10 +50,7 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
       POST: async ({ request }) => {
         const publicId = request.headers.get("x-bb-device-id")?.trim();
         const secret = request.headers.get("x-bb-device-secret")?.trim();
-
-        if (!publicId || !secret) {
-          return jsonError("Missing device credentials", 401);
-        }
+        if (!publicId || !secret) return jsonError("Missing device credentials", 401);
 
         const parsed = TelemetryInput.safeParse(await request.json().catch(() => null));
         if (!parsed.success) {
@@ -68,47 +58,40 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
         }
 
         const recordedAt = parseRecordedAt(parsed.data.recorded_at);
-        if (!Number.isFinite(recordedAt.getTime())) {
-          return jsonError("Invalid recorded_at timestamp", 400);
-        }
-        if (recordedAt.getTime() > Date.now() + 5 * 60 * 1000) {
-          return jsonError("recorded_at is too far in the future", 400);
-        }
+        if (!Number.isFinite(recordedAt.getTime())) return jsonError("Invalid recorded_at timestamp", 400);
+        if (recordedAt.getTime() > Date.now() + 5 * 60 * 1000) return jsonError("recorded_at is too far in the future", 400);
 
         const { data: device, error: deviceError } = await (supabaseAdmin as any)
           .from("jeepney_gps_devices")
           .select("id,operator_id,public_id,token_hash,status")
           .eq("public_id", publicId)
           .maybeSingle();
-
         if (deviceError) {
           console.error("Jeepney telemetry device lookup failed", deviceError);
           return jsonError("Telemetry service unavailable", 503);
         }
         if (!device) return jsonError("Unknown device", 401);
-        if (device.status === "suspended" || device.status === "retired") {
-          return jsonError("Device is not permitted to report", 403);
-        }
+        if (device.status === "suspended" || device.status === "retired") return jsonError("Device is not permitted to report", 403);
 
         const suppliedHash = await sha256(secret);
-        if (!safeEqual(String(device.token_hash).toLowerCase(), suppliedHash.toLowerCase())) {
-          return jsonError("Invalid device credentials", 401);
-        }
+        if (!safeEqual(String(device.token_hash).toLowerCase(), suppliedHash.toLowerCase())) return jsonError("Invalid device credentials", 401);
 
         const sequenceKey = parsed.data.sequence === undefined ? null : String(parsed.data.sequence);
         if (sequenceKey) {
           const { data: duplicate } = await (supabaseAdmin as any)
             .from("jeepney_device_ingest_receipts")
-            .select("position_id,server_received_at")
+            .select("position_id,trip_id,route_id,route_variant_id,server_received_at")
             .eq("device_id", device.id)
             .eq("sequence_key", sequenceKey)
             .maybeSingle();
-
           if (duplicate) {
             return Response.json({
               accepted: true,
               duplicate: true,
               position_id: duplicate.position_id,
+              trip_id: duplicate.trip_id,
+              route_id: duplicate.route_id,
+              route_variant_id: duplicate.route_variant_id,
               server_received_at: duplicate.server_received_at,
             });
           }
@@ -125,10 +108,8 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
           last_event_type: parsed.data.event_type ?? "position",
         };
         if (parsed.data.ignition_on !== undefined) healthUpdate.ignition_on = parsed.data.ignition_on;
-        if (parsed.data.external_voltage_v !== undefined)
-          healthUpdate.external_voltage_v = parsed.data.external_voltage_v;
-        if (parsed.data.backup_battery_pct !== undefined)
-          healthUpdate.backup_battery_pct = parsed.data.backup_battery_pct;
+        if (parsed.data.external_voltage_v !== undefined) healthUpdate.external_voltage_v = parsed.data.external_voltage_v;
+        if (parsed.data.backup_battery_pct !== undefined) healthUpdate.backup_battery_pct = parsed.data.backup_battery_pct;
         if (parsed.data.signal_dbm !== undefined) healthUpdate.signal_dbm = parsed.data.signal_dbm;
         if (device.status === "provisioned") healthUpdate.status = "active";
 
@@ -144,55 +125,43 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
           .eq("device_id", device.id)
           .is("removed_at", null)
           .maybeSingle();
-
         if (assignmentError) {
           console.error("Jeepney telemetry assignment lookup failed", assignmentError);
           return jsonError("Telemetry service unavailable", 503);
         }
         if (!assignment?.vehicle_id) {
-          return jsonError("Device is authenticated but not installed on a vehicle", 409, {
-            device_id: publicId,
-          });
+          return jsonError("Device is authenticated but not installed on a vehicle", 409, { device_id: publicId });
         }
 
         const vehicleId = String(assignment.vehicle_id);
-
-        // Phase 3 route authority: hardware never guesses a route from the vehicle
-        // record. A dispatcher/phone session must create one active trip for the
-        // physical vehicle. That trip is the route assignment used by all telemetry.
-        const [{ data: vehicle, error: vehicleError }, { data: activeTrip, error: tripError }] =
-          await Promise.all([
-            (supabaseAdmin as any)
-              .from("jeepney_vehicles")
-              .select("id,operator_id,active")
-              .eq("id", vehicleId)
-              .maybeSingle(),
-            (supabaseAdmin as any)
-              .from("jeepney_trips")
-              .select("id,operator_id,route_id,started_at")
-              .eq("vehicle_id", vehicleId)
-              .is("ended_at", null)
-              .order("started_at", { ascending: false })
-              .limit(1)
-              .maybeSingle(),
-          ]);
+        const [{ data: vehicle, error: vehicleError }, { data: activeTrip, error: tripError }] = await Promise.all([
+          (supabaseAdmin as any)
+            .from("jeepney_vehicles")
+            .select("id,operator_id,active")
+            .eq("id", vehicleId)
+            .maybeSingle(),
+          (supabaseAdmin as any)
+            .from("jeepney_trips")
+            .select("id,operator_id,route_id,route_variant_id,started_at")
+            .eq("vehicle_id", vehicleId)
+            .is("ended_at", null)
+            .order("started_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+        ]);
 
         if (tripError || vehicleError) {
           console.error("Jeepney telemetry trip resolution failed", tripError ?? vehicleError);
           return jsonError("Telemetry service unavailable", 503);
         }
-        if (!vehicle || vehicle.active === false) {
-          return jsonError("Assigned vehicle is inactive or missing", 409);
-        }
+        if (!vehicle || vehicle.active === false) return jsonError("Assigned vehicle is inactive or missing", 409);
         if (String(vehicle.operator_id) !== String(device.operator_id)) {
-          return jsonError("Tracker and vehicle belong to different operators", 409, {
-            vehicle_id: vehicleId,
-          });
+          return jsonError("Tracker and vehicle belong to different operators", 409, { vehicle_id: vehicleId });
         }
-        if (!activeTrip?.id || !activeTrip.route_id) {
-          return jsonError("Vehicle has no active trip assignment", 409, {
+        if (!activeTrip?.id || !activeTrip.route_id || !activeTrip.route_variant_id) {
+          return jsonError("Vehicle has no complete active trip/direction assignment", 409, {
             vehicle_id: vehicleId,
-            action: "Start a route assignment in the operator fleet dispatch panel.",
+            action: "Start a route direction in the operator Fleet Dispatch panel.",
           });
         }
         if (String(activeTrip.operator_id) !== String(device.operator_id)) {
@@ -203,21 +172,27 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
         }
 
         const routeId = String(activeTrip.route_id);
+        const routeVariantId = String(activeTrip.route_variant_id);
         const tripId = String(activeTrip.id);
-        const { data: assignedRoute, error: routeError } = await (supabaseAdmin as any)
-          .from("jeepney_routes")
-          .select("id,operator_id,status")
-          .eq("id", routeId)
-          .maybeSingle();
+        const [{ data: assignedRoute, error: routeError }, { data: variant, error: variantError }] = await Promise.all([
+          (supabaseAdmin as any)
+            .from("jeepney_routes")
+            .select("id,operator_id,status")
+            .eq("id", routeId)
+            .maybeSingle(),
+          (supabaseAdmin as any)
+            .from("jeepney_route_variants")
+            .select("id,route_id,direction,active")
+            .eq("id", routeVariantId)
+            .maybeSingle(),
+        ]);
 
-        if (routeError) {
-          console.error("Jeepney telemetry route verification failed", routeError);
+        if (routeError || variantError) {
+          console.error("Jeepney telemetry route/variant verification failed", routeError ?? variantError);
           return jsonError("Telemetry service unavailable", 503);
         }
         if (!assignedRoute || String(assignedRoute.operator_id) !== String(device.operator_id)) {
-          return jsonError("Active trip route does not belong to the tracker's operator", 409, {
-            trip_id: tripId,
-          });
+          return jsonError("Active trip route does not belong to the tracker's operator", 409, { trip_id: tripId });
         }
         if (!['published', 'suspended'].includes(String(assignedRoute.status))) {
           return jsonError("Active trip route is not approved for public service", 409, {
@@ -225,11 +200,19 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
             status: assignedRoute.status,
           });
         }
+        if (!variant || String(variant.route_id) !== routeId || variant.active === false) {
+          return jsonError("Active trip route direction is invalid or inactive", 409, {
+            trip_id: tripId,
+            route_variant_id: routeVariantId,
+          });
+        }
 
         const { data: position, error: positionError } = await (supabaseAdmin as any)
           .from("jeepney_positions")
           .insert({
             route_id: routeId,
+            route_variant_id: routeVariantId,
+            trip_id: tripId,
             vehicle_id: vehicleId,
             latitude: parsed.data.latitude,
             longitude: parsed.data.longitude,
@@ -240,7 +223,6 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
           })
           .select("id")
           .maybeSingle();
-
         if (positionError || !position?.id) {
           console.error("Jeepney telemetry position insert failed", positionError);
           return jsonError("Could not store telemetry", 500);
@@ -253,6 +235,7 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
             position_id: position.id,
             vehicle_id: vehicleId,
             route_id: routeId,
+            route_variant_id: routeVariantId,
             trip_id: tripId,
             sequence_key: sequenceKey,
             device_recorded_at: recordedAt.toISOString(),
@@ -261,10 +244,7 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
             altitude_m: parsed.data.altitude_m ?? null,
             event_type: parsed.data.event_type ?? "position",
           });
-
-        if (receiptError) {
-          console.error("Jeepney telemetry receipt insert failed", receiptError);
-        }
+        if (receiptError) console.error("Jeepney telemetry receipt insert failed", receiptError);
 
         return Response.json({
           accepted: true,
@@ -274,6 +254,8 @@ export const Route = createFileRoute("/api/telematics/v1/ingest")({
           vehicle_id: vehicleId,
           trip_id: tripId,
           route_id: routeId,
+          route_variant_id: routeVariantId,
+          direction: variant.direction,
           recorded_at: recordedAt.toISOString(),
           server_received_at: serverReceivedAt,
         });
