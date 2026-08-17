@@ -1,6 +1,6 @@
 # Barangay Buddy Jeepney Mobility Platform
 
-**Status:** Active build — source architecture substantially implemented; production validation/deployment still blocked  
+**Status:** Source architecture implemented through telemetry reliability; production validation/deployment still blocked  
 **Working branch:** `feature/jeepney-planner-live-route-ui`  
 **Open PR:** #3 → `main`  
 **Last updated:** 2026-08-18
@@ -9,7 +9,7 @@
 
 ## 1. Product goal
 
-Build Barangay Buddy into a **device-agnostic Philippine public-transport mobility platform** that combines:
+Build Barangay Buddy into a **device-agnostic Philippine public-transport mobility platform** combining:
 
 - free commuter route discovery;
 - multiple live jeepneys per route;
@@ -19,8 +19,8 @@ Build Barangay Buddy into a **device-agnostic Philippine public-transport mobili
 - driver-phone GPS fallback;
 - Barangay Buddy hardwired GPS hardware;
 - existing cooperative/vendor/OEM GPS integration;
-- cooperative fleet dispatch and operations;
-- controlled government/LGU/partner dashboards and APIs;
+- cooperative fleet dispatch and live operations;
+- controlled partner/LGU/government dashboards and APIs;
 - route/trip/device/vehicle audit history;
 - future GTFS and GTFS-Realtime output.
 
@@ -52,9 +52,9 @@ route + exact route variant/direction
 normalized telemetry
 ```
 
-A jeepney **does not permanently equal one route**. `jeepney_vehicles.route_id` is legacy/home-route compatibility metadata only. The open trip is authoritative for current service.
+A physical jeepney does **not** permanently equal one route. `jeepney_vehicles.route_id` is legacy/home-route compatibility metadata only. The open trip is authoritative for current service.
 
-External GPS systems also do not choose the live route. Their upstream vehicle identity maps to the physical Barangay Buddy vehicle; Fleet Dispatch determines the active trip, route and direction.
+External GPS systems also do not choose the public route. Their upstream vehicle identity maps to the physical Barangay Buddy vehicle; Fleet Dispatch determines the active trip, route and direction.
 
 ---
 
@@ -77,7 +77,8 @@ BARANGAY BUDDY NORMALIZATION LAYER
   - source authentication
   - external vehicle mapping
   - timestamp / coordinate validation
-  - sequence / replay controls
+  - distributed authenticated burst control
+  - sequence / replay idempotency
   - device / gateway health
   - active-trip resolution
   - route + direction identity
@@ -95,17 +96,12 @@ Rider app   Fleet ops       Admin/device      Partner/LGU
 
 ## 4. Multi-vehicle rider tracking — implemented in source
 
-The original route-keyed live state collapsed multiple jeepneys into one marker. That architecture has been replaced.
-
 - [x] Latest position retained independently per physical vehicle
-- [x] Realtime INSERT merges into the correct vehicle stream
-- [x] Polling rebuilds latest-per-vehicle state
-- [x] Multiple simultaneous markers on `/jeepney`
-- [x] Multiple simultaneous markers on `/jeepney/$slug`
+- [x] Realtime/polling merge by vehicle rather than route
+- [x] Multiple simultaneous markers on `/jeepney` and `/jeepney/$slug`
 - [x] Live vehicle counts by route
 - [x] Five-minute stale pruning
 - [x] Real fleet/body labels where available
-- [x] UUID fragment only as fallback identity
 
 Primary code:
 
@@ -118,28 +114,23 @@ Primary code:
 
 ## 5. Fleet ownership and dispatch — implemented in source
 
-Phase 3 decouples the physical vehicle from permanent route ownership.
-
 - [x] `jeepney_vehicles.operator_id` is authoritative fleet ownership
 - [x] Legacy `route_id` is nullable/home-route metadata
-- [x] Deleting a route cannot cascade-delete the physical vehicle
+- [x] Route deletion cannot cascade-delete the physical vehicle
 - [x] One open trip maximum per physical vehicle
-- [x] Trip operator, vehicle and route ownership guarded in the database
+- [x] Trip operator/vehicle/route ownership guarded in PostgreSQL
 - [x] Existing trip identity cannot be reassigned underneath live telemetry
-- [x] Fleet Dispatch can add physical units
-- [x] Fleet Dispatch starts exact route-direction trips
-- [x] Fleet Dispatch ends trips so the same unit can switch route/direction
+- [x] Fleet Dispatch adds units and starts/ends exact route-direction trips
+- [x] Same physical vehicle can switch routes/directions trip-to-trip
 - [x] Route claim approval creates operator-owned fleet inventory
 
-Operator component:
-
-`src/components/jeepney-fleet-dispatch.tsx`
+Operator component: `src/components/jeepney-fleet-dispatch.tsx`
 
 ---
 
 ## 6. Route variants / directions — implemented in source
 
-A public route may have multiple operational geometries:
+Supported operational geometries:
 
 - outbound;
 - inbound / return;
@@ -153,35 +144,33 @@ Database:
 
 Behavior:
 
-- [x] Every legacy route receives one canonical/default outbound variant
+- [x] Every legacy route receives a canonical/default outbound variant
 - [x] Canonical route path stays synchronized with the default variant
 - [x] Default identity cannot be disabled/re-coded/re-purposed
 - [x] `route_variant_id` stamped on trips and normalized telemetry
-- [x] Direction geometry cannot change/deactivate/delete while an open trip depends on it
+- [x] Active direction geometry cannot change/deactivate/delete while an open trip depends on it
 - [x] Operator can create an inactive return-direction draft
-- [x] Reversed outbound path is only an explicit starter, never silently assumed correct
+- [x] Reversed outbound path is only an explicit starter, never assumed correct
 - [x] Return route can be manually corrected or GPS-recorded
 - [x] Direction requires explicit activation before dispatch
 - [x] Variant-specific stop membership/order supported
 
 ---
 
-## 7. Direction-aware ETA — implemented in source
-
-Rider ETA now follows the actual assigned route direction rather than applying one outbound path to every unit.
+## 7. Direction-aware ETA and stops — implemented in source
 
 - [x] `/jeepney/$slug` uses `JeepneyArrivalSummary`
-- [x] Old route-wide `bestEta` calculation removed
+- [x] Old route-wide outbound `bestEta` removed
 - [x] Detailed live-unit cards use exact direction geometry
 - [x] GPS progress projects onto the nearest point of a polyline segment
 - [x] Passed stops are excluded from approaching ETA
 - [x] `jeepney_route_variant_stops` controls eligible stop subset/order when configured
-- [x] Legacy/unconfigured direction falls back to geometric stop order
+- [x] Legacy/unconfigured direction uses geometric stop-order fallback
 - [x] Outbound-only stops can be excluded from inbound ETA
 - [x] Direction-specific traffic history is consumed when available
 - [x] Missing exact-direction history safely falls back to live/default speed
 
-Core helpers:
+Core:
 
 - `src/lib/jeepney-variants.ts`
 - `src/components/jeepney-arrival-summary.tsx`
@@ -191,7 +180,7 @@ Core helpers:
 
 ## 8. Direction-specific congestion analytics — implemented in source
 
-The original `jeepney_segment_stats` table remains canonical/default-route compatibility data.
+The existing `jeepney_segment_stats` table remains canonical/default-route compatibility data.
 
 New table:
 
@@ -203,23 +192,16 @@ Identity:
 route_variant_id + segment_index + hour
 ```
 
-Design:
-
 - [x] Existing canonical traffic history seeds the default variant
 - [x] Rollup projects each ping against its exact variant geometry
-- [x] Pre-variant historical pings contribute only to the canonical/default direction
-- [x] Outbound and inbound segment indexes never share one bucket
-- [x] Canonical `jeepney_segment_stats` continues feeding older/current route map behavior
-- [x] Rider ETA reads `jeepney_variant_segment_stats`
+- [x] Pre-variant pings contribute only to canonical/default direction
+- [x] Outbound/inbound/custom segment indexes never share one bucket
+- [x] Canonical table continues feeding existing route-map behavior
+- [x] Rider ETA reads exact-direction speed history
 - [x] Verification checks route/variant consistency
 
-Rollup:
-
-`src/lib/jeepney-analytics.server.ts`
-
-Migration:
-
-`supabase/migrations/20260817231900_jeepney_variant_segment_stats.sql`
+Rollup: `src/lib/jeepney-analytics.server.ts`  
+Migration: `20260817231900_jeepney_variant_segment_stats.sql`
 
 ---
 
@@ -227,11 +209,10 @@ Migration:
 
 `src/components/jeepney-live-toggle.tsx`
 
-- [x] Select/create the physical fleet unit before tracking
-- [x] Phone position carries real `vehicle_id`
-- [x] Position carries `trip_id`, `route_id` and `route_variant_id`
+- [x] Select/create physical fleet unit before tracking
+- [x] Position carries real `vehicle_id`, `trip_id`, `route_id`, `route_variant_id`
 - [x] Phone-created shift records `assignment_source = phone`
-- [x] Reopened phone-owned shift remains endable by the phone
+- [x] Reopened phone-owned shift remains endable by phone
 - [x] Phone may join dispatcher-owned trip without owning it
 - [x] Stopping phone GPS does not terminate dispatcher/hardware trip
 
@@ -241,66 +222,36 @@ Phone GPS remains the low-cost fallback and pilot onboarding path.
 
 ## 10. Direct Barangay Buddy GPS hardware — implemented in source
 
-Foundation migration:
-
-`supabase/migrations/20260817215000_jeepney_hardware_foundation.sql`
-
-Tables:
+Core tables:
 
 - `jeepney_gps_devices`
 - `jeepney_device_assignments`
 - `jeepney_device_ingest_receipts`
 
-Device model includes:
+APIs:
 
-- operator ownership;
-- public device ID;
-- IMEI / ICCID;
-- manufacturer/model/firmware;
-- hashed device credential;
-- lifecycle state;
-- last-seen / position / speed / heading / accuracy;
-- ignition;
-- external voltage;
-- backup battery;
-- signal strength;
-- event type;
-- private metadata.
+- `POST /api/telematics/v1/provision`
+- `POST /api/telematics/v1/ingest`
+- `GET/PATCH /api/telematics/v1/devices`
 
-### APIs
+Security/reliability:
 
-`POST /api/telematics/v1/provision`
+- [x] One-time 256-bit device secret; only SHA-256 hash persists
+- [x] Device lifecycle and active installation validation
+- [x] Active trip determines route + direction
+- [x] `jeepney_commit_device_telemetry(...)` revalidates tracker → installation → vehicle → open trip → route → variant inside PostgreSQL
+- [x] Sequence reservation + rider position + private receipt commit atomically
+- [x] Concurrent sequence replay returns original immutable position/trip/direction identity
+- [x] Incomplete historical receipts fail closed
+- [x] Sequence-less compatibility reports remain atomic but are not considered replay-deduplicated
+- [x] `scripts/jeepney-hardware-smoke.mjs` verifies replay behavior
+- [x] Direct-device verification detects incomplete or identity-drifting receipts
 
-- admin-only provisioning;
-- generates 256-bit random secret;
-- persists only SHA-256 hash;
-- original secret returned once;
-- optional immediate installation on an operator-owned vehicle.
-
-`POST /api/telematics/v1/ingest`
-
-- tracker ID + tracker secret authentication;
-- timestamp / coordinate validation;
-- lifecycle enforcement;
-- device installation resolution;
-- active-trip route/direction resolution;
-- normalized public position;
-- private receipt / device health.
-
-`GET/PATCH /api/telematics/v1/devices`
-
-- health view;
-- suspend/reactivate/retire;
-- rotate secret;
-- assign/reassign/unassign installation.
-
-**Remaining direct-hardware hardening:** make position + receipt + sequence finalization fully transactional, matching the external gateway v2 pattern, and add rate/replay-window controls before large-scale deployment.
+Pilot/production hardware should always supply a stable sequence key.
 
 ---
 
 ## 11. External cooperative/vendor/OEM gateways — implemented in source
-
-The platform can ingest an existing GPS provider without replacing its hardware.
 
 Tables:
 
@@ -308,9 +259,7 @@ Tables:
 - `jeepney_external_vehicle_mappings`
 - `jeepney_gateway_ingest_receipts`
 
-Admin UI:
-
-`/jeepney/admin/gateways`
+Admin UI: `/jeepney/admin/gateways`
 
 Supported vendor ingest:
 
@@ -318,54 +267,72 @@ Supported vendor ingest:
 
 The older non-atomic gateway endpoint has been deleted.
 
-Gateway security/identity:
-
 - [x] One-time gateway credential; hash persisted
 - [x] External vehicle ID maps to a physical Barangay Buddy vehicle
 - [x] Operator-scoped gateways cannot cross-map fleets
-- [x] Unsafe remapping is blocked while active trips exist
-- [x] Vendor cannot supply/override the current route
-- [x] Active trip determines route + direction
+- [x] Unsafe remapping blocked while active trips exist
+- [x] Vendor cannot override current route/direction
 - [x] Replay key = gateway + external vehicle ID + sequence
 - [x] PostgreSQL atomically reserves sequence + inserts rider position + audit receipt
-- [x] Database transaction independently revalidates gateway → mapping → vehicle → trip → route → variant
+- [x] Database transaction revalidates gateway → mapping → vehicle → trip → route → variant
+- [x] Incomplete historical receipts fail closed
 - [x] Suspend/reactivate/retire/rotate lifecycle
 
-Integration contract:
-
-`JEEPNEY_TELEMATICS_GATEWAY.md`
-
-Smoke client:
-
-`scripts/jeepney-gateway-smoke.mjs`
+Contract: `JEEPNEY_TELEMATICS_GATEWAY.md`  
+Smoke client: `scripts/jeepney-gateway-smoke.mjs`
 
 ---
 
-## 12. Fleet operations — implemented in source
+## 12. Authenticated telemetry burst protection — implemented in source
 
-Authenticated operator route:
+Migration: `20260817232100_jeepney_telematics_rate_limit.sql`
 
-`/jeepney/operator/fleet`
+Shared server helper: `src/lib/jeepney-telematics-rate.server.ts`
 
-Current operational board:
+Default policy:
+
+```text
+300 authenticated requests / minute / physical source
+```
+
+This is about 5 requests/sec—far above normal 10–15 second reporting—to permit buffered reconnect bursts while containing runaway firmware or an adapter loop.
+
+- [x] Fixed-minute counters live in PostgreSQL and are shared across app instances
+- [x] Direct tracker key: `device:<device UUID>`
+- [x] Gateway vehicle key: `gateway:<gateway UUID>:<mapped external vehicle ID>`
+- [x] Rate slot is consumed only after valid credentials
+- [x] Gateway per-vehicle bucket is created only after a valid mapping resolves
+- [x] Duplicate/replay requests count against the ceiling
+- [x] Over-limit response is HTTP 429 + `Retry-After`
+- [x] Old windows are opportunistically cleaned without a scheduler
+
+Pilot buffered-reconnect tests must validate whether 300/minute is appropriate for the selected hardware/provider; the limit is intentionally configurable in code/RPC rather than embedded in a tracker protocol.
+
+---
+
+## 13. Fleet operations — implemented in source
+
+Authenticated route: `/jeepney/operator/fleet`
+
+Current board:
 
 - physical fleet inventory;
 - active vs idle units;
 - route and exact direction;
-- trip source and trip age;
+- trip source and age;
 - GPS live/delayed/offline state;
 - tracker presence/health;
-- vehicle speed;
+- speed;
 - off-route distance against exact variant geometry;
 - same-direction spacing/bunching warning.
 
-Current off-route and bunching thresholds are pilot defaults and should become cooperative-configurable from field data.
+Current thresholds are pilot defaults and should become cooperative-configurable from field data.
 
 ---
 
-## 13. Route publication security — implemented in source
+## 14. Route publication security — implemented in source
 
-Operator-created routes cannot self-publish through normal RLS ownership.
+Operator-created routes cannot self-publish through normal ownership/RLS.
 
 Permitted operator workflow:
 
@@ -376,17 +343,11 @@ published -> suspended
 suspended -> published
 ```
 
-Other publication transitions require admin/server authority. Suspended route data remains publicly readable so riders retain a service/outage page.
-
-Migration:
-
-`20260817222500_jeepney_route_status_security.sql`
+Other publication transitions require admin/server authority.
 
 ---
 
-## 14. Database migration sequence
-
-Current Jeepney extension sequence for this branch:
+## 15. Current migration sequence
 
 1. `20260817215000_jeepney_hardware_foundation.sql`
 2. `20260817222500_jeepney_route_status_security.sql`
@@ -405,12 +366,14 @@ Current Jeepney extension sequence for this branch:
 15. `20260817231700_jeepney_gateway_atomic_guard.sql`
 16. `20260817231800_jeepney_gateway_mapping_safety.sql`
 17. `20260817231900_jeepney_variant_segment_stats.sql`
+18. `20260817232000_jeepney_device_atomic_ingest.sql`
+19. `20260817232100_jeepney_telematics_rate_limit.sql`
 
 Apply only in timestamp order after confirming the intended database and recovery path.
 
 ---
 
-## 15. Verification and deployment runbooks
+## 16. Verification and runbooks
 
 Read-only verification:
 
@@ -422,15 +385,11 @@ Operational runbooks:
 - `JEEPNEY_DEPLOYMENT_CHECKLIST.md`
 - `JEEPNEY_PREMERGE_GATES.md`
 
-The verification suites cover fleet ownership, duplicate open trips, canonical direction identity, route/variant consistency, tracker assignment, telemetry/trip identity, variant congestion integrity, external gateway mapping and replay receipts.
-
 ---
 
-## 16. Current CI / merge state
+## 17. Current CI / merge state
 
-Workflow:
-
-`.github/workflows/jeepney-ci.yml`
+Workflow: `.github/workflows/jeepney-ci.yml`
 
 Required validation:
 
@@ -440,26 +399,26 @@ pnpm run lint
 pnpm run build
 ```
 
-Current state as verified on 2026-08-18:
+As last verified on 2026-08-18:
 
 - PR #3 is open and unmerged;
-- GitHub reports the branch as mergeable;
-- fresh Jeepney CI jobs still contain zero execution steps;
-- GitHub annotation states the account is locked due to a billing issue;
-- the runner does not reach checkout;
+- GitHub reports it mergeable;
+- fresh Jeepney CI jobs still had zero execution steps;
+- GitHub annotation stated the account is locked due to a billing issue;
+- runner did not reach checkout;
 - therefore there is still no actual lint/build result.
 
-`src/routeTree.gen.ts` is generated code and must **not** be hand-edited. A real successful build must regenerate/validate the new file routes.
+`src/routeTree.gen.ts` is generated code and must **not** be hand-edited. A successful real build must regenerate/validate new file routes.
 
 **Do not production-merge until CI executes successfully or an equivalent local frozen install + lint + build succeeds.**
 
 ---
 
-## 17. Current Supabase deployment state
+## 18. Current Supabase deployment state
 
-Connected Supabase access was re-checked on 2026-08-18.
+Connected Supabase access was rechecked on 2026-08-18.
 
-The connected account lists one unrelated project (`SWGOH Command Center`). The previously identified Barangay Buddy project reference is not visible in the connected project list, and a direct lookup returns:
+The connected account exposes one unrelated project (`SWGOH Command Center`). The intended Barangay Buddy project reference is not visible, and direct lookup returns:
 
 ```text
 You do not have permission to perform this action
@@ -468,16 +427,16 @@ You do not have permission to perform this action
 Therefore:
 
 - [x] migrations committed to GitHub;
-- [x] verification/runbook files committed;
-- [ ] intended Barangay Buddy Supabase project accessible through the connector;
+- [x] verification/runbooks committed;
+- [ ] intended Barangay Buddy Supabase project accessible through connector;
 - [ ] migrations applied through this session;
-- [ ] verification SQL executed against the target database.
+- [ ] verification SQL executed against target database.
 
-No migration has been redirected to the unrelated visible project and no production database mutation was attempted after permission denial.
+No migration was redirected to the unrelated visible project.
 
 ---
 
-## 18. Hardware sourcing
+## 19. Hardware sourcing
 
 Primary candidates:
 
@@ -486,7 +445,7 @@ Primary candidates:
 3. **Teltonika** — premium/reference integration
 4. **Queclink** — premium/reference integration
 
-Preferred primary hardware: concealed hardwired **4G GNSS**, not OBD-II as the default.
+Preferred primary hardware: concealed hardwired **4G GNSS**, not OBD-II as default.
 
 RFQ quantities:
 
@@ -502,6 +461,7 @@ Required capabilities:
 - raw protocol documentation;
 - TCP/UDP and preferably MQTT/TLS;
 - configurable 10–15 sec moving reports;
+- stable sequence/message identity;
 - offline buffering/resend;
 - ignition/ACC;
 - power-disconnect/tamper alert;
@@ -515,7 +475,7 @@ Required capabilities:
 
 ---
 
-## 19. Regulatory workstream
+## 20. Regulatory workstream
 
 Primary agencies/stakeholders:
 
@@ -526,13 +486,7 @@ Primary agencies/stakeholders:
 5. LGUs/local transport offices
 6. Transport cooperatives/corporations
 
-Maintain a current compliance matrix including:
-
-- LTFRB MC 2015-013 GPS provider/device requirements;
-- current modern-PUV technical issuances;
-- current service-contracting rules;
-- NTC type approval/type acceptance/equipment conformity;
-- Republic Act No. 10173 (Data Privacy Act).
+Maintain a current compliance matrix including LTFRB GPS-provider/device requirements, current modern-PUV technical issuances, current service-contracting rules, NTC approval/conformity requirements, and the Data Privacy Act.
 
 Never market a tracker as **LTFRB approved/compliant/accredited** without documentary evidence for the exact provider/device/SKU status.
 
@@ -542,14 +496,12 @@ Government positioning:
 
 ---
 
-## 20. Commercial model
+## 21. Commercial model
 
 ### Rider
-
 Free.
 
 ### Operator / cooperative
-
 Potential revenue:
 
 - free/basic phone tracking;
@@ -562,54 +514,54 @@ Potential revenue:
 - API/integration plan;
 - LGU/government deployment/support contract.
 
-The existing `₱100/month per route` can remain as an MVP/pilot artifact but should not define long-term telematics pricing. Operational value and infrastructure cost scale primarily by active fleet vehicles/integrations.
+The existing `₱100/month per route` may remain as an MVP/pilot artifact but should not define long-term telematics pricing. Infrastructure value/cost scale primarily by active vehicles and integrations.
 
 ---
 
-## 21. Remaining engineering queue
+## 22. Remaining engineering queue
 
-### P0 — validation / direct hardware reliability
+### P0 — external validation/deployment
 
 1. Clear GitHub Actions billing lock or run equivalent local frozen install + lint + build.
 2. Restore authorized access to the intended Barangay Buddy Supabase project.
 3. Apply migrations in order and run both verification suites.
-4. Make direct `/api/telematics/v1/ingest` sequence + position + receipt finalization transactional.
-5. Add direct device/gateway rate limits and replay-window controls appropriate for expected 10–15 second telemetry.
+4. Run direct-device, gateway and rate-limit smoke tests in the deployed test environment.
 
 ### P1 — pilot operations
 
-6. Run real outbound/inbound direction and stop-subset smoke tests.
-7. Run variant congestion rollup and compare actual ETA with road travel.
-8. Test cellular loss, offline buffering, reconnect and duplicate replay.
+5. Run real outbound/inbound direction and stop-subset tests.
+6. Run variant congestion rollup and compare ETA with actual road travel.
+7. Test cellular loss, offline buffering, reconnect and duplicate replay.
+8. Validate/tune the 300/min buffered-replay ceiling using real device behavior.
 9. Make fleet off-route/headway thresholds cooperative-configurable.
-10. Add operational alerting for stale/offline hardware and ingest failures.
+10. Add production operational alerting for stale/offline hardware, ingest failures and rate-limit events.
 
 ### P2 — ecosystem
 
-11. Build first real vendor adapter after receiving protocol/API docs (TOPFLYtech or Jimi/cooperative feed).
+11. Build first real vendor protocol adapter after receiving TOPFLYtech/Jimi/cooperative docs.
 12. Add scoped partner/API clients.
 13. Add GTFS static + GTFS-Realtime VehiclePositions/TripUpdates.
 14. Add government/LGU read-only service-coverage/headway dashboard.
-15. Add audit/export/report package for cooperative/regulatory pilot discussions.
+15. Add audit/export/report package for cooperative/regulatory pilots.
 
 ---
 
-## 22. Pilot success criteria
+## 23. Pilot success criteria
 
 For an initial 5–25 vehicle deployment:
 
 - >99% accepted telemetry while cellular service is available;
 - offline buffer/resend demonstrated;
 - multiple active vehicles visible independently;
-- real physical unit identity shown to rider/dispatcher;
-- secure tracker/vendor-to-vehicle identity;
+- secure physical unit/tracker/vendor identity;
 - accurate trip + route + direction association;
+- direct and gateway replay idempotency demonstrated;
+- normal and buffered traffic remain below/tolerate configured rate ceiling;
 - inbound/outbound stop subsets verified;
 - stale/offline detection verified;
 - outbound/inbound congestion history kept separate;
-- useful ETA ranges compared with actual travel;
+- ETA compared with actual travel;
 - cooperative live fleet visibility;
-- direct tracker and external gateway replay protection verified;
 - exact NTC/LTFRB hardware/provider status documented;
 - privacy/data-retention controls documented.
 
