@@ -1,279 +1,152 @@
 # Barangay Buddy Jeepney Mobility Platform
 
-**Status:** Active build plan  
+**Status:** Active build — multi-vehicle rider tracking + hardware foundation implemented in code  
 **Working branch:** `feature/jeepney-planner-live-route-ui`  
-**Primary product:** Barangay Buddy Jeepney Planner / Public Transport Mobility Platform  
+**Open PR:** #3 → `main`  
 **Last updated:** 2026-08-17
 
 ---
 
 ## 1. Product goal
 
-Build Barangay Buddy from a commuter-facing Jeepney Planner into a **device-agnostic Philippine public-transport telemetry platform** that can:
+Build Barangay Buddy into a **device-agnostic Philippine public-transport telemetry platform** combining:
 
-- show multiple live jeepneys on the same route;
-- calculate useful rider ETAs and route progress;
-- accept GPS from driver phones, Barangay Buddy branded trackers, existing cooperative trackers, and OEM telematics;
-- give operators and cooperatives a fleet-management dashboard;
-- expose controlled read-only regulatory views/APIs for LTFRB, DOTr, LTO, and LGUs where appropriate;
-- maintain route, trip, device, vehicle, and telemetry audit trails;
-- support future GTFS / GTFS-Realtime output;
-- remain open to multiple hardware vendors so Barangay Buddy controls the platform and normalized data model.
+- free commuter route discovery and live jeepney tracking;
+- multiple simultaneous vehicles per route;
+- pickup ETAs, stops, service hours and alerts;
+- driver-phone GPS fallback;
+- Barangay Buddy branded hardwired GPS hardware;
+- existing cooperative/vendor GPS integrations;
+- operator/cooperative fleet management;
+- controlled LGU/LTFRB/partner dashboards and APIs;
+- route/trip/device/vehicle audit history;
+- future GTFS / GTFS-Realtime output.
 
-> **Product principle:** Hardware is replaceable. The normalized transport-data network, rider network, operational history, fleet software, and integrations are the moat.
+> **Platform principle:** Hardware is replaceable. Barangay Buddy should own the normalized transport-data layer, rider experience, operational history, fleet software and integrations.
 
 ---
 
-## 2. Current implementation audit
+## 2. Current code status
 
-### Existing product foundation
+### Existing foundation
 
 - [x] Public `/jeepney` route directory and map
-- [x] Route detail pages
-- [x] Routes and stops
+- [x] `/jeepney/$slug` route detail
+- [x] Route and stop management
 - [x] Operator accounts
 - [x] Vehicle table
 - [x] GPS position history
-- [x] Supabase Realtime for GPS positions
-- [x] Phone-based live GPS broadcasting
-- [x] ~15 second phone position cadence
-- [x] Trip records
-- [x] Distance / average speed / ping tracking
-- [x] Route and segment analytics
-- [x] Congestion visualization
-- [x] Breakdown / repaired alerts
+- [x] Supabase Realtime position feed
+- [x] Driver-phone GPS broadcasting (~15 sec)
+- [x] Trips and trip analytics
+- [x] Segment speed / congestion analytics
+- [x] Breakdown and repaired alerts
 - [x] Rider route follows
-- [x] Route claims / admin review
-- [x] Device request workflow
-- [x] OpenStreetMap route import workflow
+- [x] Route claims/admin review
+- [x] OpenStreetMap route import
 
-### Confirmed architectural problems
+### Multi-vehicle rider tracking — implemented
 
-- [ ] **P0: Public live state is keyed by `route_id`, so only one live marker can be shown per route.** The database already supports `vehicle_id`; the UI collapses multiple active vehicles into one route-level position.
-- [x] **P0: Dedicated server-side hardware telemetry gateway now exists.** Trackers do not write directly to Supabase.
-- [ ] **P0: Route publication/status authorization needs hardening.** Operator-owned route updates still include fields that should become server/admin controlled transitions.
-- [ ] **P1: Vehicle identity is too tightly coupled to `route_id`.** A permanent fleet vehicle must be able to operate different routes/trips.
-- [x] **P1 foundation: GPS device provisioning, identity, installation assignments and current device health are now represented in schema.**
-- [ ] **P1: Fleet/cooperative dispatch and headway management are missing.**
-- [ ] **P1: ETA map matching relies too heavily on route-node proximity rather than projected location along route geometry.**
-- [ ] **P2: No GTFS / GTFS-Realtime export yet.**
-- [ ] **P2: No government/LGU read-only operations view or partner API yet.**
+- [x] Replaced route-keyed live state with stable broadcaster/vehicle-keyed live state
+- [x] Preserve latest live GPS report independently for each `vehicle_id`
+- [x] Keep one compatibility stream per route for legacy phone reports without `vehicle_id`
+- [x] Render every current vehicle marker on overview map
+- [x] Render every current vehicle marker on route-detail map
+- [x] Route cards show number of live GPS units
+- [x] Route detail shows number of live units
+- [x] Independent per-unit speed and last-seen display
+- [x] Five-minute stale rule remains enforced
+- [x] Realtime INSERT updates merge into the correct vehicle stream
+- [x] Polling fallback rebuilds latest position per vehicle
+- [x] Route detail ranks approaching vehicles by ETA
+- [x] Rider geolocation ranks vehicles against the nearest mapped stop
+
+Implementation files:
+
+- `src/lib/jeepney-live.ts`
+- `src/components/jeepney-map.tsx`
+- `src/components/jeepney-live-vehicle-list.tsx`
+- `src/routes/jeepney.index.tsx`
+- `src/routes/jeepney.$slug.tsx`
+
+### Multi-vehicle limitations still to solve
+
+- [ ] Use actual fleet body/unit label rather than shortened vehicle UUID in public UI
+- [ ] Detect outbound vs inbound/return direction
+- [ ] Add route variants/directions
+- [ ] Improve path projection beyond nearest route node
+- [ ] Model stop dwell time
+- [ ] Add headway/bunching to ETA confidence
+- [ ] Add automated rider smoke tests with several vehicles on one route
 
 ---
 
-## 3. Target architecture
+## 3. Telemetry architecture
 
 ```text
-GPS sources
+GPS SOURCES
   |
   +-- Driver phone / PWA
-  +-- Barangay Buddy hardwired 4G GNSS tracker
-  +-- Existing cooperative GPS API / webhook
-  +-- TOPFLYtech adapter
-  +-- Jimi IoT / Concox adapter
-  +-- Teltonika adapter
-  +-- Queclink adapter
-  +-- OEM telematics adapter
+  +-- Barangay Buddy 4G GNSS tracker
+  +-- Cooperative vendor API/webhook
+  +-- TOPFLYtech
+  +-- Jimi / Concox
+  +-- Teltonika
+  +-- Queclink
+  +-- OEM telematics
   |
   v
-Barangay Buddy Telemetry Gateway
+BARANGAY BUDDY TELEMETRY GATEWAY
   - device authentication
-  - protocol decoding
+  - protocol decoding/adapters
+  - timestamp + coordinate validation
   - duplicate/replay controls
-  - timestamp validation
-  - coordinate/speed validation
-  - device health ingestion
-  - normalized event model
+  - device health
+  - normalization
   |
   v
-Transport Core
-  - devices
-  - vehicles
-  - device assignments
-  - trips
-  - routes / route variants
-  - positions
-  - ETAs / headways
-  - analytics
+TRANSPORT CORE
+  operator/cooperative
+       |
+     vehicle ---- installed device
+       |
+      trip
+       |
+  route / route variant
+       |
+  positions + ETA + analytics
   |
-  +----------------+-----------------+-----------------+
-  |                |                 |                 |
-  v                v                 v                 v
-Rider Map       Operator          Cooperative       Partner / Gov
-& ETAs          Dashboard         Fleet Control     Read-only/API
+  +----------+-----------+------------+
+  |          |           |            |
+ Rider    Operator   Cooperative   Partner/LGU
 ```
 
 ---
 
-## 4. Tracking tiers
+## 4. Hardware foundation — implemented
 
-### Tier A — Driver phone
+Migration:
 
-Keep the existing browser/PWA geolocation tracker for immediate onboarding and pilots.
+- `supabase/migrations/20260817215000_jeepney_hardware_foundation.sql`
 
-- no hardware cost;
-- suitable for small operators and demos;
-- current cadence is approximately 15 seconds;
-- tracking can stop when the browser/app is closed or restricted by the OS.
-
-### Tier B — Existing cooperative GPS integration
-
-Allow cooperatives to keep current hardware and connect data to Barangay Buddy through:
-
-- HTTPS webhook;
-- REST/vendor API adapter;
-- TCP/UDP device protocol;
-- MQTT where supported.
-
-### Tier C — Barangay Buddy branded hardware
-
-Primary commercial tracker should be a concealed, hardwired **4G GNSS** unit rather than depending on OBD-II.
-
-Desired minimum capabilities:
-
-- Philippine-compatible LTE;
-- GNSS;
-- TCP and/or UDP, preferably MQTT/TLS;
-- configurable 10–15 second moving interval;
-- offline buffering and resend;
-- ignition/ACC input;
-- external-power-loss detection;
-- backup battery;
-- IMEI and firmware identification;
-- configurable I/O;
-- remote configuration / OTA where possible;
-- ability to point directly to Barangay Buddy servers;
-- no mandatory vendor-cloud dependency.
-
-### Tier D — OEM telematics
-
-Support modern PUV manufacturers exposing an approved telemetry feed without requiring a second GPS box.
-
----
-
-## 5. Hardware sourcing
-
-### First vendors to sample
-
-1. **TOPFLYtech** — OEM/ODM candidate
-2. **Jimi IoT / Concox** — OEM/ODM candidate
-3. **Teltonika** — premium/reference supported hardware
-4. **Queclink** — premium/reference supported hardware
-
-### RFQ quantities
-
-Request:
-
-- 5–25 engineering/sample units;
-- 100-unit pilot pricing;
-- 1,000-unit production pricing;
-- Barangay Buddy logo/casing/packaging MOQ.
-
-### Required RFQ questions
-
-- Can the unit report directly to our host/IP and port?
-- Is the raw device protocol fully documented?
-- Can vendor cloud be disabled?
-- Supported TCP/UDP/MQTT/TLS modes?
-- Configurable reporting interval?
-- Offline buffering/resend behavior?
-- Ignition / ACC detection?
-- External power disconnect/tamper alert?
-- Backup battery?
-- I/O and RS232/RS485 options?
-- Philippine LTE bands?
-- IMEI / ICCID / firmware reporting?
-- OTA/configuration capability?
-- Existing NTC certifications or Philippine deployments?
-- Documentation/support for NTC type approval/type acceptance?
-- Documentation/support for LTFRB device/provider testing/accreditation?
-- Warranty/RMA terms?
-
-**Do not order production inventory until raw protocol/server control, Philippine radio compliance path, and LTFRB compliance status for the exact SKU are verified.**
-
----
-
-## 6. Regulatory / legal workstream
-
-### Agency order
-
-1. DOTr
-2. LTFRB
-3. LTO
-4. NTC
-5. LGUs / local transport offices
-6. Transport cooperatives / corporations
-
-### Working interpretation
-
-- LTFRB is the primary PUV operating/franchise regulator for the GPS-provider/fleet-tracking proposal.
-- LTO remains relevant to registration, vehicle identity, roadworthiness and potential data integration.
-- NTC is relevant to radio/cellular equipment type approval/type acceptance and supplier/dealer requirements.
-- Modern PUV technical rules include GNSS capability, but program-specific requirements can change; do not make blanket public claims without checking the current circular/program.
-
-### Compliance references to maintain
-
-- LTFRB Memorandum Circular 2015-013 — GPS device provider accreditation/specifications
-- Current LTFRB modern PUV technical specification issuances
-- Current DOTr/LTFRB service-contracting rules
-- NTC Type Approval / Type Acceptance / Equipment Conformity requirements
-- Republic Act No. 10173 — Data Privacy Act of 2012
-
-### Compliance matrix required before government presentation
-
-| Requirement | Source | BB platform | Candidate hardware | Evidence | Status |
-|---|---|---|---|---|---|
-| Position accuracy | LTFRB | Gateway validation | Vendor test | Test report | TBD |
-| Reporting interval | LTFRB | Configurable | Vendor config | Protocol/config dump | TBD |
-| Offline storage/resend | LTFRB | Duplicate handling | Vendor buffer | Test | TBD |
-| Server routing | LTFRB | BB gateway | Configurable host | Config evidence | TBD |
-| Power-loss handling | LTFRB | Event/health storage | Device alert | Test | TBD |
-| Device identity | Platform | Public ID + hashed secret | IMEI | Provisioning record | BUILDING |
-
-No hardware should be marketed as **LTFRB compliant**, **LTFRB approved**, or **LTFRB accredited** until exact approval/accreditation status is documented.
-
----
-
-## 7. Data model
-
-### Permanent identity
-
-`operator/cooperative -> vehicle -> installed device`
-
-A vehicle is a fleet asset. It should not permanently equal one route.
-
-### Operational identity
-
-`vehicle -> trip -> route / route variant`
-
-The trip determines which route a vehicle is operating at that time.
-
-### Implemented hardware tables
+Tables:
 
 - [x] `jeepney_gps_devices`
 - [x] `jeepney_device_assignments`
 - [x] `jeepney_device_ingest_receipts`
 
-### Later tables
-
-- [ ] `jeepney_sim_cards` if SIM management needs its own lifecycle
-- [ ] installation photos/tamper seal records
-- [ ] `jeepney_route_variants`
-- [ ] `jeepney_partner_integrations`
-- [ ] `jeepney_api_clients`
-
-### Current device record supports
+Device record supports:
 
 - operator ownership;
-- public tracker ID;
+- public device ID;
 - IMEI;
 - manufacturer/model;
-- firmware;
+- firmware version;
 - hashed device credential;
 - SIM ICCID;
-- device lifecycle status;
+- lifecycle status;
 - last seen;
-- last coordinates/speed/heading/accuracy;
+- coordinates/speed/heading/accuracy;
 - ignition;
 - external voltage;
 - backup battery percentage;
@@ -281,120 +154,201 @@ The trip determines which route a vehicle is operating at that time.
 - latest event type;
 - private metadata.
 
-### Public-position privacy boundary
-
-Raw tracker identity and health are **not** added directly to the public `jeepney_positions` row. A restricted ingest-receipt table maps an accepted position back to the physical tracker for audit purposes.
+Public `jeepney_positions` does **not** expose raw tracker credentials or detailed hardware identity. Restricted ingest receipts map accepted positions to physical devices for audit purposes.
 
 ---
 
-## 8. Device security model
+## 5. Hardware APIs — implemented
 
-Never put Supabase service-role credentials into trackers.
+### `POST /api/telematics/v1/provision`
 
-### Implemented flow
+Admin-only provisioning flow:
 
-1. Admin calls `/api/telematics/v1/provision` using authenticated admin access.
-2. Server generates a 256-bit random device secret.
-3. Server stores only its SHA-256 hash.
-4. Original secret is returned once to the provisioning administrator.
-5. Device is optionally installed onto a fleet vehicle.
-6. Tracker sends telemetry to `/api/telematics/v1/ingest`.
-7. Tracker authenticates with `x-bb-device-id` and `x-bb-device-secret`.
-8. Server hashes and validates the supplied secret.
-9. Server resolves the installed vehicle.
-10. Server prefers the vehicle's active trip for route association and temporarily falls back to legacy `jeepney_vehicles.route_id` during migration.
-11. Server writes a `source = hardware` position to the existing realtime pipeline.
-12. Server writes a private ingest receipt and updates device health.
+1. Authenticate user.
+2. Require admin role.
+3. Generate 256-bit random device secret.
+4. Store only SHA-256 hash.
+5. Return original secret once.
+6. Optionally install device onto a vehicle.
 
-### Still required for production hardening
+### `POST /api/telematics/v1/ingest`
 
-- [ ] HMAC/signed requests where tracker supports it
-- [ ] stronger replay protection / transactional deduplication
-- [ ] credential rotation
+Tracker flow:
+
+1. Send `x-bb-device-id`.
+2. Send `x-bb-device-secret`.
+3. Validate hashed credential server-side.
+4. Validate telemetry payload/timestamp.
+5. Reject suspended/retired tracker.
+6. Resolve current device-to-vehicle installation.
+7. Prefer active trip for route association.
+8. Temporarily fall back to legacy `jeepney_vehicles.route_id`.
+9. Write `source = hardware` to `jeepney_positions`.
+10. Update device health.
+11. Store restricted ingest receipt.
+
+Trackers never receive Supabase service-role credentials.
+
+### Production hardening still required
+
+- [ ] HMAC/signed requests where supported
+- [ ] transactional replay/dedup protection
+- [ ] secret rotation
 - [ ] per-device rate limiting
-- [ ] IP/network anomaly detection
-- [ ] device revocation UI
+- [ ] device revoke/suspend UI
 - [ ] provisioning audit UI
+- [ ] anomaly detection
 
 ---
 
-## 9. Rider experience — P0 multi-vehicle change
+## 6. Permanent data model target
 
-The UI must stop using one value per route:
-
-```ts
-Record<routeId, JeepneyPosition>
-```
-
-and move toward live vehicles such as:
-
-```ts
-Record<routeId, Record<vehicleId, JeepneyPosition>>
-```
-
-or another normalized structure indexed by route + vehicle.
-
-Expected result:
+Permanent fleet identity:
 
 ```text
-Laoag Route A
-  Jeepney BB-104    2–4 min
-  Jeepney BB-219    7–9 min
-  Jeepney BB-087   12–15 min
+cooperative/operator -> vehicle -> installed device
 ```
 
-### ETA stages
+Operational assignment:
 
-1. Current simple route-distance ETA
-2. Project GPS point onto route geometry instead of nearest stored node
-3. Detect route direction / trip progress
-4. Incorporate segment-speed history
-5. Incorporate current fleet headway
-6. Add stop dwell-time model
-7. Add ETA confidence interval and stale-data confidence
+```text
+vehicle -> trip -> route_variant
+```
+
+A vehicle must **not** permanently equal one route. `jeepney_vehicles.route_id` remains only as temporary compatibility while trip-based assignment becomes authoritative.
+
+Future tables/features:
+
+- [ ] route variants/directions
+- [ ] cooperative organization model
+- [ ] dedicated SIM lifecycle if needed
+- [ ] installation photos / tamper seal records
+- [ ] partner integrations
+- [ ] scoped API clients
 
 ---
 
-## 10. Fleet / cooperative dashboard target
+## 7. ETA roadmap
 
-Eventually show:
+Current ETA uses route progress + speed and available segment-speed history.
 
-- all active vehicles;
-- current/assigned route;
+Upgrade order:
+
+1. [x] Multiple active vehicles retained independently
+2. [x] Per-vehicle ETA to next/nearest mapped stop
+3. [ ] Proper perpendicular projection onto route geometry
+4. [ ] Direction / route-variant detection
+5. [ ] Trip progress state
+6. [ ] Stop dwell-time model
+7. [ ] Fleet headway/bunching
+8. [ ] ETA confidence interval and stale-data confidence
+
+---
+
+## 8. Fleet/cooperative dashboard target
+
+Show:
+
+- all active vehicles on map;
+- active trip/route/direction;
 - last GPS age;
 - ignition;
 - moving/stopped/offline;
 - speed;
 - route deviation;
-- headway/bunching;
-- first/last trip;
-- breakdowns;
+- headway and bunching;
 - tracker health;
-- SIM/connectivity health;
+- SIM/connectivity status;
+- breakdowns;
 - kilometers/day;
-- service hours;
 - trips completed;
-- CSV/API exports.
+- service hours;
+- exports/API.
 
 ---
 
-## 11. Regulatory / partner dashboard target
+## 9. Government / partner view
 
-Read-only, scoped by organization/jurisdiction/agreement:
+Read-only and scope-controlled by agreement/jurisdiction:
 
 - active units by route;
-- service coverage;
 - route adherence;
+- service coverage;
 - headways;
 - trip completion;
 - offline devices;
 - fleet availability;
-- aggregate speeds/congestion;
+- aggregate congestion;
 - breakdown/service alerts;
-- exports/API;
-- audit history where required.
+- audit/export tooling;
+- controlled API access.
 
 Do not expose unnecessary driver personal data on the public rider map.
+
+---
+
+## 10. Hardware sourcing
+
+Primary sample candidates:
+
+1. **TOPFLYtech** — OEM/ODM candidate
+2. **Jimi IoT / Concox** — OEM/ODM candidate
+3. **Teltonika** — premium/reference integration
+4. **Queclink** — premium/reference integration
+
+Preferred primary hardware is concealed hardwired **4G GNSS**, not OBD-II as the default.
+
+RFQ quantities:
+
+- 5–25 engineering/sample units;
+- 100-unit pilot;
+- 1,000-unit production pricing;
+- Barangay Buddy logo/casing/packaging MOQ.
+
+Required vendor capabilities:
+
+- Philippine-compatible LTE;
+- direct IP/domain + port configuration;
+- raw device protocol documentation;
+- TCP/UDP and preferably MQTT/TLS;
+- configurable 10–15 sec moving reports;
+- offline buffering/resend;
+- ignition/ACC;
+- power-disconnect alert;
+- backup battery;
+- IMEI/ICCID/firmware reporting;
+- OTA/configuration capability;
+- documented Philippine/NTC status;
+- support documents for LTFRB testing/accreditation.
+
+**Do not order production inventory until server control, protocol access, Philippine radio compliance and exact LTFRB status are verified.**
+
+---
+
+## 11. Regulatory workstream
+
+Primary agencies:
+
+1. DOTr
+2. LTFRB
+3. LTO
+4. NTC
+5. LGUs/local transport offices
+6. Cooperatives/corporations
+
+Maintain a compliance matrix against current requirements, including:
+
+- LTFRB MC 2015-013 GPS provider/device requirements;
+- current modern-PUV technical issuances;
+- current DOTr/LTFRB service-contracting rules;
+- NTC type approval/type acceptance/equipment conformity;
+- Republic Act No. 10173 (Data Privacy Act).
+
+Never market a device as **LTFRB approved/compliant/accredited** without documentary evidence for the exact provider/device status.
+
+Government positioning:
+
+> Barangay Buddy should be presented as an open, standards-based public-transport mobility platform that can ingest existing accredited hardware as well as Barangay Buddy supplied hardware—not as a request for government to mandate one proprietary tracker.
 
 ---
 
@@ -404,73 +358,74 @@ Do not expose unnecessary driver personal data on the public rider map.
 
 Free.
 
-### Operator/cooperative
-
-Long-term pricing should move from route-only pricing toward **active fleet units + service level**.
-
-Possible revenue:
+### Operator/cooperative revenue
 
 - free/basic phone tracking;
-- per-vehicle Fleet Basic;
-- per-vehicle Fleet Pro;
+- per-active-vehicle fleet subscription;
 - cooperative fleet plan;
-- tracker sale;
-- tracker lease;
-- installation fee;
+- tracker sale or lease;
+- installation;
 - managed SIM/connectivity;
-- analytics subscription;
-- API/integration plan;
+- premium analytics;
+- API/integration plans;
 - LGU/government deployment/support contracts.
 
-The current `₱100/month per route` can remain during MVP/pilot but should not define the final telemetry pricing model.
+Current `₱100/month per route` can remain for MVP/pilot but should not define long-term telematics pricing.
 
 ---
 
 ## 13. Build phases
 
-### Phase 0 — Stabilize current branch
+### Phase 0 — Branch stabilization
 
-- [ ] Merge/resolve active Jeepney PR cleanly when ready
-- [ ] Verify migrations deployed in target Supabase project
+- [ ] Resolve PR #3 mergeability/conflicts with `main`
+- [ ] Run build/lint after conflict resolution
+- [ ] Verify all migrations in target Supabase project
 - [ ] Verify production deployment branch
-- [ ] Add rider/operator/admin smoke tests
+- [ ] Add smoke tests
 
-### Phase 1 — Multi-vehicle live tracking **P0 — NEXT**
+### Phase 1 — Multi-vehicle rider tracking
 
-- [ ] Change live state from one-per-route to one-per-vehicle
-- [ ] Render every current vehicle marker
-- [ ] Preserve route filtering/focus
-- [ ] Show vehicle label/body number where permitted
-- [ ] Show independent last-seen time and speed
-- [ ] Prevent stale vehicle markers from appearing live
-- [ ] Update route detail to choose relevant approaching vehicles
+- [x] Vehicle-keyed live state
+- [x] Multiple map markers per route
+- [x] Overview live vehicle counts
+- [x] Route-detail live vehicle counts
+- [x] Independent speed/last-seen
+- [x] Stale pruning
+- [x] Realtime merge by vehicle
+- [x] Polling latest-per-vehicle
+- [x] Approaching vehicle list
+- [x] Nearest-stop ETA ranking
+- [ ] Actual body/unit number lookup
+- [ ] Direction/return-route support
+- [ ] Automated multi-vehicle tests
 
-### Phase 2 — Hardware foundation **P0 — STARTED**
+### Phase 2 — Hardware foundation
 
-- [x] Define hardware/device architecture
-- [x] Add `jeepney_gps_devices`
-- [x] Add `jeepney_device_assignments`
-- [x] Add restricted ingest receipts
-- [x] Add server-side `/api/telematics/v1/ingest`
-- [x] Add hashed device-secret authentication
-- [x] Add device heartbeat/health updates
-- [x] Add admin-only `/api/telematics/v1/provision`
-- [x] Preserve legacy phone tracking
-- [ ] Add provisioning/admin UI
-- [ ] Add secret rotation/revoke workflow
-- [ ] Add transactional deduplication/rate limiting
+- [x] Hardware architecture
+- [x] GPS device schema
+- [x] Device assignment schema
+- [x] Restricted ingest receipts
+- [x] Secure JSON ingest endpoint
+- [x] Hashed device secrets
+- [x] Device health updates
+- [x] Admin provisioning endpoint
+- [x] Preserve phone tracker fallback
+- [ ] Admin/operator provisioning UI
+- [ ] Device health UI
+- [ ] Secret rotation/revoke
+- [ ] Transactional dedup/rate limiting
 
-### Phase 3 — Vehicle / route decoupling **P1**
+### Phase 3 — Vehicle / route decoupling
 
-- [ ] Treat vehicle as permanent fleet asset
-- [ ] Use active trip for current route assignment everywhere
-- [ ] Keep temporary compatibility with legacy `jeepney_vehicles.route_id`
-- [ ] Add route direction / variants
-- [ ] Add trip lifecycle suitable for hardware auto-tracking
+- [ ] Permanent vehicle fleet identity
+- [ ] Active trip authoritative for route assignment everywhere
+- [ ] Route variants/directions
+- [ ] Hardware-compatible automatic trip lifecycle
 
-### Phase 4 — Fleet control **P1**
+### Phase 4 — Fleet control
 
-- [ ] Cooperative organization/fleet structure
+- [ ] Cooperative organization/fleet model
 - [ ] Dispatcher dashboard
 - [ ] Device-health board
 - [ ] Headway/bunching detection
@@ -478,91 +433,104 @@ The current `₱100/month per route` can remain during MVP/pilot but should not 
 - [ ] Offline tracker alerts
 - [ ] Shift/trip reports
 
-### Phase 5 — Hardware adapters **P1**
+### Phase 5 — Hardware/vendor adapters
 
-- [ ] Generic JSON/webhook adapter
-- [ ] TOPFLYtech adapter
-- [ ] Jimi/Concox adapter
-- [ ] Teltonika adapter
-- [ ] Queclink adapter
-- [ ] Existing cooperative vendor connector
+- [ ] Generic cooperative JSON/webhook adapter
+- [ ] TOPFLYtech
+- [ ] Jimi/Concox
+- [ ] Teltonika
+- [ ] Queclink
 
-### Phase 6 — Compliance / pilot **P1**
+### Phase 6 — Compliance + pilot
 
 - [ ] Hardware RFQs
-- [ ] Sample-device bench testing
-- [ ] NTC status review
+- [ ] Sample bench testing
+- [ ] NTC exact-SKU review
 - [ ] LTFRB compliance matrix
 - [ ] Pilot cooperative agreement
 - [ ] Install 5–25 units
-- [ ] Measure uptime, accuracy, cellular coverage and data usage
+- [ ] Measure uptime, accuracy, coverage and data usage
 
-### Phase 7 — Open transit / government **P2**
+### Phase 7 — Open transit / government
 
-- [ ] GTFS static export
+- [ ] GTFS static
 - [ ] GTFS-Realtime VehiclePositions
 - [ ] GTFS-Realtime TripUpdates
 - [ ] Partner API keys/scopes
 - [ ] LTFRB/LGU read-only dashboard
-- [ ] Audit/export tooling
+- [ ] Audit/export tools
 
 ---
 
 ## 14. Immediate implementation queue
 
-1. **Refactor public live map to retain all active vehicle positions.**
-2. Refactor route detail to show multiple approaching jeepneys.
-3. Add admin/operator device provisioning UI on top of the new API.
-4. Add device-health/fleet dashboard.
-5. Complete vehicle-to-route decoupling around active trips.
-6. Refactor route status transitions so publication/verification is server/admin controlled while breakdown reporting remains usable.
-7. Start vendor adapters once sample protocol documentation is obtained.
+1. **Resolve PR #3 merge conflict/mergeability against `main`.**
+2. **Apply/verify new hardware migration in the target Supabase project.**
+3. Build admin/operator GPS provisioning + device-health UI.
+4. Harden route publication/status authorization.
+5. Move vehicle route assignment fully to active trips.
+6. Add route direction/variants and proper geometry projection.
+7. Add cooperative fleet dashboard/headway monitoring.
+8. Obtain sample tracker protocol documentation and begin adapters.
+9. Run 5–25 vehicle pilot.
 
 ---
 
 ## 15. Implementation log
 
-### 2026-08-17 — Audit and architecture
+### 2026-08-17 — Architecture/audit
 
-- Audited current Jeepney feature branch.
-- Confirmed existing phone GPS, trips, realtime positions, route claims, analytics, congestion and device-request foundations.
-- Confirmed one-live-marker-per-route limitation.
-- Established device-agnostic architecture.
-- Established DOTr/LTFRB/LTO/NTC regulatory workstream.
-- Created this master build document.
+- Audited Jeepney Planner branch.
+- Identified one-marker-per-route limitation.
+- Established device-agnostic telemetry architecture.
+- Established regulatory/hardware sourcing workstreams.
+- Created master build document.
 
 ### 2026-08-17 — Hardware foundation
 
-- Added migration `20260817215000_jeepney_hardware_foundation.sql`.
-- Added `jeepney_gps_devices` with hashed secret, IMEI/device metadata and current health.
-- Added `jeepney_device_assignments` with one-active-installation constraints.
-- Added private `jeepney_device_ingest_receipts` to map accepted rider positions to physical devices without exposing hardware metadata publicly.
+- Added `20260817215000_jeepney_hardware_foundation.sql`.
+- Added secure GPS device identities and vehicle installation assignments.
+- Added restricted ingest receipts.
 - Added `/api/telematics/v1/ingest`.
-- Added device-secret authentication and duplicate sequence lookup.
-- Added active-trip-first route resolution with temporary legacy `vehicle.route_id` fallback.
-- Added `/api/telematics/v1/provision` for admin-created trackers and optional vehicle installation.
-- Provisioning returns the device secret once; only its SHA-256 hash remains in the database.
-- Hardware positions feed the existing `jeepney_positions` realtime stream using `source = hardware`.
+- Added `/api/telematics/v1/provision`.
+- Added active-trip-first route resolution with temporary legacy fallback.
 
-**Next engineering target:** multi-vehicle rider live state and map markers.
+### 2026-08-17 — Multi-vehicle rider P0
+
+- Added `src/lib/jeepney-live.ts`.
+- Live state now retains latest position per vehicle instead of per route.
+- Realtime updates merge by vehicle identity.
+- Polling rebuilds latest positions independently.
+- Overview map renders every active unit.
+- Route detail renders every active unit.
+- Route cards/detail report live fleet count.
+- Added per-unit speed and last-seen UI.
+- Added approaching-vehicle ETA list.
+- Rider location selects nearest mapped stop and sorts approaching vehicles by ETA.
+- Kept legacy phone broadcasts compatible when `vehicle_id` is missing.
+
+### Validation state
+
+- GitHub currently reports no CI status checks for the latest branch commit.
+- PR #3 is currently reported as **open, unmerged and not mergeable** against `main`; conflict resolution/branch stabilization is therefore the next gate before production merge.
+- Hardware migration and production deployment still require verification in the target environment.
 
 ---
 
-## 16. First pilot definition of success
+## 16. Pilot success criteria
 
-For a 5–25 vehicle pilot, Barangay Buddy should demonstrate:
+For a 5–25 vehicle pilot:
 
 - >99% accepted telemetry while cellular service is available;
-- documented offline buffering/resend behavior;
-- all simultaneously active jeepneys visible independently;
-- tracker identity tied to installed vehicle;
-- secure device credential with revocation;
-- accurate route/trip association;
+- offline buffer/resend demonstrated;
+- all simultaneous active vehicles visible independently;
+- secure tracker-to-vehicle identity;
 - stale/offline detection;
+- accurate route/trip/direction association;
 - useful rider ETA ranges;
-- operator fleet visibility;
+- cooperative fleet visibility;
 - daily trip/service reports;
-- documented NTC/LTFRB status for the exact hardware SKU;
-- documented privacy/data-retention controls.
+- exact NTC/LTFRB hardware status documented;
+- privacy/data-retention controls documented.
 
-That becomes the evidence package for larger cooperative and government discussions.
+That evidence package becomes the basis for larger cooperative, LGU and government discussions.
