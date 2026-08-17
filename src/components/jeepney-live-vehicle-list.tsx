@@ -56,11 +56,18 @@ function updatedLabel(recordedAt: string) {
   return `${Math.floor(ageSeconds / 60)}m ago`;
 }
 
+function manilaHour() {
+  const now = new Date();
+  return new Date(now.getTime() + (8 * 60 + now.getTimezoneOffset()) * 60000).getHours();
+}
+
 export function JeepneyLiveVehicleList({ route, positions, variants, userLocation, speeds }: Props) {
   const [vehicleLabels, setVehicleLabels] = useState<Record<string, string>>({});
   const [loadedVariants, setLoadedVariants] = useState<JeepneyRouteVariant[]>([]);
   const [variantStops, setVariantStops] = useState<JeepneyRouteVariantStop[]>([]);
+  const [variantSpeedMaps, setVariantSpeedMaps] = useState<Record<string, Map<number, number>>>({});
   const effectiveVariants = variants ?? loadedVariants;
+  const currentHour = useMemo(manilaHour, []);
   const variantIdsKey = useMemo(
     () => effectiveVariants.map((variant) => variant.id).sort().join(","),
     [effectiveVariants],
@@ -88,23 +95,53 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
     const variantIds = variantIdsKey ? variantIdsKey.split(",") : [];
     if (!variantIds.length) {
       setVariantStops([]);
+      setVariantSpeedMaps({});
       return;
     }
 
     let cancelled = false;
     void (async () => {
-      const { data } = await (supabase as any)
-        .from("jeepney_route_variant_stops")
-        .select("variant_id,stop_id,position")
-        .in("variant_id", variantIds)
-        .order("position", { ascending: true });
+      const [membershipResult, speedResult] = await Promise.all([
+        (supabase as any)
+          .from("jeepney_route_variant_stops")
+          .select("variant_id,stop_id,position")
+          .in("variant_id", variantIds)
+          .order("position", { ascending: true }),
+        (supabase as any)
+          .from("jeepney_segment_stats")
+          .select("route_variant_id,segment_index,hour,avg_speed_kph")
+          .eq("route_id", route.id)
+          .eq("hour", currentHour)
+          .in("route_variant_id", variantIds),
+      ]);
       if (cancelled) return;
-      setVariantStops((data ?? []).map(parseRouteVariantStop));
+
+      setVariantStops((membershipResult.data ?? []).map(parseRouteVariantStop));
+
+      if (speedResult.error) {
+        // Backward-compatible before the route_variant_id analytics migration is
+        // deployed: default direction still receives the parent `speeds` map and
+        // non-default directions fall back to live/default vehicle speed.
+        setVariantSpeedMaps({});
+        return;
+      }
+
+      const next: Record<string, Map<number, number>> = {};
+      for (const row of speedResult.data ?? []) {
+        if (!row.route_variant_id) continue;
+        const speed = Number(row.avg_speed_kph);
+        const index = Number(row.segment_index);
+        if (!Number.isFinite(speed) || speed <= 0 || !Number.isInteger(index) || index < 0) continue;
+        const map = next[String(row.route_variant_id)] ?? new Map<number, number>();
+        map.set(index, speed);
+        next[String(row.route_variant_id)] = map;
+      }
+      setVariantSpeedMaps(next);
     })();
     return () => {
       cancelled = true;
     };
-  }, [variantIdsKey]);
+  }, [currentHour, route.id, variantIdsKey]);
 
   useEffect(() => {
     const ids = Array.from(
@@ -179,12 +216,11 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
         currentProjection && targetProjection && targetProjection.alongKm <= currentProjection.alongKm + 0.02,
       );
 
-      // Existing congestion segment indexes are based on the canonical/default
-      // route geometry. Never reuse them on a different inbound/custom polyline.
-      const variantSpeeds = variant?.is_default ? speeds : new Map<number, number>();
+      const historicalVariantSpeeds = variant ? variantSpeedMaps[variant.id] : undefined;
+      const etaSpeeds = historicalVariantSpeeds ?? (variant?.is_default ? speeds : new Map<number, number>());
       const eta = passedTarget
         ? null
-        : etaMinutesProjected(path, current, targetPoint, position.speed_kph, variantSpeeds);
+        : etaMinutesProjected(path, current, targetPoint, position.speed_kph, etaSpeeds);
 
       return {
         position,
@@ -214,8 +250,8 @@ export function JeepneyLiveVehicleList({ route, positions, variants, userLocatio
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             {userLocation
-              ? "Each unit is ranked using its exact travel direction, configured stops and segment-projected position near your stop."
-              : "Each unit uses its own outbound/inbound geometry, configured stop set and segment-projected GPS position."}
+              ? "Each unit is ranked using its exact direction, eligible stops, projected road position and direction-specific traffic history when available."
+              : "Each unit uses its exact route geometry, eligible stops and direction-specific traffic history when available."}
           </p>
         </div>
         <Badge className="bg-emerald-600 text-white">
