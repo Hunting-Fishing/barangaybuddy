@@ -1,11 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Radio, RadioTower } from "lucide-react";
+import { Plus, Radio, RadioTower } from "lucide-react";
 import { haversineKm, type LatLng } from "@/lib/jeepney";
 
 const PING_MS = 15000;
+
+type FleetVehicle = {
+  id: string;
+  label: string;
+  plate_number: string | null;
+  seats: number | null;
+  active: boolean;
+};
 
 export function JeepneyLiveToggle({
   routeId,
@@ -19,6 +28,12 @@ export function JeepneyLiveToggle({
   const [live, setLive] = useState(false);
   const [lastSent, setLastSent] = useState<Date | null>(null);
   const [distanceKm, setDistanceKm] = useState(0);
+  const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState(vehicleId ?? "");
+  const [loadingVehicles, setLoadingVehicles] = useState(true);
+  const [newUnitLabel, setNewUnitLabel] = useState("");
+  const [newPlate, setNewPlate] = useState("");
+  const [addingVehicle, setAddingVehicle] = useState(false);
   const watchRef = useRef<number | null>(null);
   const lastPushRef = useRef(0);
   const tripIdRef = useRef<string | null>(null);
@@ -26,6 +41,44 @@ export function JeepneyLiveToggle({
   const distanceRef = useRef(0);
   const pingsRef = useRef(0);
   const startedRef = useRef<number>(0);
+  const activeVehicleIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (vehicleId) setSelectedVehicleId(vehicleId);
+  }, [vehicleId]);
+
+  useEffect(() => {
+    if (vehicleId) {
+      setLoadingVehicles(false);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      setLoadingVehicles(true);
+      const { data, error } = await supabase
+        .from("jeepney_vehicles")
+        .select("id,label,plate_number,seats,active")
+        .eq("route_id", routeId)
+        .eq("active", true)
+        .order("created_at", { ascending: true });
+
+      if (cancelled) return;
+      setLoadingVehicles(false);
+      if (error) {
+        toast.error("Could not load the jeepney units for this route.");
+        return;
+      }
+
+      const rows = (data ?? []) as FleetVehicle[];
+      setVehicles(rows);
+      setSelectedVehicleId((current) => current || rows[0]?.id || "");
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [routeId, vehicleId]);
 
   useEffect(() => {
     return () => {
@@ -55,7 +108,41 @@ export function JeepneyLiveToggle({
       watchRef.current = null;
     }
     setLive(false);
+    activeVehicleIdRef.current = null;
     void closeTrip();
+  }
+
+  async function addVehicle() {
+    const label = newUnitLabel.trim();
+    if (label.length < 1) {
+      toast.error("Enter the jeepney body/unit number or label first.");
+      return;
+    }
+
+    setAddingVehicle(true);
+    const { data, error } = await supabase
+      .from("jeepney_vehicles")
+      .insert({
+        route_id: routeId,
+        label,
+        plate_number: newPlate.trim() || null,
+        active: true,
+      })
+      .select("id,label,plate_number,seats,active")
+      .maybeSingle();
+    setAddingVehicle(false);
+
+    if (error || !data) {
+      toast.error("Could not add this jeepney unit. Check the unit details and try again.");
+      return;
+    }
+
+    const row = data as FleetVehicle;
+    setVehicles((current) => [...current, row]);
+    setSelectedVehicleId(row.id);
+    setNewUnitLabel("");
+    setNewPlate("");
+    toast.success(`${row.label} is ready for live tracking.`);
   }
 
   async function start() {
@@ -63,18 +150,32 @@ export function JeepneyLiveToggle({
       toast.error("This phone does not support location sharing.");
       return;
     }
+
+    const unitId = vehicleId ?? selectedVehicleId;
+    if (!unitId) {
+      toast.error("Select or add the jeepney unit this phone is tracking.");
+      return;
+    }
+
+    activeVehicleIdRef.current = unitId;
     distanceRef.current = 0;
     pingsRef.current = 0;
     lastPointRef.current = null;
+    lastPushRef.current = 0;
     startedRef.current = Date.now();
     setDistanceKm(0);
 
     if (operatorId) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("jeepney_trips")
-        .insert({ route_id: routeId, operator_id: operatorId, vehicle_id: vehicleId ?? null })
+        .insert({ route_id: routeId, operator_id: operatorId, vehicle_id: unitId })
         .select("id")
         .maybeSingle();
+      if (error) {
+        activeVehicleIdRef.current = null;
+        toast.error("Could not start the trip record. Please try again.");
+        return;
+      }
       tripIdRef.current = data?.id ?? null;
     }
 
@@ -92,9 +193,11 @@ export function JeepneyLiveToggle({
           }
         }
         lastPointRef.current = point;
+        const activeUnitId = activeVehicleIdRef.current;
+        if (!activeUnitId) return;
         const { error } = await supabase.from("jeepney_positions").insert({
           route_id: routeId,
-          vehicle_id: vehicleId ?? null,
+          vehicle_id: activeUnitId,
           latitude: point.lat,
           longitude: point.lng,
           heading: Number.isFinite(pos.coords.heading) ? pos.coords.heading : null,
@@ -121,13 +224,20 @@ export function JeepneyLiveToggle({
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 },
     );
     setLive(true);
-    toast.success("You are live — riders can see this jeepney on the map.");
+    const label = vehicles.find((unit) => unit.id === unitId)?.label;
+    toast.success(
+      label
+        ? `${label} is live — riders can track this jeepney independently.`
+        : "You are live — riders can see this jeepney on the map.",
+    );
   }
+
+  const selectedVehicle = vehicles.find((unit) => unit.id === selectedVehicleId) ?? null;
 
   return (
     <div className="rounded-lg border border-border p-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 text-sm font-semibold">
             {live ? (
               <RadioTower className="h-4 w-4 text-emerald-600" />
@@ -141,16 +251,85 @@ export function JeepneyLiveToggle({
               ? lastSent
                 ? `Last ping ${lastSent.toLocaleTimeString()} · ${distanceKm.toFixed(1)} km this shift`
                 : "Waiting for your first GPS fix…"
-              : "Turn on when you start your trip. Keep this tab open."}
+              : "Choose the actual jeepney unit, then go live. Keep this tab open."}
           </p>
         </div>
-        <Button size="sm" variant={live ? "destructive" : "default"} onClick={live ? stop : () => void start()}>
+        <Button
+          size="sm"
+          variant={live ? "destructive" : "default"}
+          onClick={live ? stop : () => void start()}
+          disabled={!live && (loadingVehicles || !(vehicleId ?? selectedVehicleId))}
+        >
           {live ? "End shift" : "Go live"}
         </Button>
       </div>
+
+      {!vehicleId ? (
+        <div className="mt-3 space-y-2 rounded-lg bg-slate-50 p-2.5">
+          <label className="block text-xs font-semibold text-slate-700" htmlFor={`jeepney-unit-${routeId}`}>
+            Jeepney unit/body number
+          </label>
+          {vehicles.length > 0 ? (
+            <select
+              id={`jeepney-unit-${routeId}`}
+              value={selectedVehicleId}
+              disabled={live || loadingVehicles}
+              onChange={(event) => setSelectedVehicleId(event.target.value)}
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">Select a unit</option>
+              {vehicles.map((unit) => (
+                <option key={unit.id} value={unit.id}>
+                  {unit.label}{unit.plate_number ? ` · ${unit.plate_number}` : ""}
+                </option>
+              ))}
+            </select>
+          ) : loadingVehicles ? (
+            <p className="text-xs text-muted-foreground">Loading fleet units…</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Add the first physical jeepney for this route. Each phone/tracker must use its own unit.
+            </p>
+          )}
+
+          {!live ? (
+            <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+              <Input
+                value={newUnitLabel}
+                onChange={(event) => setNewUnitLabel(event.target.value)}
+                placeholder="Body/unit no. e.g. BB-104"
+                className="h-9"
+              />
+              <Input
+                value={newPlate}
+                onChange={(event) => setNewPlate(event.target.value)}
+                placeholder="Plate (optional)"
+                className="h-9"
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void addVehicle()}
+                disabled={addingVehicle || !newUnitLabel.trim()}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" /> {addingVehicle ? "Adding…" : "Add unit"}
+              </Button>
+            </div>
+          ) : null}
+
+          {selectedVehicle && !live ? (
+            <p className="text-[11px] text-emerald-700">
+              GPS will identify this phone as {selectedVehicle.label} for the entire shift.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       <p className="mt-2 text-[11px] text-muted-foreground">
-        Every shift feeds your route analytics — busy hours, trends and traffic congestion. Tracking
-        stops if the browser is closed; a plug-in tracker device removes that limit.
+        Every shift feeds route analytics — busy hours, trends and traffic congestion. A unique vehicle
+        ID also lets multiple jeepneys on the same route appear separately. Tracking stops if the browser
+        is closed; a hardwired tracker removes that limit.
       </p>
     </div>
   );
