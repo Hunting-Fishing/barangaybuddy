@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { JeepneyClaimDialog } from "@/components/jeepney-claim-dialog";
 import { JeepneyFollowButton } from "@/components/jeepney-follow-button";
 import { JeepneyInsightsCard } from "@/components/jeepney-insights-card";
+import { JeepneyLiveVehicleList } from "@/components/jeepney-live-vehicle-list";
 import {
   JeepneyRouteLivePanel,
   type JeepneyRouteAlert,
@@ -336,32 +337,12 @@ function JeepneyRoutePage() {
               </ClientOnly>
             </Card>
 
-            {routePositions.length > 0 ? (
-              <Card className="rounded-2xl border-blue-100 p-4 shadow-sm">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="font-semibold">Active GPS units</p>
-                    <p className="text-xs text-muted-foreground">Latest position retained independently for every vehicle.</p>
-                  </div>
-                  <Badge variant="secondary">{routePositions.length} online</Badge>
-                </div>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {routePositions.map((position, index) => (
-                    <div key={position.vehicle_id ?? position.id} className="rounded-xl border bg-slate-50 px-3 py-2.5 text-sm">
-                      <p className="font-semibold text-slate-900">
-                        {position.vehicle_id
-                          ? `Unit …${position.vehicle_id.slice(-6).toUpperCase()}`
-                          : `Live unit ${index + 1}`}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        Updated {new Date(position.recorded_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-                        {position.speed_kph ? ` · ${Math.round(Number(position.speed_kph))} km/h` : ""}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            ) : null}
+            <JeepneyLiveVehicleList
+              route={route}
+              positions={routePositions}
+              userLocation={me}
+              speeds={speeds}
+            />
 
             {speeds.size > 0 ? (
               <Card className="flex flex-wrap items-center gap-4 rounded-2xl p-4 text-xs text-muted-foreground">
