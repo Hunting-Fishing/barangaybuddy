@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- hardware tables are migration-backed and may precede generated Supabase types. */
+/* eslint-disable @typescript-eslint/no-explicit-any -- hardware/fleet tables are migration-backed and may precede generated Supabase types. */
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -91,7 +91,7 @@ export const Route = createFileRoute("/api/telematics/v1/devices")({
               .order("display_name", { ascending: true }),
             (supabaseAdmin as any)
               .from("jeepney_vehicles")
-              .select("id,route_id,label,plate_number,active")
+              .select("id,operator_id,route_id,label,plate_number,active")
               .order("label", { ascending: true }),
             (supabaseAdmin as any)
               .from("jeepney_routes")
@@ -193,20 +193,13 @@ export const Route = createFileRoute("/api/telematics/v1/devices")({
 
           const { data: vehicle, error: vehicleError } = await (supabaseAdmin as any)
             .from("jeepney_vehicles")
-            .select("id,route_id,label,active")
+            .select("id,operator_id,label,active")
             .eq("id", vehicleId)
             .maybeSingle();
           if (vehicleError) return jsonError("Could not verify vehicle", 503);
           if (!vehicle) return jsonError("Vehicle not found", 404);
           if (vehicle.active === false) return jsonError("Vehicle is inactive", 409);
-
-          const { data: route, error: routeError } = await (supabaseAdmin as any)
-            .from("jeepney_routes")
-            .select("id,operator_id")
-            .eq("id", vehicle.route_id)
-            .maybeSingle();
-          if (routeError) return jsonError("Could not verify vehicle ownership", 503);
-          if (!route || route.operator_id !== device.operator_id) {
+          if (vehicle.operator_id !== device.operator_id) {
             return jsonError("Vehicle does not belong to the tracker's operator", 409);
           }
 
