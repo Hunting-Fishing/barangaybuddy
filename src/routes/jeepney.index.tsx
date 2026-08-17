@@ -32,6 +32,13 @@ import {
   type JeepneyStop,
   type LatLng,
 } from "@/lib/jeepney";
+import {
+  buildLatestLivePositions,
+  livePositionsForRoute,
+  mergeLivePosition,
+  pruneStaleLivePositions,
+  type JeepneyLivePositions,
+} from "@/lib/jeepney-live";
 
 const JeepneyMap = lazy(() => import("@/components/jeepney-map"));
 
@@ -47,7 +54,7 @@ export const Route = createFileRoute("/jeepney/")({
       { property: "og:title", content: "Barangay Buddy Jeepney Planner" },
       {
         property: "og:description",
-        content: "Know the route. Know the pickup time. Know whether the jeepney already passed or is still coming.",
+        content: "Know the route. Know the pickup time. Know whether it already passed or is still coming.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -60,7 +67,7 @@ type RouteWithStops = JeepneyRoute & { stops: JeepneyStop[] };
 
 function JeepneyIndexPage() {
   const [routes, setRoutes] = useState<RouteWithStops[]>([]);
-  const [live, setLive] = useState<Record<string, JeepneyPosition>>({});
+  const [live, setLive] = useState<JeepneyLivePositions>({});
   const [query, setQuery] = useState("");
   const [me, setMe] = useState<LatLng | null>(null);
   const [nearOnly, setNearOnly] = useState(false);
@@ -78,7 +85,7 @@ function JeepneyIndexPage() {
         (payload) => {
           const next = payload.new as JeepneyPosition;
           if (!next?.route_id || !isLive(next.recorded_at)) return;
-          setLive((current) => ({ ...current, [next.route_id]: next }));
+          setLive((current) => pruneStaleLivePositions(mergeLivePosition(current, next)));
         },
       )
       .subscribe();
@@ -114,13 +121,9 @@ function JeepneyIndexPage() {
       .select("*")
       .gte("recorded_at", since)
       .order("recorded_at", { ascending: false })
-      .limit(500);
+      .limit(1000);
 
-    const latest: Record<string, JeepneyPosition> = {};
-    (data ?? []).forEach((p: any) => {
-      if (!latest[p.route_id]) latest[p.route_id] = p as JeepneyPosition;
-    });
-    setLive(latest);
+    setLive(buildLatestLivePositions((data ?? []) as JeepneyPosition[]));
   }
 
   function locate() {
@@ -175,7 +178,7 @@ function JeepneyIndexPage() {
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
                 <Badge className="border-white/15 bg-white/10 text-white hover:bg-white/10">
-                  <Navigation className="mr-1 h-3.5 w-3.5" /> Live route position
+                  <Navigation className="mr-1 h-3.5 w-3.5" /> Live vehicle positions
                 </Badge>
                 <Badge className="border-white/15 bg-white/10 text-white hover:bg-white/10">
                   <Clock3 className="mr-1 h-3.5 w-3.5" /> Approx. pickup times
@@ -193,7 +196,7 @@ function JeepneyIndexPage() {
               </div>
               <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
                 <p className="text-2xl font-black text-emerald-300">{liveCount}</p>
-                <p className="mt-1 text-xs text-blue-100/80">Live right now</p>
+                <p className="mt-1 text-xs text-blue-100/80">Live vehicles</p>
               </div>
               <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm">
                 <p className="text-2xl font-black text-blue-200">24/7</p>
@@ -246,7 +249,7 @@ function JeepneyIndexPage() {
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#071d49] text-[#f5b400]">
                   <Bus className="h-4 w-4" />
                 </span>
-                Barangay Buddy live marker
+                One marker per active jeepney
               </div>
             </div>
             <ClientOnly fallback={<div className="h-[72vh] min-h-[520px] bg-slate-100" />}>
@@ -281,8 +284,8 @@ function JeepneyIndexPage() {
             ) : null}
 
             {filtered.map((route) => {
-              const position = live[route.id];
-              const onRoad = Boolean(position && isLive(position.recorded_at));
+              const routePositions = livePositionsForRoute(live, route.id);
+              const onRoad = routePositions.length > 0;
               const active = activeRouteId === route.id;
               return (
                 <Card
@@ -310,7 +313,10 @@ function JeepneyIndexPage() {
                         </div>
                       </div>
                       <Badge className={onRoad ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700"}>
-                        <Radio className="mr-1 h-3 w-3" /> {onRoad ? "Live" : "Scheduled"}
+                        <Radio className="mr-1 h-3 w-3" />
+                        {onRoad
+                          ? `${routePositions.length} live ${routePositions.length === 1 ? "unit" : "units"}`
+                          : "Scheduled"}
                       </Badge>
                     </div>
 
@@ -337,6 +343,14 @@ function JeepneyIndexPage() {
                       ) : null}
                       <span>·</span>
                       <span>{route.stops.length} mapped stops</span>
+                      {onRoad ? (
+                        <>
+                          <span>·</span>
+                          <span className="font-semibold text-emerald-700">
+                            {routePositions.length} GPS {routePositions.length === 1 ? "vehicle" : "vehicles"}
+                          </span>
+                        </>
+                      ) : null}
                     </div>
 
                     {route.stops.length ? (
@@ -366,7 +380,7 @@ function JeepneyIndexPage() {
                 <Sparkles className="h-4 w-4 text-amber-600" /> How live tracking works
               </p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Operators broadcast GPS while on shift. If GPS stops updating for five minutes, the route automatically falls back to schedule mode instead of showing stale location data.
+                Each active vehicle keeps its own live GPS marker. If a vehicle stops updating for five minutes, that unit is removed from the live map while route schedules remain available.
               </p>
             </Card>
           </div>
