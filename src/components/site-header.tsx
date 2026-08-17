@@ -7,6 +7,7 @@ import {
   Search,
   Fuel,
   Bus,
+  PackageCheck,
   LayoutDashboard,
   MessageSquare,
   LogOut,
