@@ -31,6 +31,7 @@ import { Route as CitiesCityRouteImport } from './routes/cities.$city'
 import { Route as DeliveryIndexRouteImport } from './routes/delivery.index'
 import { Route as DeliveryOrdersRouteImport } from './routes/delivery.orders'
 import { Route as DeliveryRequestRouteImport } from './routes/delivery.request'
+import { Route as DeliveryRiderRouteImport } from './routes/delivery.rider'
 import { Route as GroupsIndexRouteImport } from './routes/groups.index'
 import { Route as GroupsSlugRouteImport } from './routes/groups.$slug'
 import { Route as InventoryBusinessIdRouteImport } from './routes/inventory.$businessId'
@@ -174,6 +175,11 @@ const DeliveryOrdersRoute = DeliveryOrdersRouteImport.update({
 const DeliveryRequestRoute = DeliveryRequestRouteImport.update({
   id: '/delivery/request',
   path: '/delivery/request',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeliveryRiderRoute = DeliveryRiderRouteImport.update({
+  id: '/delivery/rider',
+  path: '/delivery/rider',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GroupsIndexRoute = GroupsIndexRouteImport.update({
@@ -376,6 +382,7 @@ export interface FileRoutesByFullPath {
   '/cities/$city': typeof CitiesCityRoute
   '/delivery/orders': typeof DeliveryOrdersRoute
   '/delivery/request': typeof DeliveryRequestRoute
+  '/delivery/rider': typeof DeliveryRiderRoute
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/jeepney/$slug': typeof JeepneySlugRoute
@@ -434,6 +441,7 @@ export interface FileRoutesByTo {
   '/cities/$city': typeof CitiesCityRoute
   '/delivery/orders': typeof DeliveryOrdersRoute
   '/delivery/request': typeof DeliveryRequestRoute
+  '/delivery/rider': typeof DeliveryRiderRoute
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/jeepney/$slug': typeof JeepneySlugRoute
@@ -493,6 +501,7 @@ export interface FileRoutesById {
   '/cities/$city': typeof CitiesCityRoute
   '/delivery/orders': typeof DeliveryOrdersRoute
   '/delivery/request': typeof DeliveryRequestRoute
+  '/delivery/rider': typeof DeliveryRiderRoute
   '/groups/$slug': typeof GroupsSlugRouteWithChildren
   '/inventory/$businessId': typeof InventoryBusinessIdRoute
   '/jeepney/$slug': typeof JeepneySlugRoute
@@ -553,6 +562,7 @@ export interface FileRouteTypes {
     | '/cities/$city'
     | '/delivery/orders'
     | '/delivery/request'
+    | '/delivery/rider'
     | '/groups/$slug'
     | '/inventory/$businessId'
     | '/jeepney/$slug'
@@ -611,6 +621,7 @@ export interface FileRouteTypes {
     | '/cities/$city'
     | '/delivery/orders'
     | '/delivery/request'
+    | '/delivery/rider'
     | '/groups/$slug'
     | '/inventory/$businessId'
     | '/jeepney/$slug'
@@ -669,6 +680,7 @@ export interface FileRouteTypes {
     | '/cities/$city'
     | '/delivery/orders'
     | '/delivery/request'
+    | '/delivery/rider'
     | '/groups/$slug'
     | '/inventory/$businessId'
     | '/jeepney/$slug'
@@ -728,6 +740,7 @@ export interface RootRouteChildren {
   CitiesCityRoute: typeof CitiesCityRoute
   DeliveryOrdersRoute: typeof DeliveryOrdersRoute
   DeliveryRequestRoute: typeof DeliveryRequestRoute
+  DeliveryRiderRoute: typeof DeliveryRiderRoute
   GroupsSlugRoute: typeof GroupsSlugRouteWithChildren
   InventoryBusinessIdRoute: typeof InventoryBusinessIdRoute
   JeepneySlugRoute: typeof JeepneySlugRoute
@@ -913,6 +926,13 @@ declare module '@tanstack/react-router' {
       path: '/delivery/request'
       fullPath: '/delivery/request'
       preLoaderRoute: typeof DeliveryRequestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delivery/rider': {
+      id: '/delivery/rider'
+      path: '/delivery/rider'
+      fullPath: '/delivery/rider'
+      preLoaderRoute: typeof DeliveryRiderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/groups/': {
@@ -1230,6 +1250,7 @@ const rootRouteChildren: RootRouteChildren = {
   CitiesCityRoute: CitiesCityRoute,
   DeliveryOrdersRoute: DeliveryOrdersRoute,
   DeliveryRequestRoute: DeliveryRequestRoute,
+  DeliveryRiderRoute: DeliveryRiderRoute,
   GroupsSlugRoute: GroupsSlugRouteWithChildren,
   InventoryBusinessIdRoute: InventoryBusinessIdRoute,
   JeepneySlugRoute: JeepneySlugRoute,
