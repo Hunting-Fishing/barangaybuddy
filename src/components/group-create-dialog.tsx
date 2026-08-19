@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,166 +10,110 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
-import { slugifyTeam } from "@/lib/groups";
-import { Loader2, Plus } from "lucide-react";
+import { useGroupCreateForm } from "@/hooks/use-group-create-form";
+import { GroupFormAbout } from "@/components/group-form-about";
+import { GroupFormMembership } from "@/components/group-form-membership";
+import { GroupFormPayments } from "@/components/group-form-payments";
+import { Check, Loader2, Plus } from "lucide-react";
 
-type GroupType = "league" | "club" | "interest_group";
+const STEPS = [
+  { id: 1, label: "About your group" },
+  { id: 2, label: "Membership" },
+  { id: 3, label: "Contact & payments" },
+] as const;
 
 export function GroupCreateDialog({ onSubmitted }: { onSubmitted?: () => void }) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [name, setName] = useState("");
-  const [type, setType] = useState<GroupType>("club");
-  const [description, setDescription] = useState("");
-  const [fee, setFee] = useState("0");
-  const [period, setPeriod] = useState("365");
-  const [payment, setPayment] = useState("");
+  const { form, update, step, setStep, next, back, submitting, submit, reset } =
+    useGroupCreateForm(onSubmitted);
 
-  async function submit() {
+  async function handleSubmit() {
     if (!user) {
       toast.error("Sign in to apply for a group listing.");
       return;
     }
-    const trimmed = name.trim();
-    if (trimmed.length < 3) {
-      toast.error("Please enter your group name.");
-      return;
-    }
-    setSubmitting(true);
-    const slug = `${slugifyTeam(trimmed)}-${Math.random().toString(36).slice(2, 6)}`;
-    const { error } = await (supabase as any).from("groups").insert({
-      slug,
-      name: trimmed,
-      type,
-      description: description.trim() || null,
-      membership_fee_php: Math.max(0, Number(fee) || 0),
-      membership_period_days: Math.max(1, Number(period) || 365),
-      payment_instructions: payment.trim() || null,
-      is_public: false,
-      created_by: user.id,
-    });
-    setSubmitting(false);
-    if (error) {
-      toast.error(error.message ?? "Could not submit your group.");
-      return;
-    }
-    setOpen(false);
-    setName("");
-    setDescription("");
-    setPayment("");
-    toast.success(
-      "Application sent! Our team will review your group and publish it to the directory.",
-    );
-    onSubmitted?.();
+    const ok = await submit(user.id);
+    if (ok) setOpen(false);
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(value) => {
+        setOpen(value);
+        if (!value) reset();
+      }}
+    >
       <DialogTrigger asChild>
         <Button className="gap-2">
           <Plus className="h-4 w-4" /> Add a group
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+      <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add your club or league</DialogTitle>
+          <DialogTitle className="font-display text-2xl">Add your club or league</DialogTitle>
           <DialogDescription>
-            Tell us about your group. We review every application before it goes live on the
-            directory.
+            Tell us about your group and how members join. Every application is reviewed before it
+            goes live on the directory.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="group-name">Group name</Label>
-            <Input
-              id="group-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Cebu City Darts Club"
-            />
-          </div>
+        <ol className="flex items-center gap-2">
+          {STEPS.map((s) => {
+            const done = step > s.id;
+            const active = step === s.id;
+            return (
+              <li key={s.id} className="flex flex-1 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => (s.id < step ? setStep(s.id) : undefined)}
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                    active
+                      ? "bg-primary text-primary-foreground"
+                      : done
+                        ? "bg-primary/15 text-primary"
+                        : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {done ? <Check className="h-3.5 w-3.5" /> : s.id}
+                </button>
+                <span
+                  className={`hidden text-xs font-medium sm:block ${
+                    active ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  {s.label}
+                </span>
+                {s.id !== 3 && <span className="h-px flex-1 bg-border" />}
+              </li>
+            );
+          })}
+        </ol>
 
-          <div>
-            <Label htmlFor="group-type">Group type</Label>
-            <Select value={type} onValueChange={(v) => setType(v as GroupType)}>
-              <SelectTrigger id="group-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="league">League</SelectItem>
-                <SelectItem value="club">Club</SelectItem>
-                <SelectItem value="interest_group">Interest group</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="group-desc">Description</Label>
-            <Textarea
-              id="group-desc"
-              rows={4}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What your group does, where you play or meet, and who can join."
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="group-fee">Membership fee (₱)</Label>
-              <Input
-                id="group-fee"
-                type="number"
-                min={0}
-                value={fee}
-                onChange={(e) => setFee(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="group-period">Membership length (days)</Label>
-              <Input
-                id="group-period"
-                type="number"
-                min={1}
-                value={period}
-                onChange={(e) => setPeriod(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="group-pay">Payment instructions (optional)</Label>
-            <Textarea
-              id="group-pay"
-              rows={3}
-              value={payment}
-              onChange={(e) => setPayment(e.target.value)}
-              placeholder="e.g. GCash 09XX XXX XXXX (Juan D.) — send the reference number after paying."
-            />
-          </div>
+        <div className="pt-2">
+          {step === 1 && <GroupFormAbout form={form} update={update} />}
+          {step === 2 && <GroupFormMembership form={form} update={update} />}
+          {step === 3 && <GroupFormPayments form={form} update={update} />}
         </div>
 
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>
-            Cancel
+        <DialogFooter className="gap-2 sm:justify-between">
+          <Button
+            variant="ghost"
+            onClick={() => (step === 1 ? setOpen(false) : back())}
+            disabled={submitting}
+          >
+            {step === 1 ? "Cancel" : "Back"}
           </Button>
-          <Button onClick={submit} disabled={submitting}>
-            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Submit for review
-          </Button>
+          {step < 3 ? (
+            <Button onClick={next}>Continue</Button>
+          ) : (
+            <Button onClick={handleSubmit} disabled={submitting}>
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Submit for review
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

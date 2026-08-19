@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
+import { GroupPaymentCard } from "@/components/group-payment-card";
 import type { GroupRow, MembershipRow } from "@/lib/groups";
 import { formatPhp } from "@/lib/groups";
 import { Loader2 } from "lucide-react";
@@ -94,11 +95,7 @@ export function GroupJoinDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {group.payment_instructions && (
-          <div className="whitespace-pre-wrap rounded-lg border border-border bg-muted/50 p-3 text-sm">
-            {group.payment_instructions}
-          </div>
-        )}
+        <GroupPaymentCard group={group} />
 
         <div className="space-y-3">
           <div>

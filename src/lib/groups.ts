@@ -16,6 +16,17 @@ export type GroupRow = {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  tagline?: string | null;
+  city_code?: string | null;
+  barangay_code?: string | null;
+  contact_name?: string | null;
+  contact_email?: string | null;
+  contact_url?: string | null;
+  max_members?: number | null;
+  join_policy?: "open" | "approval";
+  benefits?: string[] | null;
+  payment_methods?: unknown;
+  online_payment_enabled?: boolean;
 };
 
 export type MembershipRow = {
