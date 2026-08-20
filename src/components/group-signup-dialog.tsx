@@ -21,6 +21,7 @@ import type { GroupRow, MembershipRow } from "@/lib/groups";
 import { formatPhp } from "@/lib/groups";
 import { CheckCircle2, CreditCard, Loader2, Wallet } from "lucide-react";
 import { LeagueCheckoutDialog } from "@/components/league-checkout-dialog";
+import { GroupPaymentCard } from "@/components/group-payment-card";
 import { paymentsConfigured } from "@/lib/stripe";
 
 const METHODS = [
@@ -184,11 +185,8 @@ export function GroupSignupDialog({
               Or pay manually (GCash / Maya / bank)
             </div>
 
-            {group.payment_instructions && (
-              <div className="whitespace-pre-wrap rounded-lg border border-border bg-muted/50 p-3 text-sm">
-                {group.payment_instructions}
-              </div>
-            )}
+            <GroupPaymentCard group={group} amountPhp={group.membership_fee_php} />
+
             <div>
               <Label>Payment method</Label>
               <div className="mt-1.5 flex flex-wrap gap-2">

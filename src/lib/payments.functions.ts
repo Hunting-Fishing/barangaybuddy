@@ -89,10 +89,10 @@ export const createLeagueCheckout = createServerFn({ method: "POST" })
         userId,
       });
 
-      const session = await stripe.checkout.sessions.create({
+      const baseParams = {
         line_items: [{ price: price.id, quantity: data.seats }],
-        mode: "payment",
-        ui_mode: "embedded_page",
+        mode: "payment" as const,
+        ui_mode: "embedded_page" as const,
         return_url: data.returnUrl,
         customer: customerId,
         payment_intent_data: {
@@ -106,9 +106,22 @@ export const createLeagueCheckout = createServerFn({ method: "POST" })
           seats: String(data.seats),
           ...(data.teamId ? { teamId: data.teamId } : {}),
         },
-      });
+      };
+
+      // Prefer GCash + Maya (PH wallets) when the Stripe account supports them;
+      // fall back to whatever the account has enabled otherwise.
+      let session;
+      try {
+        session = await stripe.checkout.sessions.create({
+          ...baseParams,
+          payment_method_types: ["gcash", "paymaya", "card"] as never,
+        });
+      } catch {
+        session = await stripe.checkout.sessions.create(baseParams);
+      }
 
       return { clientSecret: session.client_secret ?? "" };
+
     } catch (error) {
       return { error: getStripeErrorMessage(error) };
     }
