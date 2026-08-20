@@ -21,6 +21,7 @@ import type { GroupRow, MembershipRow } from "@/lib/groups";
 import { formatPhp } from "@/lib/groups";
 import { CheckCircle2, CreditCard, Loader2, Wallet } from "lucide-react";
 import { LeagueCheckoutDialog } from "@/components/league-checkout-dialog";
+import { GroupPaymentCard } from "@/components/group-payment-card";
 import { paymentsConfigured } from "@/lib/stripe";
 
 const METHODS = [
