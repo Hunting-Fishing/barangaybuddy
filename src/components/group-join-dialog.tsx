@@ -95,7 +95,7 @@ export function GroupJoinDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <GroupPaymentCard group={group} />
+        <GroupPaymentCard group={group} amountPhp={group.membership_fee_php} />
 
         <div className="space-y-3">
           <div>
