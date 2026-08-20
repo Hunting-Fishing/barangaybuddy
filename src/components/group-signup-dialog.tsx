@@ -184,11 +184,8 @@ export function GroupSignupDialog({
               Or pay manually (GCash / Maya / bank)
             </div>
 
-            {group.payment_instructions && (
-              <div className="whitespace-pre-wrap rounded-lg border border-border bg-muted/50 p-3 text-sm">
-                {group.payment_instructions}
-              </div>
-            )}
+            <GroupPaymentCard group={group} amountPhp={group.membership_fee_php} />
+
             <div>
               <Label>Payment method</Label>
               <div className="mt-1.5 flex flex-wrap gap-2">
