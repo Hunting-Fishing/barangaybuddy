@@ -42,8 +42,13 @@ export function GroupJoinDialog({
       toast.error("Sign in to join.");
       return;
     }
-    setSubmitting(true);
     const paymentRef = ref.trim();
+    if (group.membership_fee_php > 0 && paymentRef.replace(/\D/g, "").length < 4) {
+      toast.error("Enter the reference number from your GCash / Maya / bank receipt.");
+      return;
+    }
+    setSubmitting(true);
+
     const payload = {
       group_id: group.id,
       user_id: user.id,
